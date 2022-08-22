@@ -1,0 +1,295 @@
+import saucer;
+import std.conv: to;
+import std.stdio: writeln;
+
+
+//TODO: This is where you can clean the type and transform it to SEXP or whatever.
+string CleanType(string __type__)()
+{
+  static if(__type__ == "SEXPREC*")
+  {
+    return "SEXP";
+  }
+  //TODO: Account for other types
+  return __type__;
+}
+
+
+/*
+  @title Signature object
+  
+  @param name of the function name
+  @param signature of the function
+*/
+struct Signature
+{
+  string orig_name;
+  string new_name;
+  long nargs;
+  string signature;
+}
+
+struct FunctionCall
+{
+  string orig_name;
+  string result_name;
+  bool is_void;
+  string call;
+}
+
+
+
+
+/*
+  @title Function to convert D function signatures to R compatible signatures 
+  from a module.
+
+  @param string module_name the name of the module to be processed
+*/
+auto convert_signatures(string module_name)()
+{
+  import std.traits: ReturnType, Parameters, ParameterIdentifierTuple;
+
+  Signature[] signatures;
+  //loads the module here
+  mixin("import " ~ module_name ~ ";");
+  static foreach(long i, item; __traits(allMembers, mixin(module_name)))
+  {
+    //Filters if the item has attributes
+    static if(__traits(getAttributes, mixin(item)).length > 0)
+    {
+      //Iterating over attributes
+      static foreach(attr; __traits(getAttributes, mixin(item)))
+      {{
+        //Filters if the attribute is exportd
+        static if(is(typeof(attr) == exportd))
+        {
+          string new_name = "__R_" ~ item ~ "__";
+          long nargs = mixin("ParameterIdentifierTuple!" ~ item).length;
+          string func_signature = "SEXP " ~ new_name ~ "(";
+          static foreach(i, param; mixin("ParameterIdentifierTuple!" ~ item))
+          {
+            if(i < (nargs - 1))
+            {
+              func_signature ~= "SEXP " ~ param ~ ", ";
+            }else{
+              func_signature ~= "SEXP " ~ param;
+            }
+          }
+          func_signature ~= ")";
+          signatures ~= Signature(item, new_name, nargs, func_signature);
+        }
+      }}
+    }
+  }
+  return signatures;
+}
+
+
+/*
+  @title Function to construct the call of the wrapped D function
+*/
+auto rd_calls(string module_name)()
+{
+  import std.traits: ReturnType, Parameters, ParameterIdentifierTuple;
+  
+  FunctionCall[] functioncalls;
+  mixin("import " ~ module_name ~ ";");
+  static foreach(long i, item; __traits(allMembers, mixin(module_name)))
+  {
+    static if(__traits(getAttributes, mixin(item)).length > 0)
+    {
+      static foreach(attr; __traits(getAttributes, mixin(item)))
+      {{
+        static if(is(typeof(attr) == exportd))
+        {
+          long nargs = mixin("ParameterIdentifierTuple!" ~ item).length;
+          string func_call = item ~ "(";
+          alias types = mixin("Parameters!" ~ item);
+          bool void_return = mixin("is(ReturnType!" ~ item ~ " == void)");
+          static foreach(i, param; mixin("ParameterIdentifierTuple!" ~ item))
+          {
+            if(i < (nargs - 1))
+            {
+              func_call ~= modifyArg!(types[i])(param) ~ ", ";
+            }else{
+              func_call ~= modifyArg!(types[i])(param);
+            }
+          }
+          func_call ~= ")";
+          string result_name = "__d_" ~ item ~ "__";
+          if(!void_return)
+          {
+            //result_name = "__d_" ~ item ~ "__";
+            func_call = "auto " ~ result_name ~ " = " ~ func_call;
+          }
+          functioncalls ~= FunctionCall(item, result_name, void_return, func_call);
+        }
+      }}
+    }
+  }
+  return functioncalls;
+}
+
+string create_method_call(Signature signature)()
+{
+  //pragma(msg, "nargs: ", to!(string)(signature.nargs));
+  return "R_CallMethodDef(\".C__" ~ signature.orig_name ~ "__\", cast(DL_FUNC) &" ~ signature.new_name ~ ", " ~ to!(string)(signature.nargs) ~ ")";
+}
+
+string wrap_method_calls(Signature[] signatures)()
+{
+  string result = "  __gshared static const R_CallMethodDef[] callMethods = [\n";
+  static foreach(i, signature; signatures)
+  {
+    result ~= "    " ~ create_method_call!(signature)() ~ ", \n";
+  }
+  result ~= "    R_CallMethodDef(null, null, 0)\n";
+  result ~= "  ];";
+  return result;
+}
+
+
+/*
+  @title Wraps the functions in a module converting the exportd() function
+  to those callable from R 
+*/
+auto wrap_functions(string module_name)()
+{
+  enum signatures = convert_signatures!(module_name)();
+  enum functioncalls = rd_calls!(module_name)();
+  enum nfuncs = signatures.length;
+  
+  string[] funcs;
+  
+  //import std.stdio: writeln;
+  
+  static foreach(i; 0..nfuncs)
+  {{
+    auto signature = signatures[i];
+    auto fcall = functioncalls[i];
+    string body = "  \n  {\n";
+    body ~= "    " ~ fcall.call ~ ";\n";
+    if(fcall.is_void)
+    {
+      //body ~= "  SEXP " ~ fcall.result_name ~ " = R_NilValue;\n";
+      //body ~= "  return " ~ fcall.result_name ~ ";\n";
+      body ~= "    return R_NilValue;\n";
+      body ~= "  }\n";
+    }else{
+      string tmp = "    static if(!isSEXP!(" ~ fcall.result_name ~ "))";
+      tmp ~= "\n    {";
+      tmp ~= "\n      return To!(SEXP)(" ~ fcall.result_name ~ ");\n";
+      tmp ~= "    }else{\n";
+      tmp ~= "      return " ~ fcall.result_name ~ ";\n";
+      tmp ~= "    }\n";
+      body ~= tmp ~ "  }\n";
+    }
+    body = "  " ~ signature.signature ~ body;
+    funcs ~= body;
+    //writeln(body);
+  }}
+  return funcs;
+}
+
+
+string tail_append(string module_name)()
+{
+  string result = "\n\n\n  import core.runtime: Runtime;\n";
+  result ~= "  import std.stdio: writeln;\n\n";
+  result ~= "  void R_init_" ~ module_name ~ "(DllInfo* info)\n";
+  result ~= "  {\n";
+  result ~= "    writeln(\"Your saucer module " ~ module_name ~ " is now loaded!\");\n";
+  result ~= "    R_registerRoutines(info, null, callMethods.ptr, null, null);\n";
+  result ~= "    Runtime.initialize;\n";
+  result ~= "    writeln(\"Runtime has been initialized!\");\n";
+  result ~= "  }\n";
+  result ~= "  \n";
+  result ~= "  \n";
+  result ~= "  void R_unload_" ~ module_name ~ "(DllInfo* info)\n";
+  result ~= "  {\n";
+  result ~= "    writeln(\"Attempting to terminate " ~ module_name ~ " closing DRuntime!\");\n";
+  result ~= "    Runtime.terminate;\n";
+  result ~= "    writeln(\"Runtime has been terminated. Goodbye!\");\n";
+  result ~= "  }\n";
+  return result;
+}
+
+
+string complete_wrap(string module_name)()
+{
+  enum funcs = wrap_functions!(module_name)();
+  string result = "extern (C)\n{\n";
+  static foreach(func; funcs)
+  {{
+    result ~= func ~ "\n";
+  }}
+  result ~= wrap_method_calls!(convert_signatures!(module_name)())();
+  result ~= tail_append!(module_name)() ~ "}";
+
+  enum string module_code = import(module_name ~ ".d");
+  return module_code ~ result;
+}
+
+
+struct RFunction
+{
+  string orig_name;
+  string d_name;
+  long nargs;
+  string body;
+}
+
+
+
+/*
+  @title Function to convert D function signatures to R compatible signatures 
+  from a module.
+
+  @param string module_name the name of the module to be processed
+*/
+auto create_r_functions(string module_name)()
+{
+  import std.traits: ReturnType, Parameters, ParameterIdentifierTuple;
+  import std.stdio: writeln;
+
+  RFunction[] rfuncs;
+  string code = "dyn.load(\"" ~ module_name ~ ".so\")\n\n";
+  mixin("import " ~ module_name ~ ";");
+  static foreach(long i, item; __traits(allMembers, mixin(module_name)))
+  {
+    //Filters if the item has attributes
+    static if(__traits(getAttributes, mixin(item)).length > 0)
+    {
+      //Iterating over attributes
+      static foreach(attr; __traits(getAttributes, mixin(item)))
+      {{
+        //Filters if the attribute is exportd
+        static if(is(typeof(attr) == exportd))
+        {
+          string new_name = ".C__" ~ item ~ "__";
+          long nargs = mixin("ParameterIdentifierTuple!" ~ item).length;
+          string rfunc = item ~ " = function(";
+          string call = "\n  .Call(\"" ~ new_name ~ "\"";
+          static foreach(i, param; mixin("ParameterIdentifierTuple!" ~ item))
+          {
+            if(i < (nargs - 1))
+            {
+              rfunc ~= param ~ ", ";
+              call ~= ", " ~ param;
+            }else{
+              rfunc ~= param;
+              call ~= ", " ~ param;
+            }
+          }
+          rfunc ~= ")";
+          call ~= ")";
+          rfunc ~= "\n{" ~ call ~ "\n" ~ "}\n";
+          code ~= rfunc;
+          rfuncs ~= RFunction(item, new_name, nargs, rfunc);
+        }
+      }}
+    }
+  }
+  return code;
+}

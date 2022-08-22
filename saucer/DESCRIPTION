@@ -1,0 +1,12 @@
+Package: saucer
+Version: 0.1
+Title: Package to call D functions from R
+Authors@R: c(person("Chibisi","Chima-Okereke", role = c("aut","cre"), email = "chibco@gmail.com"))
+Depends: R (>= 4.1.3)
+Imports: stringr
+SystemRequirements: dmd
+Description: Package that allows the user to call functions in D scripts from R
+License: Proprietary
+URL: https://www.active-analytics.com
+ByteCompile: TRUE
+RoxygenNote: 7.2.1

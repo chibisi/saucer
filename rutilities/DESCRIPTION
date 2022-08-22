@@ -1,0 +1,15 @@
+Package: rutilities
+Version: 0.1
+Title: Tools for working in R
+Authors@R: c(person("Chibisi","Chima-Okereke", role = c("aut","cre"), email = "chibco@gmail.com"))
+Author: Chibisi Chima-Okereke [aut, cre]
+Maintainer: Chibisi Chima-Okereke <chibco@gmail.com>
+Depends: R (>= 4.1.3)
+Imports: roxygen2
+Description: Various convenience tools for working in R
+License: Proprietary
+URL: https://www.active-analytics.com
+ByteCompile: TRUE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.1
