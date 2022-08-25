@@ -24,9 +24,13 @@ mixin(import("r_aliases.d"));
   3. Further work needs to be done on this to ensure 
   that it available at compile time
 */
-immutable struct exportd
+struct Export
 {
-  string function_name;
+  immutable(string) function_name;
+  this(immutable(string) function_name)
+  {
+    this.function_name = function_name;
+  }
 }
 
 

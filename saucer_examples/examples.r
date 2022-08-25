@@ -4,12 +4,12 @@ require("rutilities")
 
 # Testing plugin style
 funcs1 = '
-@exportd() auto funcA(double x)
+@Export() auto funcA(double x)
 {
   return x*x;
 }
 
-@exportd() auto funcB(double x)
+@Export() auto funcB(double x)
 {
   return x*x*x;
 }
@@ -17,13 +17,13 @@ funcs1 = '
 
 funcs2 = '
 import std.stdio: writeln;
-@exportd() auto funcC(string name)
+@Export() auto funcC(string name)
 {
   writeln("Hello ", name);
   return name;
 }
 
-@exportd() auto funcD(string name)
+@Export() auto funcD(string name)
 {
   writeln("Goodbye ", name);
   return name;
@@ -38,7 +38,7 @@ funcC("Jimmy")
 funcD("Jimmy")
 
 funcs3 = '
-@exportd() auto funcE()
+@Export() auto funcE()
 {
   import std.stdio: writeln;
   writeln("Hello World");
@@ -50,7 +50,7 @@ funcE()
 
 
 funcs4 = '
-@exportd() auto funcG(string message)
+@Export() auto funcG(string message)
 {
   import std.stdio: writeln;
   writeln(message);
@@ -62,7 +62,7 @@ funcG("My very cool message!")
 
 
 funcs5 = '
-@exportd() auto funcH()
+@Export() auto funcH()
 {
   return "Hello World!";
 }

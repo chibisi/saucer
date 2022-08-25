@@ -61,8 +61,8 @@ auto convert_signatures(string module_name)()
       //Iterating over attributes
       static foreach(attr; __traits(getAttributes, mixin(item)))
       {{
-        //Filters if the attribute is exportd
-        static if(is(typeof(attr) == exportd))
+        //Filters if the attribute is Export
+        static if(is(typeof(attr) == Export))
         {
           string new_name = "__R_" ~ item ~ "__";
           long nargs = mixin("ParameterIdentifierTuple!" ~ item).length;
@@ -101,7 +101,7 @@ auto rd_calls(string module_name)()
     {
       static foreach(attr; __traits(getAttributes, mixin(item)))
       {{
-        static if(is(typeof(attr) == exportd))
+        static if(is(typeof(attr) == Export))
         {
           long nargs = mixin("ParameterIdentifierTuple!" ~ item).length;
           string func_call = item ~ "(";
@@ -151,7 +151,7 @@ string wrap_method_calls(Signature[] signatures)()
 
 
 /*
-  @title Wraps the functions in a module converting the exportd() function
+  @title Wraps the functions in a module converting the Export() function
   to those callable from R 
 */
 auto wrap_functions(string module_name)()
@@ -264,8 +264,8 @@ auto create_r_functions(string module_name)()
       //Iterating over attributes
       static foreach(attr; __traits(getAttributes, mixin(item)))
       {{
-        //Filters if the attribute is exportd
-        static if(is(typeof(attr) == exportd))
+        //Filters if the attribute is Export
+        static if(is(typeof(attr) == Export))
         {
           string new_name = ".C__" ~ item ~ "__";
           long nargs = mixin("ParameterIdentifierTuple!" ~ item).length;

@@ -1,4 +1,4 @@
-module script;
+module example_1;
 import saucer;
 import std.algorithm.sorting: sort;
 
@@ -14,6 +14,14 @@ import std.algorithm.sorting: sort;
   .Call("vdmul", x, y)
 */
 
+
+/+
+    Generates random numbers
+
+    SEXP nptr for the number of random numbers to generate
+
+    returns SEXP numeric vector of random numbers
++/
 @Export() SEXP generate_numbers(SEXP n_ptr)
 {
   assert(LENGTH(n_ptr) == 1, "There should just be 1 items.");
@@ -31,6 +39,18 @@ import std.algorithm.sorting: sort;
 }
 
 
+/+
+    Dot Product function for two SEXP numeric arrays
+
+    Function is exported in R as dot_product
+
+    Argument
+    SEXP x_sexp numeric vector
+    SEXP y_sexp numeric vector
+
+    Return
+    SEXP numeric the dot product
++/
 @Export("dot_product") SEXP dot(SEXP x_sexp, SEXP y_sexp)
 {
   size_t n = LENGTH(x_sexp);
@@ -212,7 +232,17 @@ import std.algorithm.sorting: sort;
   return result;
 }
 
-@Export() auto create_integer_vector(size_t n)
+
+/+
+    Function to create an integer vector
+
+    Argument
+    size_t n the length of the vector to be returned
+
+    Return
+    RVector!(INTSXP) vector
++/
+@Export("ivector") auto create_integer_vector(size_t n)
 {
   auto result = RVector!(INTSXP)(n);
   for(long i = 0; i < n; ++i)
@@ -282,7 +312,7 @@ auto which(T)(T[] x, T[] levels)
   return result;
 }
 
-@Export() auto create_d_factor(RVector!(INTSXP) arr)
+@Export("dfactor") auto create_d_factor(RVector!(INTSXP) arr)
 {
   int[] _arr_ = To!(int[])(cast(SEXP)arr);
   auto _levels_ = sort_unique(_arr_);
@@ -293,8 +323,4 @@ auto which(T)(T[] x, T[] levels)
   attr(result, "levels", levels);
   return result;
 }
-
-
-
-
 
