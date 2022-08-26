@@ -1,3 +1,5 @@
+module translator;
+
 import saucer;
 import std.conv: to;
 import std.traits: getUDAs, staticMap;
@@ -1029,10 +1031,10 @@ mixin template Saucerize(string moduleName)
         import std.file: copy, mkdir, exists, isDir;
         import std.process: execute, executeShell;
 
-        File(moduleName ~ ".d", w).writeln(wrapModule!(moduleName)());
+        File(moduleName ~ ".d", "w").writeln(wrapModule!(moduleName)());
         enum dllFile = moduleName ~ ".so";
         enum commands = "dmd " ~ moduleName ~ ".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\".\" -fPIC -L-fopenmp -L-lR -L-lRmath && " ~
-                        "dmd " ~ moduleName ~ ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of="~ dllFile ~ " -L-fopenmp -L-lR -L-lRmath -shared";
+                        "dmd " ~ moduleName ~ ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=" ~ dllFile ~ " -L-fopenmp -L-lR -L-lRmath -shared";
         auto ls = executeShell(commands);
         if(ls.status != 0)
         {
@@ -1042,7 +1044,7 @@ mixin template Saucerize(string moduleName)
             writeln(ls.output);
         }
 
-        File(moduleName ~ ".r", "w").writeln(createRScript!(module_name));
+        File(moduleName ~ ".r", "w").writeln(createRScript!(moduleName));
         return;
     }
 
@@ -1061,3 +1063,12 @@ mixin template Saucerize(string moduleName)
 
 
 
+/*
+    Pass module name at command line like this:
+    echo 'enum moduleName = "test_resource_1";' | dmd - -run files.d
+
+    # Source:
+    # https://forum.dlang.org/post/mailman.575.1636047390.11670.digitalmars-d-learn@puremagic.com
+*/
+import __stdin: moduleName;
+mixin Saucerize!(moduleName);

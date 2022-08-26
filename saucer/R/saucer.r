@@ -18,43 +18,7 @@
       drop_folder = FALSE
     }
   }
-  script = "void saucerize()
-{
-  import std.stdio: File, writeln;
-  import std.file: copy, mkdir, exists, isDir;
-  import std.process: execute, executeShell;
   
-  enum module_name = \"${module}\";
-  
-  File(\"\" ~ module_name ~ \".d\", \"w\").writeln(complete_wrap!(module_name)());
-  enum dll_file = module_name ~ \".so\";
-  enum commands = \"dmd \" ~ module_name ~ \".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\\\".\\\" -fPIC -L-fopenmp -L-lR -L-lRmath\" ~ \" && \" ~
-                  \"dmd \" ~ module_name ~ \".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=\"~ dll_file ~ \" -L-fopenmp -L-lR -L-lRmath -shared\";
-  auto ls = executeShell(commands);
-  if(ls.status != 0)
-  {
-    writeln(\"Command:\\n\" ~ commands ~ \"\\nNot run.\");
-  }else
-  {
-    writeln(ls.output);
-  }
-
-  File(\"\" ~ module_name ~ \".r\", \"w\").writeln(create_r_functions!(module_name)());
-  return;
-}
-
-void main()
-{
-  try
-  {
-    saucerize();
-  }
-  catch(Exception e)
-  {
-    writeln(\"Exeption output: \", e);
-  }
-}
-  "
   # Set Code Folder
   dir.create(folder_name)
   code_folder = paste0(curr_wd, "/", folder_name)
@@ -67,16 +31,11 @@ void main()
   file.copy(file.path(source_dir, "rmatrix.d"), code_folder)
   file.copy(file.path(source_dir, "commonfunctions.d"), code_folder)
   file.copy(file.path(source_dir, "r_aliases.d"), code_folder)
+  file.copy(file.path(source_dir, "translator.d"), code_folder)
   file.copy(file.path(curr_wd, paste0(module, ".d")), code_folder)
   
-  # Creating translator script
-  script = stringr::str_interp(script, list("curr_wd" = curr_wd, "folder_name" = folder_name, 
-                "module" = module, "source_dir" = source_dir))
-  script = paste0(paste0(readLines(file.path(source_dir, "__translator__")), collapse = "\n"), "\n\n", script)
-  cat(script, "\n", file = file.path("translator.d"))
-  
   # Run the d compilation script
-  command = "dmd translator.d ${curr_wd}/${module}.d saucer.d r2d.d -O -boundscheck=off -mcpu=native -g -J=\".\" -L-lR -L-lRmath && ./translator" #-L-lR -L-lRmath
+  command = "echo 'enum moduleName = \"${module}\";' | dmd translator.d ${curr_wd}/${module}.d saucer.d r2d.d -O -boundscheck=off -mcpu=native -g -J=\".\" -L-lR -L-lRmath && ./translator" #-L-lR -L-lRmath
   command = stringr::str_interp(command, list("curr_wd" = curr_wd, "module" = module))
 
   commandFailed = FALSE

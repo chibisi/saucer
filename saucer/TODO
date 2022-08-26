@@ -1,5 +1,2 @@
 # TODO
 
-1. Implement what should happen with a void return. Done
-2. Fix what happens when you have zero arguments in an 
-   exported function. Basically no wrapping happens. Done
