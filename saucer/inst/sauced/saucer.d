@@ -1,8 +1,9 @@
-module saucer;
+module sauced.saucer;
+
 import std.conv: to;
 import std.traits: isIntegral;
-public import r2d;
-mixin(import("r_aliases.d"));
+public import sauced.r2d;
+mixin(import("imports/r_aliases.d"));
 
 /*
   TODO:
@@ -127,9 +128,9 @@ if(type == STRSXP)
 }
 
 //Pasting in RVector and RMatrix types
-mixin(import("rvector.d"));
-mixin(import("rmatrix.d"));
-mixin(import("commonfunctions.d"));
+mixin(import("imports/rvector.d"));
+mixin(import("imports/rmatrix.d"));
+mixin(import("imports/commonfunctions.d"));
 
 /*
   Template trait for whether an item is an 

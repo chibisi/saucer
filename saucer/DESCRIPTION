@@ -1,5 +1,5 @@
 Package: saucer
-Version: 0.1
+Version: 0.2
 Title: Package to call D functions from R
 Authors@R: c(person("Chibisi","Chima-Okereke", role = c("aut","cre"), email = "chibco@gmail.com"))
 Depends: R (>= 4.1.3)

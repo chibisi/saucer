@@ -1,6 +1,6 @@
-module translator;
+module sauced.translator;
 
-import saucer;
+import sauced.saucer;
 import std.conv: to;
 import std.traits: getUDAs, staticMap;
 import std.algorithm.iteration: map;
@@ -728,7 +728,7 @@ string wrapModule(string moduleName, string path = "")()
 //For testing purposes
 enum testResource2String = "//simple file for overall export check
 module test_resource_2;
-import saucer;
+import sauced.saucer;
 
 
 /+
@@ -1056,7 +1056,7 @@ mixin template Saucerize(string moduleName)
         }
         catch(Exception e)
         {
-            writeln("Exeption output: ", e);
+            writeln("Exception output: ", e);
         }
     }
 }
@@ -1065,7 +1065,7 @@ mixin template Saucerize(string moduleName)
 
 /*
     Pass module name at command line like this:
-    echo 'enum moduleName = "test_resource_1";' | dmd - -run files.d
+    echo 'enum moduleName = "test_resource_1";' | dmd files to compile.d
 
     # Source:
     # https://forum.dlang.org/post/mailman.575.1636047390.11670.digitalmars-d-learn@puremagic.com

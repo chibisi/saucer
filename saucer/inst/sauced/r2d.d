@@ -1,3 +1,5 @@
+module sauced.r2d;
+
 import core.stdc.config;
 import core.stdc.stddef;
 import core.stdc.stdarg;

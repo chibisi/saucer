@@ -12,11 +12,11 @@ be compiled and loaded into the R session. Excludes the
 ".d" extension (for now)
 TODO: this functionality requires more work}
 
-\item{folder_name}{a character containing the name of the
+\item{folderName}{a character containing the name of the
 folder where the code will be created. If missing
  a random name is generated}
 
-\item{drop_folder}{whether to delete the folder containing
+\item{dropFolder}{whether to delete the folder containing
 the compilation artifacts once the compilation is done.}
 }
 \description{
@@ -25,7 +25,7 @@ Function compiles and loads D modules into R session
 \examples{
 
 # require(saucer)
-# saucerize("script", drop_folder = TRUE)
+# saucerize("script", dropFolder = TRUE)
 # 
 # x = seq(1.0, 10.0, by = 0.5); y = seq(1.0, 10.0, by = 0.5)
 # generate_numbers(as.integer(100))

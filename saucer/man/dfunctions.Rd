@@ -4,7 +4,7 @@
 \alias{dfunctions}
 \title{Compile D code from string}
 \usage{
-dfunctions(code_arr, drop_folder = TRUE)
+dfunctions(codeArr, dropFolder = TRUE)
 }
 \arguments{
 \item{code}{character containing the code to be compiled}

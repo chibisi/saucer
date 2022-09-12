@@ -13,22 +13,22 @@ exit = function(save = "no")q(save)
 #' @param path character the path where the folder is located
 #' 
 #' @examples
-#'        # update_package("saucer")
+#'        # updatePackage("saucer")
 #' 
 #' @export
 #' 
-update_package = function(package_name, path = ".")
+updatePackage = function(package_name, path = ".")
 {
-  curr_wd = getwd()
-  on.exit(setwd(curr_wd))
-  setwd(path)
-  cmds = paste0("Rscript -e \"roxygen2::roxygenize('", package_name,"')
-  system('R CMD build ", package_name,"')
-  pkg_build = list.files(pattern = '", package_name,"_[0-9.]+.tar.gz')
-  paste0('R CMD INSTALL ', pkg_build, collapse = '') |> system()
-  unlink(pkg_build)\"")
-  system(cmds)
-  return(invisible())
+    curr_wd = getwd()
+    on.exit(setwd(curr_wd))
+    setwd(path)
+    cmds = paste0("Rscript -e \"roxygen2::roxygenize('", package_name,"')
+    system('R CMD build ", package_name,"')
+    pkg_build = list.files(pattern = '", package_name,"_[0-9.]+.tar.gz')
+    paste0('R CMD INSTALL ', pkg_build, collapse = '') |> system()
+    unlink(pkg_build)\"")
+    system(cmds)
+    return(invisible())
 }
 
 
@@ -51,4 +51,23 @@ setGeneric("%+%", valueClass = "character", function(x, y)standardGeneric("%+%")
 #' 
 #' 
 setMethod("%+%", signature("character", "character"), function(x, y)paste0(x, y, collapse = ""))
+
+
+#' Function to remove a package and recompile and reinstall it
+#' 
+#' @export
+#' 
+removeAndUpdate = function(packageName, path = ".")
+{
+    curr_wd = getwd()
+    on.exit(setwd(curr_wd))
+    setwd(path)
+    
+    pkgUpdateFunc = updatePackage
+    remove.packages(packageName)
+    pkgUpdateFunc(packageName)
+    
+    return(invisible())
+}
+
 

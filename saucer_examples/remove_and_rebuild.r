@@ -8,7 +8,7 @@ remove_and_update_saucer = function()
     {
         if(status == 1)
         {
-            stop("Exeuction error remove saucer package failed")
+            stop("Execution error remove saucer package failed")
         }
     }
     status = system("R -e \"require('rutilities'); update_package('saucer'); exit()\"", intern = TRUE)
@@ -17,7 +17,7 @@ remove_and_update_saucer = function()
     {
         if(status == 1)
         {
-            stop("Exeuction error update saucer package failed")
+            stop("Execution error update saucer package failed")
         }
     }
     return()
