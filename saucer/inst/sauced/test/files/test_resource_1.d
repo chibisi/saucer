@@ -1,5 +1,5 @@
-module test_resource_1;
-import saucer;
+module test.files.test_resource_1;
+import sauced.saucer;
 
 /*
     The purpose of this script is to serve as a means of 

@@ -1,6 +1,5 @@
-//simple file for overall export check
-module test_resource_2;
-import saucer;
+module test.files.test_resource_2;
+import sauced.saucer;
 
 
 /+

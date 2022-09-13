@@ -6,6 +6,7 @@ import std.traits: getUDAs, staticMap;
 import std.algorithm.iteration: map;
 import std.array: array;
 import std.stdio: writeln;
+import std.path: dirSeparator;
 
 
 /+
@@ -73,7 +74,7 @@ string[] getExportedFunctions(string moduleName)()
 */
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string[] exFunctions = getExportedFunctions!(moduleName);
     static assert(exFunctions == ["dot_double", "dot", "create_integer_vector"],
             "Failed to retrieve the correct function names.");
@@ -123,7 +124,7 @@ auto getSignature(string moduleName, string item)()
 
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum signature = Signature("dot", "__R_dot__", "dot_product", 2, "SEXP __R_dot__(SEXP x_sexp, SEXP y_sexp)");
     static assert(signature == getSignature!(moduleName, "dot")(),
         "Signature test failure, wrong signature returned");
@@ -206,7 +207,7 @@ auto getFunctionCall(string moduleName, string item)()
 +/
 unittest
 {
-    enum moduleName = "test_resource_1";
+    enum moduleName = "test.files.test_resource_1";
     enum string[] functionNames = ["dot_double", "dot", "create_integer_vector"];
     
     //Testing the function calls:
@@ -235,7 +236,7 @@ mixin template FunctionCallDemo()
 {
     auto functionCallDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string[] items = getExportedFunctions!(moduleName);
         pragma(msg, "All the function from the test module: ", items);
         pragma(msg, "Function Call: ", getFunctionCall!(moduleName, items[0]));
@@ -286,7 +287,7 @@ auto getEntities(alias func, string moduleName, string[] items)()
 */
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string[] items = getExportedFunctions!(moduleName)();
 
     //Test for getting Signature array
@@ -317,7 +318,7 @@ mixin template GetEntitiesDemo()
 {
     void getEntitiesDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string[] items = getExportedFunctions!(moduleName);
         pragma(msg, "Demo for getEntities (Signature): ", getEntities!(getSignature, moduleName, items));
         pragma(msg, "Demo for getEntities (FunctionCall): ", getEntities!(getFunctionCall, moduleName, items));
@@ -340,7 +341,7 @@ string createMethodCall(Signature signature)()
 */
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string[] items = getExportedFunctions!(moduleName);
     enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
     enum string[] rMethodCalls = ["R_CallMethodDef(\".C__dot_double__\", cast(DL_FUNC) &__R_dot_double__, 2)",
@@ -359,7 +360,7 @@ mixin template CreateMethodCallDemo()
 {
     void createMethodCallDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string[] items = getExportedFunctions!(moduleName);
         enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
         static foreach(enum signature; signatures)
@@ -393,7 +394,7 @@ string wrapMethodCalls(Signature[] signatures)()
 +/
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string[] items = getExportedFunctions!(moduleName);
     enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
     //Do not move the spacing for the string since string comparison occurs here
@@ -414,7 +415,7 @@ mixin template WrapMethodCallsDemo()
 {
     void wrapMethodCallsDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string[] items = getExportedFunctions!(moduleName);
         enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
     }
@@ -494,7 +495,7 @@ enum string[] wrappedTestFunctions = [
 +/
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string[] items = getExportedFunctions!(moduleName);
     enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
     enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
@@ -517,7 +518,7 @@ mixin template WrapFunctionDemo()
 {
     void wrapFunctionDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string[] items = getExportedFunctions!(moduleName);
         enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
         enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
@@ -565,7 +566,7 @@ string[] wrapFunctions(Signature[] signatures, FunctionCall[] functionCalls)()
 +/
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string[] items = getExportedFunctions!(moduleName);
     enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
     enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
@@ -583,7 +584,7 @@ mixin template WrapFunctionsDemo()
 {
     void wrapFunctionDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string[] items = getExportedFunctions!(moduleName);
         enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
         enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
@@ -612,7 +613,7 @@ string tailAppend(string moduleName)()
 {
   string result = "\n\n\n  import core.runtime: Runtime;\n";
   result ~= "  import std.stdio: writeln;\n\n";
-  result ~= "  void R_init_" ~ moduleName ~ "(DllInfo* info)\n";
+  result ~= "  void R_init_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
   result ~= "  {\n";
   result ~= "    writeln(\"Your saucer module " ~ moduleName ~ " is now loaded!\");\n";
   result ~= "    R_registerRoutines(info, null, callMethods.ptr, null, null);\n";
@@ -621,7 +622,7 @@ string tailAppend(string moduleName)()
   result ~= "  }\n";
   result ~= "  \n";
   result ~= "  \n";
-  result ~= "  void R_unload_" ~ moduleName ~ "(DllInfo* info)\n";
+  result ~= "  void R_unload_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
   result ~= "  {\n";
   result ~= "    writeln(\"Attempting to terminate " ~ moduleName ~ " closing DRuntime!\");\n";
   result ~= "    Runtime.terminate;\n";
@@ -636,7 +637,7 @@ string tailAppend(string moduleName)()
 +/
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string tailAppendString = "\n\n\n  import core.runtime: Runtime;
   import std.stdio: writeln;
 
@@ -668,7 +669,7 @@ mixin template TailAppendDemo()
 {
     void tailAppendDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string tailAppendString = "\n\n\n  import core.runtime: Runtime;
       import std.stdio: writeln;
 
@@ -693,7 +694,79 @@ mixin template TailAppendDemo()
 
 
 
+/+
+    Extract the last module name item from the full module name
++/
+string extractShortModuleName(string fullModuleName)()
+{
+    string result;
+    foreach_reverse(el; fullModuleName)
+    {
+        if(el == '.')
+        {
+            break;
+        }else{
+            result = el ~ result;
+        }
+    }
+    return result;
+}
 
+
+unittest
+{
+    enum moduleName = "lib0.lib1.lib2.module0";
+    enum string fileName = extractShortModuleName!(moduleName);
+    static assert(fileName == "module0", "Wrong module name returned.");
+}
+
+
+/+
+    Converts the full module names into file path
++/
+string extractFilePath(string fullModuleName)()
+{
+    string result;
+    foreach(char el; fullModuleName)
+    {
+        if(el == '.')
+        {
+            result ~= dirSeparator;
+        }else{
+            result ~= el;
+        }
+    }
+    return result ~ ".d";
+}
+
+
+/* Requires OS specific improvement */
+
+
+/+
+  Function to extract the module name from the file name
+
+  # Arguments
+  string moduleName - the name of the module
+
+  # Returns
+  string fileName the name of the file from the module name
++/
+string extractFileName(string moduleName)()
+{
+    return extractShortModuleName!(moduleName) ~ ".d";
+}
+
+
+
+unittest
+{
+    enum moduleName = "lib0.lib1.lib2.module0";
+    enum string fileName = extractFileName!(moduleName);
+    static assert(fileName == "module0.d", "Wrong file name returned.");
+}
+
+ 
 /+
     wrapModule() takes the module name and path of a D script and returns
     another D script with the exported D function SEXP wrapped so that they can
@@ -719,15 +792,14 @@ string wrapModule(string moduleName, string path = "")()
       result ~= func ~ "\n";
     }}
     result ~= wrapMethodCalls!(signatures);
-    result ~= tailAppend!(moduleName) ~ "}";
-
-    return import(path ~ moduleName ~ ".d") ~ result;
+    result ~= tailAppend!(extractShortModuleName!(moduleName)) ~ "}";
+    
+    return import(path ~ extractFilePath!(moduleName)) ~ result;
 }
 
 
 //For testing purposes
-enum testResource2String = "//simple file for overall export check
-module test_resource_2;
+enum testResource2String = "module test.files.test_resource_2;
 import sauced.saucer;
 
 
@@ -784,8 +856,8 @@ extern (C)
 +/
 unittest
 {
-    enum string moduleName = "test_resource_2";
-    enum string wrappedModuleString = wrapModule!(moduleName, "files/");
+    enum string moduleName = "test.files.test_resource_2";
+    enum string wrappedModuleString = wrapModule!(moduleName);
     static assert(testResource2String == wrappedModuleString,
             "wrappedModule string does not match expected ouput");
 }
@@ -799,8 +871,8 @@ mixin template WrapModuleDemo()
 {
     void wrapModuleDemo()
     {
-        enum string moduleName = "test_resource_2";
-        enum string wrappedModuleString = wrapModule!(moduleName, "files/");
+        enum string moduleName = "test.files.test_resource_2";
+        enum string wrappedModuleString = wrapModule!(moduleName, "test/files/");
         pragma(msg, "Complete wrap for module name:\n\n", wrappedModuleString);
     }
 }
@@ -868,7 +940,7 @@ auto createRFunction(string moduleName, string item)()
 +/
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum string[] items = getExportedFunctions!(moduleName);
     enum RFunction[] rFuncs = [RFunction("dot_double", "__R_dot_double__", 2L, 
                                     "dot_double = function(x, y)\n{\n  .Call(\"__R_dot_double__\", x, y)\n}\n"), 
@@ -889,7 +961,7 @@ mixin template CreateRFunctionDemo()
 {
     void createRFunctionDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum string[] items = getExportedFunctions!(moduleName);
         static foreach(item; items)
         {
@@ -928,7 +1000,7 @@ auto createRFunctions(string moduleName)()
 +/
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     enum RFunction[] rFuncs = [RFunction("dot_double", "__R_dot_double__", 2L, 
                                     "dot_double = function(x, y)\n{\n  .Call(\"__R_dot_double__\", x, y)\n}\n"), 
                                 RFunction("dot", "__R_dot__", 2L, 
@@ -947,7 +1019,7 @@ mixin template CreateRFunctionsDemo()
 {
     void createRFunctionsDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         enum RFunction[] rFuncs = createRFunctions!(moduleName);
         pragma(msg, "RFunction[] returned: ", rFuncs);
     }
@@ -967,7 +1039,7 @@ mixin template CreateRFunctionsDemo()
 auto createRScript(string moduleName)()
 {
     enum RFunction[] rFuncs = createRFunctions!(moduleName);
-    string code = "dyn.load(\"" ~ moduleName ~ ".so\")\n\n";
+    string code = "dyn.load(\"" ~ extractShortModuleName!(moduleName) ~ ".so\")\n\n";
     static foreach(rFunc; rFuncs)
     {
         code ~= rFunc.repr ~ "\n";
@@ -1000,7 +1072,7 @@ ivector = function(n)
 +/
 unittest
 {
-    enum string moduleName = "test_resource_1";
+    enum string moduleName = "test.files.test_resource_1";
     static assert(testRScript == createRScript!(moduleName));
 }
 
@@ -1012,7 +1084,7 @@ mixin template CreateRScriptDemo()
 {
     void createRScriptDemo()
     {
-        enum string moduleName = "test_resource_1";
+        enum string moduleName = "test.files.test_resource_1";
         pragma(msg, "Create R scripts:\n", createRScript!(moduleName));
     }
 }
@@ -1031,10 +1103,11 @@ mixin template Saucerize(string moduleName)
         import std.file: copy, mkdir, exists, isDir;
         import std.process: execute, executeShell;
 
-        File(moduleName ~ ".d", "w").writeln(wrapModule!(moduleName)());
-        enum dllFile = moduleName ~ ".so";
-        enum commands = "dmd " ~ moduleName ~ ".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\".\" -fPIC -L-fopenmp -L-lR -L-lRmath && " ~
-                        "dmd " ~ moduleName ~ ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=" ~ dllFile ~ " -L-fopenmp -L-lR -L-lRmath -shared";
+        enum fileName = extractShortModuleName!(moduleName);
+        File(fileName ~ ".d", "w").writeln(wrapModule!(moduleName)());
+        enum dllFile = fileName ~ ".so";
+        enum commands = "dmd " ~ fileName ~ ".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\".\" -fPIC -L-fopenmp -L-lR -L-lRmath && " ~
+                        "dmd " ~ fileName ~ ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=" ~ dllFile ~ " -L-fopenmp -L-lR -L-lRmath -shared";
         auto ls = executeShell(commands);
         if(ls.status != 0)
         {
@@ -1044,10 +1117,10 @@ mixin template Saucerize(string moduleName)
             writeln(ls.output);
         }
 
-        File(moduleName ~ ".r", "w").writeln(createRScript!(moduleName));
+        File(fileName ~ ".r", "w").writeln(createRScript!(moduleName));
         return;
     }
-
+    
     void main()
     {
         try
@@ -1070,5 +1143,10 @@ mixin template Saucerize(string moduleName)
     # Source:
     # https://forum.dlang.org/post/mailman.575.1636047390.11670.digitalmars-d-learn@puremagic.com
 */
-import __stdin: moduleName;
-mixin Saucerize!(moduleName);
+version(unittest)
+{
+    //Don't want main to be written for unit tests
+}else{
+    import __stdin: moduleName;
+    mixin Saucerize!(moduleName);
+}

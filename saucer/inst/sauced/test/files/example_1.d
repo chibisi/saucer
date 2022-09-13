@@ -1,5 +1,5 @@
-module example_1;
-import saucer;
+module test.files.example_1;
+import sauced.saucer;
 import std.algorithm.sorting: sort;
 
 /*
