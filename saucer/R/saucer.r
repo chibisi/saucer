@@ -21,7 +21,7 @@
   
   # Set Code Folder
   dir.create(folderName)
-  codeFolder = paste0(currWd, "/", folderName)
+  codeFolder = paste0(currWd, .Platform$file.sep, folderName)
   setwd(codeFolder)
   
   # Copy files
@@ -225,4 +225,95 @@ dfunctions = function(codeArr, dropFolder = TRUE)
   result = .dfunction(paste0(codeArr, collapse = "\n"), dropFolder)
   return(invisible(result))
 }
+
+
+
+#' @title unix-style function to copy a directory from
+#' 
+#' @param from the path to the directory to be copied
+#' @param to the path that the direectory should be copied to
+#' @param flags character vector of the flags passed to the 
+#'        cp linux function. Defaults to "-r".
+#' 
+#' @return invisibly returns the command that was run
+#'
+#' @export
+#' 
+dir.copy = function(from, to, flags = "-r")
+{
+  stopifnot((length(from) == length(to)) & (length(to) == 1))
+  stopifnot(dir.exists(from))
+  stopifnot()
+
+  flags = paste0(flags, collapse = " ")
+  command = paste0(c("cp", from, flags, to), collapse = " ")
+  system(command)
+  stopifnot(file.exists(to))
+  
+  return(invisible(command))
+}
+
+
+
+#' @title Delete a directory
+#' 
+#' @param directory character single directory to be removed
+#' @param flags character vector of flags to be passed to the "rm"
+#'        unix function.
+#' 
+#' 
+#' @export
+#'
+dir.remove = function(directory, flags = "-rf")
+{
+  stopifnot(dir.exists(directory))
+  stopifnot(length(directory) == 1)
+
+  flags = paste0(flags, collapse = " ")
+  command = paste0(c("rm", flags, directory), collapse = " ")
+  system(command)
+  return(invisible(command))
+}
+
+
+
+#' @title Compile RInside D code
+#' 
+#' @description Simple function to compile a D script that calls the R API
+#' 
+#' @param fileNames single string item for path to file to be
+#' @param extraFiles single character string containing the extra files 
+#'                   to be included in the compilation
+#' 
+#' @export
+#' 
+compileRInside = function(fileName, flags = c("-O", "-fPIC", "-L-lR", "-L-lRmath", 
+                                              "-mcpu=native"), cleanup = TRUE)
+{
+  sourceDir = system.file("sauced", package = "saucer")
+  destDir = createFileName(prefix = "tmpFolder", NULL, 6)
+
+  # Copy sauced to temp directory
+  dir.copy(sourceDir, destDir)
+  
+  flags = paste0(flags, collapse = " ")
+  files = paste0(paste0(destDir, .Platform$file.sep), 
+              c("saucer.d", "r2d.d", "rinside/rembedded.d", 
+                "rinside/rinterface.d", "rinside/rstartup.d"))
+  files = c(fileName, files)
+  jFlag = paste0("-J=", "\"", destDir, "\"")
+
+  command = paste0(c("dmd", files, flags, jFlag), collapse = " ")
+  system(command)
+
+  if(cleanup)
+  {
+    dir.remove(destDir)
+  }
+
+  return(invisible(command))
+}
+
+
+
 

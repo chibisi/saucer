@@ -793,7 +793,7 @@ string wrapModule(string moduleName, string path = "")()
     }}
     result ~= wrapMethodCalls!(signatures);
     result ~= tailAppend!(extractShortModuleName!(moduleName)) ~ "}";
-    
+
     return import(path ~ extractFilePath!(moduleName)) ~ result;
 }
 
@@ -872,7 +872,7 @@ mixin template WrapModuleDemo()
     void wrapModuleDemo()
     {
         enum string moduleName = "test.files.test_resource_2";
-        enum string wrappedModuleString = wrapModule!(moduleName, "test/files/");
+        enum string wrappedModuleString = wrapModule!(moduleName);
         pragma(msg, "Complete wrap for module name:\n\n", wrappedModuleString);
     }
 }
