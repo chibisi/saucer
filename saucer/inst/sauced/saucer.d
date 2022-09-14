@@ -236,6 +236,7 @@ pragma(inline, true)
 T To(T: SEXP, F)(auto ref F r_type)
 if(isSEXP!(T) && isRType!(F))
 {
+  r_type.unprotect();//run unprotect when casting away from RType
   return r_type.__sexp__;
 }
 

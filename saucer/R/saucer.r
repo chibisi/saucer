@@ -314,6 +314,3 @@ compileRInside = function(fileName, flags = c("-O", "-fPIC", "-L-lR", "-L-lRmath
   return(invisible(command))
 }
 
-
-
-

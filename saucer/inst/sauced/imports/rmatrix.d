@@ -8,7 +8,8 @@ struct RMatrix(SEXPTYPE type)
   bool __need_unprotect__;
   SEXPElementType!(type)[] data;
 
-  alias __sexp__ this;
+  alias implicitCast this;
+  //alias __sexp__ this;
   
   this(T)(T n_row, T n_col)
   if(isIntegral!(T) && (type != STRSXP))
@@ -121,10 +122,21 @@ struct RMatrix(SEXPTYPE type)
   {
     return LENGTH(__sexp__);
   }
-
+  /*
+    Unprotect on casting back to SEXP
+  */
   SEXP opCast(T: SEXP)()
   {
+    unprotect();
     return __sexp__;
+  }
+  /*
+    Wrapper for alias this
+  */
+  pragma(inline, true)
+  SEXP implicitCast()
+  {
+    return opCast!(SEXP)();
   }
   T opCast(T: SEXPElementType!(type)[])()
   {
