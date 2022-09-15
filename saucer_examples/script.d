@@ -296,5 +296,18 @@ auto which(T)(T[] x, T[] levels)
 
 
 
+@Export("makeRaw") auto make_raw(int n)
+{
+  auto result = RVector!(RAWSXP)(n);
+  foreach(i; 0..n)
+  {
+    result[i] = cast(ubyte)i;
+  }
+  return result;
+}
+
+
+
+
 
 

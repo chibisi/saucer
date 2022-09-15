@@ -256,6 +256,9 @@ template MapToSEXP(T)
   static if(is(T == double))
   {
     enum SEXPTYPE MapToSEXP = REALSXP;
+  }else if(is(T == ubyte))
+  {
+    enum SEXPTYPE MapToSEXP = RAWSXP;
   }else static if(is(T == int))
   {
     enum SEXPTYPE MapToSEXP = INTSXP;

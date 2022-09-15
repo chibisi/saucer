@@ -1,6 +1,7 @@
 # Run this to update the saucer package
-require("saucer")
-require("rutilities")
+require(saucer)
+require(rutilities)
+require(testthat)
 
 # Testing plugin style
 funcs1 = '
@@ -124,4 +125,9 @@ set.seed(0)
 x2 = sample(1:10, 20, replace = TRUE)
 x2 = create_d_factor(x2)
 print(x2)
+
+
+testthat("Basic check for RAW vectors", {
+  expect_true(all(makeRaw(as.integer(10)) == as.raw(0:9)))
+})
 
