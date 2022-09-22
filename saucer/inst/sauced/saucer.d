@@ -35,6 +35,11 @@ struct Export
 }
 
 
+mixin(import("imports/isin.d"));
+
+alias print = Rf_PrintValue;
+
+
 //SEXPTYPE definitions
 alias NILSXP = SEXPTYPE.NILSXP;
 alias SYMSXP = SEXPTYPE.SYMSXP;
@@ -92,6 +97,11 @@ if(type == STRSXP)
 {
   //alias SEXPElementType = string;
   alias SEXPElementType = const(char)*;
+}
+template SEXPElementType(SEXPTYPE type)
+if(type == VECSXP)
+{
+  alias SEXPElementType = SEXP;
 }
 
 
@@ -256,7 +266,7 @@ template MapToSEXP(T)
   static if(is(T == double))
   {
     enum SEXPTYPE MapToSEXP = REALSXP;
-  }else if(is(T == ubyte))
+  }else static if(is(T == ubyte))
   {
     enum SEXPTYPE MapToSEXP = RAWSXP;
   }else static if(is(T == int))

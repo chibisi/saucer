@@ -29,6 +29,7 @@
   dir.create(importsFolder)
   file.copy(file.path(sourceDir, "r2d.d"), codeFolder)
   file.copy(file.path(sourceDir, "saucer.d"), codeFolder)
+  file.copy(file.path(sourceDir, "imports", "isin.d"), file.path(importsFolder, "isin.d"))
   file.copy(file.path(sourceDir, "imports", "rvector.d"), file.path(importsFolder, "rvector.d"))
   file.copy(file.path(sourceDir, "imports", "rmatrix.d"), file.path(importsFolder, "rmatrix.d"))
   file.copy(file.path(sourceDir, "imports", "commonfunctions.d"), file.path(importsFolder, "commonfunctions.d"))

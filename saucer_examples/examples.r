@@ -127,7 +127,49 @@ x2 = create_d_factor(x2)
 print(x2)
 
 
-testthat("Basic check for RAW vectors", {
+test_that("Basic check for RAW vectors", {
   expect_true(all(makeRaw(as.integer(10)) == as.raw(0:9)))
 })
+
+
+funcs6 = '
+@Export() SEXP listTest(SEXP vec1, SEXP vec2, SEXP vec3)
+{
+    RVector!(VECSXP) x = RVector!(VECSXP)(vec1, vec2, vec3);
+    return x;
+}
+
+@Export() auto listTestRAPI(SEXP arr0, SEXP arr1, SEXP arr2)
+{
+    protect(arr0); protect(arr1); protect(arr2);
+    auto result = protect(allocVector(VECSXP, 3));
+    SET_VECTOR_ELT(result, 0, arr0);
+    SET_VECTOR_ELT(result, 1, arr1);
+    SET_VECTOR_ELT(result, 2, arr2);
+    unprotect(4);
+    return result;
+}
+'
+dfunctions(funcs6, dropFolder = T)
+
+test_that("Basic check for list", {
+
+  origList = list(1:5, 6:10, 11:15)
+  rvecList = listTest(1:5, 6:10, 11:15)
+  rvecAPIList = listTestRAPI(1:5, 6:10, 11:15)
+
+  expect_true(all(origList[[1]] == rvecList[[1]]))
+  expect_true(all(origList[[2]] == rvecList[[2]]))
+  expect_true(all(origList[[3]] == rvecList[[3]]))
+
+  expect_true(all(origList[[1]] == rvecAPIList[[1]]))
+  expect_true(all(origList[[2]] == rvecAPIList[[2]]))
+  expect_true(all(origList[[3]] == rvecAPIList[[3]]))
+})
+
+
+
+
+
+
 

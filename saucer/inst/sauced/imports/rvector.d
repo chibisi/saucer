@@ -17,6 +17,7 @@ debug(rvector)
   import std.stdio: writeln;
 }
 
+
 struct RVector(SEXPTYPE type)
 {
   SEXP __sexp__;
@@ -25,20 +26,35 @@ struct RVector(SEXPTYPE type)
     it will be unprotected here.
   */
   bool __need_unprotect__;
-  SEXPElementType!(type)[] data;
+  
+  static if(type != VECSXP)
+  {
+    SEXPElementType!(type)[] data;
+  }
 
   //alias __sexp__ this;
   alias implicitCast this;
   
   this(T)(T n)
-  if(isIntegral!(T) && (type != STRSXP))
+  if((type == VECSXP) && isIntegral!(T))
+  {
+    static if(type == VECSXP)
+    {
+      this.__sexp__ = protect(allocVector(VECSXP, cast(int)n));
+    }
+  }
+  this(T)(T n)
+  if((type != VECSXP) && isIntegral!(T) && (type != STRSXP))
   {
     this.__sexp__ = protect(allocVector(type, cast(int)n));
     this.__need_unprotect__ = true;
-    this.data = Accessor!(type)(__sexp__)[0..n];
+    static if(type != VECSXP)
+    {
+      this.data = Accessor!(type)(__sexp__)[0..n];
+    }
   }
   this(T)(T n)
-  if(isIntegral!(T) && (type == STRSXP))
+  if((type != VECSXP) && isIntegral!(T) && (type == STRSXP))
   {
     this.__sexp__ = protect(allocVector(type, cast(int)n));
     this.__need_unprotect__ = true;
@@ -54,7 +70,7 @@ struct RVector(SEXPTYPE type)
     that it is allocated with the R memory allocator
   */
   this(T)(T[] arr)
-  if(is(T == SEXPElementType!(type)) && 
+  if((type != VECSXP) && is(T == SEXPElementType!(type)) && 
      !is(T == string) && 
      !is(T == const(char)*) && 
      (type != STRSXP))
@@ -66,7 +82,7 @@ struct RVector(SEXPTYPE type)
     this.data[] = arr[];//copy contents across
   }
   this(T)(T[] arr)
-  if((is(T == string) || is(T == const(char)*)) && 
+  if((type != VECSXP) && (is(T == string) || is(T == const(char)*)) && 
      (type == STRSXP))
   {
     auto n = arr.length;
@@ -87,19 +103,28 @@ struct RVector(SEXPTYPE type)
       }
     }
   }
+  this(T)(T[] arr)
+  if((type == VECSXP) && !is(T == SEXP))
+  {
+    SEXP __item__ = To!(SEXP)(arr);
+    this.__sexp__ = protect(allocVector(VECSXP, 1));
+    SET_VECTOR_ELT(this.__sexp__, 0, __item__);
+  }
   /* Create RVector from SEXP */
-  this(SEXP __sexp__)
+  this(T)(T __sexp__)
+  if((T == SEXP) && (type != VECSXP))
   {
     assert(type == TYPEOF(__sexp__), "Type of input is not the same as SEXPTYPE type submitted");
+    
     static if(type != STRSXP)
     {
-      this.__sexp__ = __sexp__;
-      this.__need_unprotect__ = false;
+      this.__sexp__ = protect(__sexp__);
+      this.__need_unprotect__ = true;
       size_t n = LENGTH(__sexp__);
       this.data = Accessor!(type)(__sexp__)[0..n];
     }else{
-      this.__sexp__ = __sexp__;
-      this.__need_unprotect__ = false;
+      this.__sexp__ = protect(__sexp__);
+      this.__need_unprotect__ = true;
       size_t n = LENGTH(__sexp__);
       this.data.length = n;
       //this.data = Accessor!(type)(__sexp__)[0..n];
@@ -109,6 +134,47 @@ struct RVector(SEXPTYPE type)
       }
     }
   }
+  this(T...)(T items)
+  if((type == VECSXP) || ((T.length == 1) && !isIntegral!(T)))
+  {
+    enum n = T.length;
+    this.__sexp__ = protect(allocVector(VECSXP, cast(int)n));
+    static foreach(enum i; 0..n)
+    {{
+      static if(is(T[i] == SEXP))
+      {
+        SEXP item = items[i];
+        SET_VECTOR_ELT(this.__sexp__, cast(int)i, protect(item));
+      }else static if(isRType!(T[i]))
+      {
+        SEXP item = items[i];
+        SET_VECTOR_ELT(this.__sexp__, cast(int)i, protect(item));
+      }else static if(isRType!(type))
+      {
+        static assert(0, "SEXP and RVector only allowed for lists");
+      }
+    }}
+  }
+  
+  static if(false)
+  {
+    auto append(T)(T item)
+    if((is(T == SEXP) || isRType!T) && (type == VECSXP))
+    {
+      static if(is(T == SEXP))
+      {
+        item = protect(item);
+        this.__sexp__ = listAppend(this.__sexp__, item);
+      }else static if(isRType!T)
+      {
+        SEXP __item__ = item;
+        __item__ = protect(__item__);
+        this.__sexp__ = listAppend(this.__sexp__, __item__);
+      }
+      return;
+    }
+  }
+  
   /*
     Destructor just unprotects and releases for R's gc
     It auto activates when the variable goes out of scope
@@ -120,7 +186,13 @@ struct RVector(SEXPTYPE type)
     {
       "Destructor called".writeln;
     }
-    unprotect;
+    static if(type == VECSXP)
+    {
+      sauced.saucer.unprotect(cast(int)(length + 1));
+    }else static if(type != VECSXP)
+    {
+      this.unprotect;
+    }
   }
   
   size_t length()
@@ -132,7 +204,7 @@ struct RVector(SEXPTYPE type)
   */
   SEXP opCast(T : SEXP)()
   {
-    unprotect();
+    this.unprotect();
     return __sexp__;
   }
   /*
@@ -144,10 +216,12 @@ struct RVector(SEXPTYPE type)
     return opCast!(SEXP)();
   }
   T opCast(T: SEXPElementType!(type)[])()
+  if(type != VECSXP)
   {
     return data;
   }
   T opCast(T: SEXPElementType!(type))()
+  if(type != VECSXP)
   {
     assert(length == 1, "Cannot cast to basic type " ~ 
         SEXPElementType!(type).stringof ~ 
@@ -198,11 +272,19 @@ struct RVector(SEXPTYPE type)
   }
   string toString()
   {
-    return "<RVector>\n" ~ to!(string)(opCast!(SEXPElementType!(type)[])());
+    static if(type == VECSXP)
+    {
+      return "<RVector!(VECSXP)> String representation not yet implemented,\nuse print(SEXP) function instead for printing.";
+    }else{
+      return "<RVector>\n" ~ to!(string)(opCast!(SEXPElementType!(type)[])());
+    }
   }
   auto opIndex(size_t i) inout
   {
-    static if(type != STRSXP)
+    static if(type == VECSXP)
+    {
+      return VECTOR_ELT(cast(SEXP)__sexp__, cast(long)i);
+    }else static if(type != STRSXP)
     {
       return data[i];
     }else{
@@ -210,12 +292,24 @@ struct RVector(SEXPTYPE type)
     }
   }
   auto opIndexUnary(string op)(size_t i) inout 
+  if(type != VECSXP)
   {
     mixin ("return " ~ op ~ "data[i];");
   }
   auto opIndexAssign(T)(T value, size_t i) 
   {
-    static if(is(T == SEXPElementType!(type)) && (type != STRSXP))
+    static if(type == VECSXP)
+    {
+      static if(is(T == SEXP) || isRType!(T))
+      {
+        SET_VECTOR_ELT(this.__sexp__, cast(int)i, value);
+        return;
+      }else{
+        SEXP __sexp_value__ = To!(SEXP)(value);
+        SET_VECTOR_ELT(this.__sexp__, cast(int)i, __sexp_value__);
+        return;
+      }
+    }else static if(is(T == SEXPElementType!(type)) && (type != STRSXP))
     {
       return data[i] = value;
     }else static if(is(T == string) && (type == STRSXP))
@@ -230,6 +324,7 @@ struct RVector(SEXPTYPE type)
     }
   }
   auto opIndexOpAssign(string op, T)(T value, size_t i)
+  if(type != VECSXP)
   {
     static if(type != STRSXP)
     {
