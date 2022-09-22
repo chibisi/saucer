@@ -73,14 +73,14 @@ struct RMatrix(SEXPTYPE type)
       "Type of input is not the same of SEXPTYPE type submitted");
     static if(type != STRSXP)
     {
-      this.__sexp__ = __sexp__;
+      this.__sexp__ = protect(__sexp__);
       size_t n = LENGTH(__sexp__);
-      this.__need_unprotect__ = false;
+      this.__need_unprotect__ = true;
       this.data = Accessor!(type)(__sexp__)[0..n];
     }else{
-      this.__sexp__ = __sexp__;
+      this.__sexp__ = protect(__sexp__);
       size_t n = LENGTH(__sexp__);
-      this.__need_unprotect__ = false;
+      this.__need_unprotect__ = true;
       this.data.length = n;
       for(long i = 0; i < n; ++i)
       {
