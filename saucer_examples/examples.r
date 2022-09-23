@@ -135,21 +135,39 @@ test_that("Basic check for RAW vectors", {
 funcs6 = '
 @Export() SEXP listTest(SEXP vec1, SEXP vec2, SEXP vec3)
 {
-    RVector!(VECSXP) x = RVector!(VECSXP)(vec1, vec2, vec3);
-    return x;
+  RVector!(VECSXP) x = RVector!(VECSXP)(vec1, vec2, vec3);
+  return x;
 }
 
 @Export() auto listTestRAPI(SEXP arr0, SEXP arr1, SEXP arr2)
 {
-    protect(arr0); protect(arr1); protect(arr2);
-    auto result = protect(allocVector(VECSXP, 3));
-    SET_VECTOR_ELT(result, 0, arr0);
-    SET_VECTOR_ELT(result, 1, arr1);
-    SET_VECTOR_ELT(result, 2, arr2);
-    unprotect(4);
-    return result;
+  protect(arr0); protect(arr1); protect(arr2);
+  auto result = protect(allocVector(VECSXP, 3));
+  SET_VECTOR_ELT(result, 0, arr0);
+  SET_VECTOR_ELT(result, 1, arr1);
+  SET_VECTOR_ELT(result, 2, arr2);
+  unprotect(4);
+  return result;
+}
+
+@Export() SEXP makeDataFrame(SEXP vec1, SEXP vec2, SEXP vec3)
+{
+  RVector!(VECSXP) x = RVector!(VECSXP)(vec1, vec2, vec3);
+  x.names = ["one", "two", "three"];
+  SEXP __class_name__ = RVector!(STRSXP)(["data.frame"]);
+  SEXP __row_names__ = RVector!(STRSXP)(["1", "2", "3", "4", "5"]);
+  setAttrib(x, R_RowNamesSymbol, __row_names__);
+  classgets(x, __class_name__);
+  return x;
+}
+
+@Export() SEXP makeDataFrame1(SEXP vec1, SEXP vec2, SEXP vec3)
+{
+  auto df = DataFrame(vec1, vec2, vec3);
+  return df;
 }
 '
+
 dfunctions(funcs6, dropFolder = T)
 
 test_that("Basic check for list", {
@@ -168,6 +186,10 @@ test_that("Basic check for list", {
 })
 
 
+
+x = listTest(1:5, 6:10, 11:15)
+
+makeDataFrame1(1:5, 6:10, 11:15)
 
 
 

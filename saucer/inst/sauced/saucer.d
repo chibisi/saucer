@@ -140,6 +140,7 @@ if(type == STRSXP)
 //Pasting in RVector and RMatrix types
 mixin(import("imports/rvector.d"));
 mixin(import("imports/rmatrix.d"));
+mixin(import("imports/dataframe.d"));
 mixin(import("imports/commonfunctions.d"));
 
 /*

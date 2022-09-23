@@ -112,7 +112,7 @@ struct RVector(SEXPTYPE type)
   }
   /* Create RVector from SEXP */
   this(T)(T __sexp__)
-  if((T == SEXP) && (type != VECSXP))
+  if(is(T == SEXP) && (type != VECSXP))
   {
     assert(type == TYPEOF(__sexp__), "Type of input is not the same as SEXPTYPE type submitted");
     
@@ -149,7 +149,7 @@ struct RVector(SEXPTYPE type)
       {
         SEXP item = items[i];
         SET_VECTOR_ELT(this.__sexp__, cast(int)i, protect(item));
-      }else static if(isRType!(type))
+      }else
       {
         static assert(0, "SEXP and RVector only allowed for lists");
       }
@@ -277,6 +277,41 @@ struct RVector(SEXPTYPE type)
       return "<RVector!(VECSXP)> String representation not yet implemented,\nuse print(SEXP) function instead for printing.";
     }else{
       return "<RVector>\n" ~ to!(string)(opCast!(SEXPElementType!(type)[])());
+    }
+  }
+  /*
+    Functions to get and set names
+  */
+  @property auto names()
+  {
+    SEXP __names__ = getAttrib(__sexp__, R_NameSymbol);
+    return RVector!(STRSXP)(__names__);
+  }
+  @property auto names(T)(T arr)
+  if((is(T == string[]) || isRType!(T) || is(T == SEXP)) && (type == VECSXP))
+  {
+    static if(isRType!(T))
+    {
+      SEXP __arr__ = arr;
+      __arr__ = protect(__arr__);
+      setAttrib(__sexp__, R_NamesSymbol, __arr__);
+      sauced.saucer.unprotect(1);
+      return;
+    }else static if(is(T == string[]))
+    {
+      SEXP __arr__ = To!(SEXP)(arr);
+      __arr__ = protect(__arr__);
+      setAttrib(__sexp__, R_NamesSymbol, __arr__);
+      sauced.saucer.unprotect(1);
+      return;
+    }else static if(is(T == SEXP))
+    {
+      arr = protect(arr);
+      setAttrib(__sexp__, R_NamesSymbol, arr);
+      sauced.saucer.unprotect(1);
+      return;
+    }else {
+      static assert("Unknown type " ~ T.stringof ~ " can not be attached to list name");
     }
   }
   auto opIndex(size_t i) inout

@@ -32,6 +32,7 @@
   file.copy(file.path(sourceDir, "imports", "isin.d"), file.path(importsFolder, "isin.d"))
   file.copy(file.path(sourceDir, "imports", "rvector.d"), file.path(importsFolder, "rvector.d"))
   file.copy(file.path(sourceDir, "imports", "rmatrix.d"), file.path(importsFolder, "rmatrix.d"))
+  file.copy(file.path(sourceDir, "imports", "dataframe.d"), file.path(importsFolder, "dataframe.d"))
   file.copy(file.path(sourceDir, "imports", "commonfunctions.d"), file.path(importsFolder, "commonfunctions.d"))
   file.copy(file.path(sourceDir, "imports", "r_aliases.d"), file.path(importsFolder, "r_aliases.d"))
   file.copy(file.path(sourceDir, "translator.d"), codeFolder)
