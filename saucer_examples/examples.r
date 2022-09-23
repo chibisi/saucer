@@ -186,12 +186,13 @@ test_that("Basic check for list", {
 })
 
 
-
-x = listTest(1:5, 6:10, 11:15)
-
-makeDataFrame1(1:5, 6:10, 11:15)
-
-
-
+test_that("Basic dataframe check",{
+  .df = makeDataFrame1(1:5, 6:10, 11:15)
+  expect_true(class(.df) == "data.frame")
+  expect_true(all(names(.df) == c("V0", "V1", "V2")));
+  expect_true(all(.df$V0 == 1:5))
+  expect_true(all(.df$V1 == 6:10))
+  expect_true(all(.df$V2 == 11:15))
+})
 
 
