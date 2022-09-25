@@ -17,7 +17,7 @@ debug(rvector)
   import std.stdio: writeln;
 }
 
-
+//import std.stdio: writeln;
 struct RVector(SEXPTYPE type)
 {
   SEXP __sexp__;
@@ -32,8 +32,8 @@ struct RVector(SEXPTYPE type)
     SEXPElementType!(type)[] data;
   }
 
-  //alias __sexp__ this;
-  alias implicitCast this;
+  alias __sexp__ this;
+  //alias implicitCast this;
   
   this(T)(T n)
   if((type == VECSXP) && isIntegral!(T))
@@ -85,6 +85,7 @@ struct RVector(SEXPTYPE type)
   if((type != VECSXP) && (is(T == string) || is(T == const(char)*)) && 
      (type == STRSXP))
   {
+    //writeln("String constructor 1");
     auto n = arr.length;
     this.data.length = n;
     this.__sexp__ = protect(allocVector(type, cast(int)n));
@@ -123,6 +124,7 @@ struct RVector(SEXPTYPE type)
       size_t n = LENGTH(__sexp__);
       this.data = Accessor!(type)(__sexp__)[0..n];
     }else{
+      //writeln("String constructor 2");
       this.__sexp__ = protect(__sexp__);
       this.__need_unprotect__ = true;
       size_t n = LENGTH(__sexp__);
@@ -182,6 +184,7 @@ struct RVector(SEXPTYPE type)
   */
   ~this()
   {
+    //writeln("Destructor ...");
     debug(rvector)
     {
       "Destructor called".writeln;
@@ -189,7 +192,7 @@ struct RVector(SEXPTYPE type)
     static if(type == VECSXP)
     {
       sauced.saucer.unprotect(cast(int)(length + 1));
-    }else static if(type != VECSXP)
+    }else static if((type != VECSXP) && (type != STRSXP))
     {
       this.unprotect;
     }
@@ -204,8 +207,9 @@ struct RVector(SEXPTYPE type)
   */
   SEXP opCast(T : SEXP)()
   {
+    //writeln("opCast SEXP ...");
     this.unprotect();
-    return __sexp__;
+    return this.__sexp__;
   }
   /*
     Wrapper for alias this
@@ -256,13 +260,14 @@ struct RVector(SEXPTYPE type)
   */
   void unprotect()
   {
+    //writeln("Running unprotect_ptr for " ~ type.stringof);
     debug(rvector)
     {
       "unprotect_ptr called".writeln;
     }
     if(__need_unprotect__)
     {
-      unprotect_ptr(__sexp__);
+      unprotect_ptr(this.__sexp__);
       __need_unprotect__ = false;
       debug(rvector)
       {

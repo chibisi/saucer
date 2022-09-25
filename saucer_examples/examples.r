@@ -73,12 +73,12 @@ funcH()
 
 
 # The rest of the functions are located in a script
-saucerize("script")
+saucerize("script", dropFolder = TRUE)
 
 x = seq(1.0, 10.0, by = 0.5); y = seq(1.0, 10.0, by = 0.5)
 
 generate_numbers(as.integer(100))
-dot(x, y) == sum(x*y)
+dot_product(x, y) == sum(x*y)
 vdmul(x, y)
 ans1 = outer_prod_serial(x, y)
 sum(abs(ans1 - x %o% y)) == 0
@@ -94,8 +94,10 @@ abs(dot_type(x, y) - sum(x * y)) == 0
 
 # For strings
 # Using SXP
+cat("SEXP #1 ...\n")
 rep("", 10) |> test_strsxp()
 # Using string[]
+cat("SEXP #2 ...\n")
 rep("", 10) |> test_string()
 
 
@@ -172,6 +174,7 @@ dfunctions(funcs6, dropFolder = T)
 
 test_that("Basic check for list", {
 
+  cat("Running tests for basic lists ...\n")
   origList = list(1:5, 6:10, 11:15)
   rvecList = listTest(1:5, 6:10, 11:15)
   rvecAPIList = listTestRAPI(1:5, 6:10, 11:15)

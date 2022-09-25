@@ -1,3 +1,30 @@
+#' @title unix-style function to copy a directory from
+#' 
+#' @param from the path to the directory to be copied
+#' @param to the path that the direectory should be copied to
+#' @param flags character vector of the flags passed to the 
+#'        cp linux function. Defaults to "-r".
+#' 
+#' @return invisibly returns the command that was run
+#'
+#' @export
+#' 
+dir.copy = function(from, to, flags = "-r")
+{
+  stopifnot((length(from) == length(to)) & (length(to) == 1))
+  stopifnot(dir.exists(from))
+  stopifnot()
+
+  flags = paste0(flags, collapse = " ")
+  command = paste0(c("cp", from, flags, to), collapse = " ")
+  system(command)
+  stopifnot(file.exists(to))
+  
+  return(invisible(command))
+}
+
+
+
 # Internal workshorse function for compiling and loading a D module
 .saucerize = function(module, dropFolder = NULL, folderName = NULL)
 {
@@ -20,23 +47,25 @@
   }
   
   # Set Code Folder
-  dir.create(folderName)
+  # dir.create(folderName)
   codeFolder = paste0(currWd, .Platform$file.sep, folderName)
-  setwd(codeFolder)
   
   # Copy files
-  importsFolder = file.path(codeFolder, "imports")
-  dir.create(importsFolder)
-  file.copy(file.path(sourceDir, "r2d.d"), codeFolder)
-  file.copy(file.path(sourceDir, "saucer.d"), codeFolder)
-  file.copy(file.path(sourceDir, "imports", "isin.d"), file.path(importsFolder, "isin.d"))
-  file.copy(file.path(sourceDir, "imports", "rvector.d"), file.path(importsFolder, "rvector.d"))
-  file.copy(file.path(sourceDir, "imports", "rmatrix.d"), file.path(importsFolder, "rmatrix.d"))
-  file.copy(file.path(sourceDir, "imports", "dataframe.d"), file.path(importsFolder, "dataframe.d"))
-  file.copy(file.path(sourceDir, "imports", "commonfunctions.d"), file.path(importsFolder, "commonfunctions.d"))
-  file.copy(file.path(sourceDir, "imports", "r_aliases.d"), file.path(importsFolder, "r_aliases.d"))
-  file.copy(file.path(sourceDir, "translator.d"), codeFolder)
+  # importsFolder = file.path(codeFolder, "imports")
+  # dir.create(importsFolder)
+  dir.copy(sourceDir, codeFolder)
+  # file.copy(file.path(sourceDir, "r2d.d"), codeFolder)
+  # file.copy(file.path(sourceDir, "saucer.d"), codeFolder)
+  # file.copy(file.path(sourceDir, "imports", "isin.d"), file.path(importsFolder, "isin.d"))
+  # file.copy(file.path(sourceDir, "imports", "rvector.d"), file.path(importsFolder, "rvector.d"))
+  # file.copy(file.path(sourceDir, "imports", "rmatrix.d"), file.path(importsFolder, "rmatrix.d"))
+  # file.copy(file.path(sourceDir, "imports", "dataframe.d"), file.path(importsFolder, "dataframe.d"))
+  # file.copy(file.path(sourceDir, "imports", "commonfunctions.d"), file.path(importsFolder, "commonfunctions.d"))
+  # file.copy(file.path(sourceDir, "imports", "r_aliases.d"), file.path(importsFolder, "r_aliases.d"))
+  # file.copy(file.path(sourceDir, "translator.d"), codeFolder)
   file.copy(file.path(currWd, paste0(module, ".d")), codeFolder)
+
+  setwd(codeFolder)
   
   # Run the d compilation script
   command = "echo 'enum moduleName = \"${module}\";' | dmd translator.d ${currWd}/${module}.d saucer.d r2d.d -O -boundscheck=off -mcpu=native -g -J=\".\" -L-lR -L-lRmath && ./translator" #-L-lR -L-lRmath
@@ -227,34 +256,6 @@ dfunctions = function(codeArr, dropFolder = TRUE)
   result = .dfunction(paste0(codeArr, collapse = "\n"), dropFolder)
   return(invisible(result))
 }
-
-
-
-#' @title unix-style function to copy a directory from
-#' 
-#' @param from the path to the directory to be copied
-#' @param to the path that the direectory should be copied to
-#' @param flags character vector of the flags passed to the 
-#'        cp linux function. Defaults to "-r".
-#' 
-#' @return invisibly returns the command that was run
-#'
-#' @export
-#' 
-dir.copy = function(from, to, flags = "-r")
-{
-  stopifnot((length(from) == length(to)) & (length(to) == 1))
-  stopifnot(dir.exists(from))
-  stopifnot()
-
-  flags = paste0(flags, collapse = " ")
-  command = paste0(c("cp", from, flags, to), collapse = " ")
-  system(command)
-  stopifnot(file.exists(to))
-  
-  return(invisible(command))
-}
-
 
 
 #' @title Delete a directory

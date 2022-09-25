@@ -225,40 +225,6 @@ template isBasicArray(T: U[], U)
 }
 
 
-
-/*
-  r_type has to be ref (borrowing) or the function 
-  will attempt to call the destructor on it on exit from scope
-  since r_type is not actually returned. Difficult to overload 
-  the to!() template because RTypes are "alias this SEXP" so
-  to!(SEXP)(r_type) will probably just try to shortcut type
-  convert to SEXP thus running the destructor rather than running
-  the function below and on exit of the parent function, the
-  destructor will attempt to run again when the object goes out of
-  scope and cause an error. So I renamed the template function to To!()
-  which shall be used until we start using the new preserve list
-  mechanism for unprotecting.
-*/
-
-/*
-  Type conversion from any RType to an SEXP
-*/
-pragma(inline, true)
-T To(T: SEXP, F)(auto ref F r_type)
-if(isSEXP!(T) && isRType!(F))
-{
-  r_type.unprotect();//run unprotect when casting away from RType
-  return r_type.__sexp__;
-}
-
-pragma(inline, true)
-SEXP To(T: SEXP, F)(auto ref F r_type)
-if(isSEXP!(T) && isSEXP!(F))
-{
-  return r_type;
-}
-
-
 /*
   Mapping from basic type to SEXPTYPE
 */
@@ -308,11 +274,44 @@ template GetElementType(T: U[], U)
   alias GetElementType = U;
 }
 
+
+
+/*
+  r_type has to be ref (borrowing) or the function 
+  will attempt to call the destructor on it on exit from scope
+  since r_type is not actually returned. Difficult to overload 
+  the to!() template because RTypes are "alias this SEXP" so
+  to!(SEXP)(r_type) will probably just try to shortcut type
+  convert to SEXP thus running the destructor rather than running
+  the function below and on exit of the parent function, the
+  destructor will attempt to run again when the object goes out of
+  scope and cause an error. So I renamed the template function to To!()
+  which shall be used until we start using the new preserve list
+  mechanism for unprotecting.
+*/
+
+/*
+  Type conversion from any RType to an SEXP
+*/
+pragma(inline, true)
+T To(T, F)(auto ref F r_type)
+if(isSEXP!(T) && isRType!(F))
+{
+  return r_type.__sexp__;
+}
+
+pragma(inline, true)
+SEXP To(T: SEXP, F)(auto ref F __sexp__)
+if(isSEXP!(T) && isSEXP!(F))
+{
+  return __sexp__;
+}
+
 /*
   Type conversion from any Basic Array to an SEXP
 */
 pragma(inline, true)
-T To(T: SEXP, F)(auto ref F arr)
+T To(T, F)(auto ref F arr)
 if(isSEXP!(T) && isBasicArray!(F))
 {
   alias E = GetElementType!(F);
@@ -335,7 +334,7 @@ if(isSEXP!(T) && isBasicArray!(F))
   Type conversion from any Basic type to an SEXP
 */
 pragma(inline, true)
-T To(T: SEXP, F)(auto ref F b_type)
+T To(T, F)(auto ref F b_type)
 if(isSEXP!(T) && isBasicType!(F))
 {
   enum SEXPTYPE STYPE = MapToSEXP!(F);
@@ -414,8 +413,6 @@ if(isSEXP!(T) && isSEXP!(F))
 {
   return arr;
 }
-
-
 
 
 /*

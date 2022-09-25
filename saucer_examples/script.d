@@ -179,6 +179,8 @@ import std.algorithm.sorting: sort;
   {
     x[i] = "Hello World";
   }
+  //import std.stdio: writeln;
+  //writeln("x: ", x, "\n");
   return x;
 }
 @Export() auto test_string(string[] x)
