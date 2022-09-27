@@ -24,6 +24,42 @@ dir.copy = function(from, to, flags = "-r")
 }
 
 
+compileTranslator = function(command, currWd, module)
+{
+  command = stringr::str_interp(command, list("currWd" = currWd, "module" = module))
+  status = system(command, intern = FALSE)
+
+  if(status != 0)
+  {
+    cat("Compilation command had a status of ", status, "\n", sep = "")
+    cat("Exiting as a result of error, and resetting working directory ...\n")
+    setwd(currWd)
+    stop("Compilation command failed to execute! Propagating error and exiting")
+  }
+  return(invisible())
+}
+
+
+compileScript = function(fileName, currWd)
+{
+  dllFile = paste0(fileName, ".so");
+  command = paste0("dmd ", fileName, 
+                    ".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\".\" -fPIC -L-fopenmp -L-lR -L-lRmath && ",
+                    "dmd ", fileName, ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=", dllFile,
+                    " -L-fopenmp -L-lR -L-lRmath -shared")
+  status = system(command, intern = FALSE)
+
+  if(status != 0)
+  {
+    cat("Compilation command had a status of ", status, "\n", sep = "")
+    cat("Exiting as a result of error, and resetting working directory ...\n")
+    setwd(currWd)
+    stop("Compilation command failed to execute! Propagating error and exiting")
+  }
+  return(invisible())
+}
+
+
 
 # Internal workshorse function for compiling and loading a D module
 .saucerize = function(module, dropFolder = NULL, folderName = NULL)
@@ -51,43 +87,15 @@ dir.copy = function(from, to, flags = "-r")
   codeFolder = paste0(currWd, .Platform$file.sep, folderName)
   
   # Copy files
-  # importsFolder = file.path(codeFolder, "imports")
-  # dir.create(importsFolder)
   dir.copy(sourceDir, codeFolder)
-  # file.copy(file.path(sourceDir, "r2d.d"), codeFolder)
-  # file.copy(file.path(sourceDir, "saucer.d"), codeFolder)
-  # file.copy(file.path(sourceDir, "imports", "isin.d"), file.path(importsFolder, "isin.d"))
-  # file.copy(file.path(sourceDir, "imports", "rvector.d"), file.path(importsFolder, "rvector.d"))
-  # file.copy(file.path(sourceDir, "imports", "rmatrix.d"), file.path(importsFolder, "rmatrix.d"))
-  # file.copy(file.path(sourceDir, "imports", "dataframe.d"), file.path(importsFolder, "dataframe.d"))
-  # file.copy(file.path(sourceDir, "imports", "commonfunctions.d"), file.path(importsFolder, "commonfunctions.d"))
-  # file.copy(file.path(sourceDir, "imports", "r_aliases.d"), file.path(importsFolder, "r_aliases.d"))
-  # file.copy(file.path(sourceDir, "translator.d"), codeFolder)
   file.copy(file.path(currWd, paste0(module, ".d")), codeFolder)
 
   setwd(codeFolder)
   
   # Run the d compilation script
   command = "echo 'enum moduleName = \"${module}\";' | dmd translator.d ${currWd}/${module}.d saucer.d r2d.d -O -boundscheck=off -mcpu=native -g -J=\".\" -L-lR -L-lRmath && ./translator" #-L-lR -L-lRmath
-  command = stringr::str_interp(command, list("currWd" = currWd, "module" = module))
-  
-  commandFailed = FALSE
-  command_output = system(command, intern = TRUE)
-  
-  status = attr(command_output, "status")
-  if(length(status) == 0)
-  {
-    status = 0
-  }
-  if(status != 0)
-  {
-    cat("Compilation command had a status of ", status, "\n", sep = "")
-    cat("Exiting as a result of error, and resetting working directory ...\n")
-    setwd(currWd)
-    return(stop("Compilation command failed to execute! Propagating error and exiting"))
-  }
-  
-  # cat("Command output: \n", command_output, sep = "")
+  compileTranslator(command, currWd, module)
+  compileScript(module, currWd)
   
   # Load the translated functions in a generated R script
   source(paste0(module, ".r"))

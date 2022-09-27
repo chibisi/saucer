@@ -1097,6 +1097,20 @@ mixin template CreateRScriptDemo()
 +/
 mixin template Saucerize(string moduleName)
 {
+    void translate()
+    {
+        import std.stdio: File, writeln;
+        import std.file: copy, mkdir, exists, isDir;
+        import std.process: execute, executeShell;
+
+        enum fileName = extractShortModuleName!(moduleName);
+        //Write the wrapped module
+        File(fileName ~ ".d", "w").writeln(wrapModule!(moduleName)());
+        //Write the R script wrapper
+        File(fileName ~ ".r", "w").writeln(createRScript!(moduleName));
+        
+        return;
+    }
     void saucerize()
     {
         import std.stdio: File, writeln;
@@ -1125,7 +1139,7 @@ mixin template Saucerize(string moduleName)
     {
         try
         {
-            saucerize();
+            translate();
         }
         catch(Exception e)
         {
