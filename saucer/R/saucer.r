@@ -23,6 +23,35 @@ dir.copy = function(from, to, flags = "-r")
   return(invisible(command))
 }
 
+#' @title Function to run a system command (usually compilation) 
+#' 
+#' @param command the command string to run
+#' @param runDirectory the directory that the command should be run
+#' @param failDirectory the directory that should be switched to if the command fails
+#' @param successDirectory the directory that should be switched to in the event of a success
+#' 
+#' @return invisibly returns NULL
+#' 
+#' @export 
+#' 
+runCommand = function(command, runDirectory, failDirectory, successDirectory)
+{
+  setwd(runDirectory)
+  status = system(command, intern = FALSE)
+
+  if(status != 0)
+  {
+    cat("Compilation command had a status of ", status, "\n", sep = "")
+    cat("Exiting as a result of error, and resetting failDirectory ...\n")
+    setwd(failDirectory)
+    stop("Compilation command failed to execute! Propagating error and exiting")
+  }else{
+    setwd(successDirectory)
+  }
+  return(invisible())
+}
+
+
 
 compileTranslator = function(command, currWd, module)
 {
@@ -110,7 +139,7 @@ compileScript = function(fileName, currWd)
   # Drop folder if indicated
   if(dropFolder)
   {
-    unlink(codeFolder, recursive = T)
+    unlink(codeFolder, recursive = TRUE)
     cat("Temporary code folder ", codeFolder, " deleted.\n", sep = "")
   }
   
@@ -179,6 +208,9 @@ saucerize = function(modules, ...)
 #' @param nrand the number of random characters to generate as an 
 #'        append to the file name
 #' @return A random file name
+#'
+#' @export
+#' 
 createFileName = function(prefix = "script", extn = NULL, nrand = 12)
 {
   postfix = paste0(sample(c(0:9, letters), nrand), collapse = "")
@@ -323,5 +355,31 @@ compileRInside = function(fileName, flags = c("-O", "-fPIC", "-L-lR", "-L-lRmath
   }
 
   return(invisible(command))
+}
+
+
+
+#' @title Runs the internal D tests to make sure that the package is running properly
+#' 
+#' @return NULL invisibly
+#' 
+#' @export 
+#' 
+runDTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
+{
+  currWd = getwd()
+  sourceDir = system.file("sauced", package = "saucer")
+  folderName = createFileName(folderNamePrefix)
+  codeFolder = paste0(currWd, .Platform$file.sep, folderName)
+  dir.copy(sourceDir, codeFolder)
+  setwd(codeFolder)
+
+  command = "
+  echo 'enum moduleName = \"test.files.test_resource_1\";' | dmd translator.d test/files/example_1.d test/files/test_resource_1.d test/files/test_resource_2.d saucer.d r2d.d -unittest -main -O -mcpu=native -g -J=. -L-lR -L-lRmath
+  ./translator
+  "
+  runCommand(command, codeFolder, currWd, currWd)
+  unlink(codeFolder, recursive = dropFolder)
+  return(invisible(NULL))
 }
 

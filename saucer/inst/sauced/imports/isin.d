@@ -1,18 +1,18 @@
 import std.meta: AliasSeq;
 
 
-struct _Tuple_(T...)
+struct Tuple(T...)
 {
   enum length = T.length;
   alias get(ulong i) = T[i];
 }
 
 
-enum bool _isTuple_(T) = false;
-enum bool _isTuple_(T: Tuple!(U), U) = true;
+enum bool isTuple(T) = false;
+enum bool isTuple(T: Tuple!(U), U) = true;
 
 bool __in__(S, T)()
-if(_isTuple_!(S))
+if(isTuple!(S))
 {
     static assert(S.length > 0, "No S variables submitted");
     bool result = false;
@@ -30,7 +30,7 @@ if(_isTuple_!(S))
   Compile time check for whether items in AliasSeq!(T) are in _Tuple!(S)
 +/
 template isin(S, T...)
-if(_isTuple_!(S))
+if(isTuple!(S))
 {
     static assert(T.length > 0, "No T variables submitted");
     static assert(S.length > 0, "No S variables submitted");
@@ -46,8 +46,8 @@ if(_isTuple_!(S))
 
 unittest
 {
-    static assert(isin!(_Tuple_!(int, double), string, ulong) == false);
-    static assert(isin!(_Tuple_!(int, double), int, double, double, int) == true);
-    static assert(isin!(_Tuple_!(int, double), int, ulong) == true);
+    static assert(isin!(Tuple!(int, double), string, ulong) == false);
+    static assert(isin!(Tuple!(int, double), int, double, double, int) == true);
+    static assert(isin!(Tuple!(int, double), int, ulong) == true);
 }
 

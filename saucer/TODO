@@ -5,7 +5,7 @@
 
 1. Solve the stack (un/protect) issues resulting from character and list/data frame by doing separate implementations of STRSXP (Character stuff) and VECSXP for list and data frames (separately)
 
-2. Add testing function for D compilation into the R package to run tests on D's unittest blocks.
+2. Add testing function for D compilation into the R package to run tests on D's unittest blocks. Done, but will need to be updated when the compiler/flag options are created.
 
 3. Add pass compilation flags and compiler options to compiler function in R
 
