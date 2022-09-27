@@ -1,2 +1,28 @@
 # TODO
 
+
+## Implementation
+
+1. Solve the stack (un/protect) issues resulting from character and list/data frame by doing separate implementations of STRSXP (Character stuff) and VECSXP for list and data frames (separately)
+
+2. Add testing function for D compilation into the R package to run tests on D's unittest blocks.
+
+3. Add pass compilation flags and compiler options to compiler function in R
+
+4. Things to implement on the D side:
+    - Environments
+    - Functions - see how to also eval these in D
+    - Multidimensional arrays > 2D
+
+5. Multiple OS support  for Windows and Mac
+
+6. Compiling multiple files and modules
+
+
+## Testing
+
+1. Complete unittests (on the D side)
+2. Memory tests valgrind
+3. Performance testing.
+
+
