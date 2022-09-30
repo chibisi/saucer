@@ -47,9 +47,12 @@ saucerize("script", dropFolder = TRUE)
 test_that("2. Testing functions from script", {
   
   x = seq(1.0, 10.0, by = 0.5); y = seq(1.0, 10.0, by = 0.5)
-  generate_numbers(as.integer(100))
   expect_true(dot_product(x, y) == sum(x*y), info = c("Dot product test"))
   
+  n = 100
+  randNumbers = generate_numbers(as.integer(n))
+  expect_true(length(randNumbers) == n, info = c("Check number of random numbers generated"))
+
   vdmul(x, y)
   ans1 = outer_prod_serial(x, y)
   expect_true(sum(abs(ans1 - x %o% y)) == 0, info = c("Outer product test"))

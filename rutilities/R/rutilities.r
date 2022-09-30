@@ -71,3 +71,44 @@ removeAndUpdate = function(packageName, path = ".")
 }
 
 
+#' @title Function to remove and update a locally available package
+#'
+#' @description Function to remove and update a locally available package 
+#'              using the updatePackage() function
+#' 
+#' @param package the package name to be passed to remove.packages() 
+#'               and updatePackage()
+#'
+#' @return NULL invisibly
+#'
+#' @export
+#'
+removeAndUpdatePackage = function(package = "saucer")
+{
+    command = paste0("R -e \"require('rutilities'); remove.packages('", package,"'); exit()\"")
+    status = system(command, intern = FALSE)
+    status = attr(status, "status")
+    if(length(status) > 0)
+    {
+        if(status == 1)
+        {
+            messageString = paste0("Execution error remove ", package, " package failed")
+            stop(messageString)
+        }
+    }
+    command = paste0("R -e \"require('rutilities'); updatePackage('", package, "'); exit()\"")
+    status = system(command, intern = TRUE)
+    status = attr(status, "status")
+    if(length(status) > 0)
+    {
+        if(status == 1)
+        {
+            messageString = paste0("Execution error remove ", package, " package failed")
+            stop(messageString)
+        }
+    }
+    return(invisible())
+}
+
+
+
