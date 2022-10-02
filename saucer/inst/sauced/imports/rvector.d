@@ -194,7 +194,10 @@ struct RVector(SEXPTYPE type)
       sauced.saucer.unprotect(cast(int)(length + 1));
     }else static if((type != VECSXP) && (type != STRSXP))
     {
-      this.unprotect;
+      if(need_unprotect)
+      {
+        this.unprotect;
+      }
     }
   }
   
@@ -373,7 +376,7 @@ struct RVector(SEXPTYPE type)
       mixin("auto tmp = To!(string)(data[i]) " ~ op ~ " To!(string)(value);");
       data[i] = cast(const(char)*)toStringz(tmp);
       SET_STRING_ELT(this.__sexp__, 0, mkChar(cast(const(char)*)toStringz(tmp)));
-      return data[i] = mkChar(cast(const(char)*)toStringz(tmp));
+      data[i] = mkChar(cast(const(char)*)toStringz(tmp));
       return data[i];
     }
   }

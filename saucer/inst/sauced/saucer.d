@@ -4,13 +4,14 @@ import std.conv: to;
 import std.traits: isIntegral;
 public import sauced.r2d;
 mixin(import("imports/r_aliases.d"));
+import std.string: toStringz, fromStringz;
 
 /*
   TODO:
   
   * Swap RVector and RMatrix over to T[] from T*
   * Make some methods private since some methods should not
-  be accessible, e.g. unprotect, __sexp__, and so on.
+  be accessible, e.g. unprotect, sexp, and so on.
 */
 
 
@@ -35,6 +36,7 @@ struct Export
 }
 
 
+mixin(import("imports/cstring.d"));
 mixin(import("imports/isin.d"));
 
 alias print = Rf_PrintValue;
@@ -138,9 +140,10 @@ if(type == STRSXP)
 }
 
 //Pasting in RVector and RMatrix types
-mixin(import("imports/rvector.d"));
+mixin(import("imports/basicVector.d"));
+//mixin(import("imports/rvector.d"));
 mixin(import("imports/rmatrix.d"));
-mixin(import("imports/dataframe.d"));
+//mixin(import("imports/dataframe.d"));
 mixin(import("imports/commonfunctions.d"));
 
 /*
@@ -297,14 +300,14 @@ pragma(inline, true)
 T To(T, F)(auto ref F r_type)
 if(isSEXP!(T) && isRType!(F))
 {
-  return r_type.__sexp__;
+  return r_type.sexp;
 }
 
 pragma(inline, true)
-SEXP To(T: SEXP, F)(auto ref F __sexp__)
+SEXP To(T: SEXP, F)(auto ref F sexp)
 if(isSEXP!(T) && isSEXP!(F))
 {
-  return __sexp__;
+  return sexp;
 }
 
 /*
@@ -467,10 +470,10 @@ string StringOf(T)()
   {
     return "RVector!(RAWSXP)";
   }
-  static if(is(T == RVector!(STRSXP)))
+  /* static if(is(T == RVector!(STRSXP)))
   {
     return "RVector!(STRSXP)";
-  }
+  } */
   static if(is(T == mixin("RMatrix!(LGLSXP)")))
   {
     return "RMatrix!(LGLSXP)";

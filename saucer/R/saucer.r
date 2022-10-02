@@ -359,13 +359,17 @@ compileRInside = function(fileName, flags = c("-O", "-fPIC", "-L-lR", "-L-lRmath
 
 
 
-#' @title Runs the internal D tests to make sure that the package is running properly
+#' @title Runs the internal D unittests for translator.d
 #' 
+#' @param dropFolder whether the generated code folder should be dropped or not
+#' @param folderNamePrefix the prefix name for the folder defaults to "dSaucerTest"
+#'
+#'
 #' @return NULL invisibly
 #' 
 #' @export 
 #' 
-runDTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
+runDTranslatorTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
 {
   currWd = getwd()
   sourceDir = system.file("sauced", package = "saucer")
@@ -379,7 +383,40 @@ runDTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
   ./translator
   "
   runCommand(command, codeFolder, currWd, currWd)
-  unlink(codeFolder, recursive = dropFolder)
+  if(dropFolder)
+  {
+    unlink(codeFolder, recursive = TRUE)
+  }
   return(invisible(NULL))
 }
 
+
+#' @title Runs the internal D tests for saucer.d script
+#' 
+#' @param dropFolder whether the generated code folder should be dropped or not
+#' @param folderNamePrefix the prefix name for the folder defaults to "dSaucerTest"
+#' 
+#' 
+#' @return NULL invisibly
+#' 
+#' @export 
+#' 
+runSaucedTests = function(dropFolder = TRUE, folderNamePrefix = "dSaucerTest")
+{
+  currWd = getwd()
+  sourceDir = system.file("sauced", package = "saucer")
+  folderName = createFileName(folderNamePrefix)
+  codeFolder = paste0(currWd, .Platform$file.sep, folderName)
+  dir.copy(sourceDir, codeFolder)
+  setwd(codeFolder)
+
+  command = "
+  dmd saucer.d r2d.d -unittest -main -O -mcpu=native -g -J=. -L-lR -L-lRmath && ./saucer
+  "
+  runCommand(command, codeFolder, currWd, currWd)
+  if(dropFolder)
+  {
+    unlink(codeFolder, recursive = TRUE)
+  }
+  return(invisible(NULL))
+}

@@ -1,0 +1,7 @@
+# Notes
+
+
+1. When calling `writeln`, use the `toString()` function on RVector, RMatrix and other D-interfacing object. This is because `writeln` currently calls copy constructors multiple times which is obviously resource wasteful. For convenience I don't really want to disable it.
+
+
+

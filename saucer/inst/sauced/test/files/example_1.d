@@ -190,49 +190,6 @@ import std.algorithm.sorting: sort;
   return result;
 }
 
-/*
-  Testing string types
-*/
-@Export() auto test_strsxp(RVector!(STRSXP) x)
-{
-  for(long i = 0; i < x.length; ++i)
-  {
-    x[i] = "Hello World";
-  }
-  return x;
-}
-@Export() auto test_string(string[] x)
-{
-  for(long i = 0; i < x.length; ++i)
-  {
-    x[i] = "Goodbye World";
-  }
-  return x;
-}
-@Export() auto create_string_vector(size_t n)
-{
-  auto result = RVector!(STRSXP)(n);
-  for(long i = 0; i < n; ++i)
-  {
-    result[i] = "New String";
-  }
-  return result;
-}
-
-@Export() auto create_string_matrix(size_t nrow, size_t ncol)
-{
-  auto result = RMatrix!(STRSXP)(nrow, ncol);
-  for(long i = 0; i < nrow; ++i)
-  {
-    for(long j = 0; j < ncol; ++j)
-    {
-      result[i, j] = "New String";
-    }
-  }
-  return result;
-}
-
-
 /+
     Function to create an integer vector
 

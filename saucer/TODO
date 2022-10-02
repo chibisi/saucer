@@ -3,7 +3,8 @@
 
 ## Implementation
 
-1. Solve the stack (un/protect) issues resulting from character and list/data frame by doing separate implementations of STRSXP (Character stuff) and VECSXP for list and data frames (separately)
+1. Do a proper re-write of RVector, RMatrix types to account for protect/unprotect errors. Also re-address the way that you deal with
+   stirngs because they cause the most problems.
 
 2. Add testing function for D compilation into the R package to run tests on D's unittest blocks. DONE, but will need to be updated when the compiler/flag options are created.
 
@@ -17,6 +18,8 @@
 5. Multiple OS support  for Windows and Mac
 
 6. Compiling multiple files and modules
+
+7. Adding debug mode compilation option.
 
 
 ## Testing

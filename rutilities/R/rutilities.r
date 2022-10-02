@@ -112,3 +112,18 @@ removeAndUpdatePackage = function(package = "saucer")
 
 
 
+#' @title checks whether two numbers are qpproximately the same to some absolute error
+#' 
+#' @param x a number
+#' @param y a number
+#' @param absError the absolute error defaults to 1E-8
+#' 
+#' @return whether the two numbers are approximately equal
+#' 
+#' @export
+#' 
+approxEqual = function(x, y, absError = 1E-8)
+{
+  return(abs(x - y) < absError)
+}
+
