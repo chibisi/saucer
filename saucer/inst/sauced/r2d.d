@@ -6,7 +6,7 @@ import core.stdc.stdarg;
 
 extern (C):
 
-@nogc:
+//@nogc:
 
 alias _Float128 = void*;
 alias size_t = c_ulong;

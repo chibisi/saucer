@@ -5,6 +5,21 @@ alias NumericVector = RVector!(REALSXP);
 alias IntegerVector = RVector!(INTSXP);
 alias LogicalVector = RVector!(LGLSXP);
 
+import std.stdio: writeln;
+import core.stdc.stdio: sprintf;
+
+
+string stringRepr(T)(T[] arr)// @nogc
+{
+    string result = "[";
+    foreach(i; 0..(arr.length - 1))
+    {
+        result ~= to!(string)(arr[i]) ~ ", ";
+    }
+    result ~= to!(string)(arr[$ - 1]) ~ "]";
+    return result;
+}
+
 
 struct RVector(SEXPTYPE Type)
 if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP))
@@ -26,14 +41,14 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     {
         return LENGTH(sexp);
     }
-    this(T)(T n) @nogc
+    this(T)(T n)// @nogc
     if(isIntegral!(T))
     {
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.need_unprotect = true;
         this.data = Accessor!(Type)(sexp)[0..n];
     }
-    this(T)(T[] arr...)  @nogc
+    this(T)(T[] arr...)//  @nogc
     if(is(T == SEXPElementType!(Type)))
     {
         auto n = arr.length;
@@ -41,13 +56,13 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         this.need_unprotect = true;
         
         //If this doesn't work, replace with the commented lines below
-        Accessor!(Type)(sexp)[0..n] = arr[];
         this.data = Accessor!(Type)(sexp)[0..n];
-        
+        Accessor!(Type)(sexp)[0..n] = arr[];
+
         //this.data = Accessor!(Type)(sexp)[0..n];
         //this.data[] = arr[];
     }
-    this(T)(T sexp) @nogc
+    this(T)(T sexp)// @nogc
     if(is(T == SEXP))
     {
         assert(Type == TYPEOF(sexp), "Type of input is not the same as SEXPTYPE Type submitted");
@@ -64,17 +79,21 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.need_unprotect = true;
         this.data = Accessor!(Type)(original.sexp)[0..n];
+        foreach(i; 0..n)
+        {
+            this.data[i] = original[i];
+        }
     }
     //disable const copy
     @disable this(ref const(typeof(this)));
 
-    ~this() @nogc
+    ~this()// @nogc
     {
         this.unprotect;
     }
     string toString() const
     {
-        return to!(string)(data) ~ "\n";
+        return to!(string)(this.data) ~ "\n";
     }
     /*
         Waiting till RVector!(STRSXP) is implemented
@@ -138,7 +157,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     {
         return data[i];
     }
-    auto opIndexUnary(string op)(size_t i) inout 
+    auto opIndexUnary(string op)(size_t i) 
     {
         mixin ("return " ~ op ~ "data[i];");
     }
@@ -158,7 +177,20 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     auto opIndexOpAssign(string op, T)(T value, size_t i)
     if(is(T == SEXPElementType!(Type)))
     {
-        mixin ("return data[i] " ~ op ~ "= value;");
+        mixin ("data[i] " ~ op ~ "= value;");
+        return;
+    }
+    auto opDollar()
+    {
+        return length;
+    }
+    auto opSlice()
+    {
+        return data[];
+    }
+    auto opSlice(size_t i, size_t j)
+    {
+        return data[i..j];
     }
 }
 
@@ -183,7 +215,25 @@ unittest
     assert(x0a.length == 3, "IntegerVector does not have the correct length");
     
     int[] x0b = [0, 1, 2];
-    assert(x0a.data == x0b, "Unexpected content in vector");
+    assert(x0a.data == x0b, "Unexpected content in vector, opIndexAssign failed");
+    assert(x0a[1] == 1, "opIndex failed");
+
+    //Testing opIndexOpAssign
+    double[] basicData = [1.0, 2, 3, 4, 5];
+    auto x1a = NumericVector(basicData);
+    auto x1b = NumericVector(basicData.dup);
+    foreach(i; 0..basicData.length)
+    {
+        x1a[i] *= x1b[i];
+    }
+    assert(x1a.data == [1.0, 4, 9, 16, 25], "opIndexOpAssign failed");
+
+    ++x1a[1];
+    assert(x1a[1] == 5.0, "opIndexUnary test failed");
+
+    assert(x1a[$ - 1] == 25, "opDollar failed");
+    assert(x1a[] == [1.0, 5, 9, 16, 25], "No parameter opSlice() failed");
+    assert(x1a[1..4] == [5.0, 9, 16], "Two parameter opSlice() failed");
 
     Rf_endEmbeddedR(0);
 }
