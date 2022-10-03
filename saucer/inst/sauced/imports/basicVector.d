@@ -26,7 +26,8 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
 {
     SEXP sexp;
     bool need_unprotect;
-    SEXPElementType!(Type)[] data;
+    alias ElType = SEXPElementType!(Type);
+    ElType[] data;
     alias implicitCast this;
     
     private void unprotect()
@@ -49,7 +50,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         this.data = Accessor!(Type)(sexp)[0..n];
     }
     this(T)(T[] arr...)//  @nogc
-    if(is(T == SEXPElementType!(Type)))
+    if(is(T == ElType))
     {
         auto n = arr.length;
         this.sexp = protect(allocVector(Type, cast(int)n));
@@ -142,14 +143,14 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     {
       return this.sexp;
     }
-    T opCast(T: SEXPElementType!(Type)[])()
+    T opCast(T: ElType[])()
     {
       return data;
     }
-    T opCast(T: SEXPElementType!(Type))()
+    T opCast(T: ElType)()
     {
       assert(length == 1, "Cannot cast to basic Type " ~ 
-          SEXPElementType!(Type).stringof ~ 
+          ElType.stringof ~ 
           "length is not equal to 1");
       return data[0];
     }
@@ -163,22 +164,20 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     }
     auto opIndexAssign(T)(T value, size_t i) 
     {
-        static if(is(T == SEXPElementType!(Type)))
+        static if(is(T == ElType))
         {
             return data[i] = value;
-        }else static if(__traits(compiles, cast(SEXPElementType!(Type))value))
+        }else static if(__traits(compiles, cast(ElType)value))
         {
-            return data[i] = cast(SEXPElementType!(Type))value;
+            return data[i] = cast(ElType)value;
         }else
         {
             static assert(0, "unknown string Type value assign Type.");
         }
     }
-    auto opIndexOpAssign(string op, T)(T value, size_t i)
-    if(is(T == SEXPElementType!(Type)))
+    auto opIndexOpAssign(string op)(ElType value, size_t i)
     {
         mixin ("data[i] " ~ op ~ "= value;");
-        return;
     }
     auto opDollar()
     {
@@ -191,6 +190,42 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     auto opSlice(size_t i, size_t j)
     {
         return data[i..j];
+    }
+    auto opSliceAssign(ElType value)
+    {
+        data[] = value;
+    }
+    auto opSliceAssign(ElType[] arr)
+    {
+        assert(arr.length == length, "Lengths of array replacement differs from target range");
+        data[] = arr[];
+    }
+    auto opSliceAssign(ElType value, size_t i, size_t j)
+    {
+        data[i..j] = value;
+    }
+    auto opSliceAssign(ElType[] arr, size_t i, size_t j)
+    {
+        assert(arr.length == j - i, "Lengths of array replacement differs from target range");
+        data[i..j] = arr[];
+    }
+    auto opSliceOpAssign(string op)(ElType value)
+    {
+        mixin ("data[] " ~ op ~ "= value;");
+    }
+    auto opSliceOpAssign(string op)(ElType[] arr)
+    {
+        assert(arr.length == length, "Lengths of array replacement differs from target range");
+        mixin ("data[] " ~ op ~ "= arr[];");
+    }
+    auto opSliceOpAssign(string op)(ElType value, size_t i, size_t j)
+    {
+        mixin ("data[i..j] " ~ op ~ "= value;");
+    }
+    auto opSliceOpAssign(string op)(ElType[] arr, size_t i, size_t j)
+    {
+         assert(arr.length == j - i, "Lengths of array replacement differs from target range");
+        mixin ("data[i..j] " ~ op ~ "= arr[];");
     }
 }
 
@@ -215,7 +250,7 @@ unittest
     assert(x0a.length == 3, "IntegerVector does not have the correct length");
     
     int[] x0b = [0, 1, 2];
-    assert(x0a.data == x0b, "Unexpected content in vector, opIndexAssign failed");
+    assert(x0a.data == x0b, "Unexpected content in vector, opIndexAssign function failed");
     assert(x0a[1] == 1, "opIndex failed");
 
     //Testing opIndexOpAssign
@@ -226,15 +261,39 @@ unittest
     {
         x1a[i] *= x1b[i];
     }
-    assert(x1a.data == [1.0, 4, 9, 16, 25], "opIndexOpAssign failed");
+    assert(x1a.data == [1.0, 4, 9, 16, 25], "opIndexOpAssign function failed");
 
     ++x1a[1];
     assert(x1a[1] == 5.0, "opIndexUnary test failed");
 
     assert(x1a[$ - 1] == 25, "opDollar failed");
-    assert(x1a[] == [1.0, 5, 9, 16, 25], "No parameter opSlice() failed");
-    assert(x1a[1..4] == [5.0, 9, 16], "Two parameter opSlice() failed");
+    assert(x1a[] == [1.0, 5, 9, 16, 25], "No parameter opSlice() function failed");
+    assert(x1a[1..4] == [5.0, 9, 16], "Two parameter opSlice() function failed");
+    
+    x1a[] = 10.0;
+    assert(x1a.data == [10.0, 10.0, 10.0, 10.0, 10.0], "One parameter opSliceAssign() function failed");
+    
+    x1a[1..4] = 12.0;
+    assert(x1a.data == [10.0, 12.0, 12.0, 12.0, 10.0], "Three parameter opSliceAssign() function failed");
 
+    x1a[] = [15.0, 15.0, 15.0, 15.0, 15.0];
+    assert(x1a.data == [15.0, 15.0, 15.0, 15.0, 15.0], "One array parameter opSliceAssign() function failed");
+
+    x1a[1..4] = [18.0, 18.0, 18.0];
+    assert(x1a.data == [15.0, 18.0, 18.0, 18.0, 15.0], "Three parameter opSliceAssign() function failed");
+
+    x1a[] -= 2;
+    assert(x1a.data == [13.0, 16.0, 16.0, 16.0, 13.0], "One parameter opSliceOpAssign() function failed");
+
+    x1a[] += [2.0, -1, -1, -1, 2];
+    assert(x1a.data == [15.0, 15.0, 15.0, 15.0, 15.0], "One array parameter opSliceOpAssign() function failed");
+
+    x1a[1..4] -= 2.0;
+    assert(x1a.data == [15.0, 13.0, 13.0, 13.0, 15.0], "Three parameter opSliceOpAssign() function failed");
+
+    x1a[1..4] += [2.0, 2, 2];
+    assert(x1a.data == [15.0, 15.0, 15.0, 15.0, 15.0], "Three array parameter opSliceOpAssign() function failed");
+    
     Rf_endEmbeddedR(0);
 }
 
