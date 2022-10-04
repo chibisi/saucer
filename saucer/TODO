@@ -13,7 +13,7 @@
         - Floats - Done
         - Ints - Done
         - Logical - need Rbooleans fully integrated. Stop math functions for logical. Comparisons and negation only.
-        - Complex
+        - Complex - in progress, added to RVector with some basic functionality not yet fully integrated and tested
         - Strings
         - Names attributes
         - Full vector complement (with caveats)
