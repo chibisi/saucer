@@ -6,6 +6,9 @@ alias IntegerVector = RVector!(INTSXP);
 alias LogicalVector = RVector!(LGLSXP);
 alias RawVector = RVector!(RAWSXP);
 
+
+import std.stdio: writeln;
+
 struct RVector(SEXPTYPE Type)
 if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP))
 {
@@ -23,10 +26,18 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             need_unprotect = false;
         }
     }
-    size_t length()
+    @property size_t length()
     {
         return LENGTH(sexp);
     }
+    @property auto length(T)(T n)
+    if(isIntegral!(T))
+    {
+        SETLENGTH(this.sexp, cast(int)n);
+        data.length = n;
+        return this.length;
+    }
+
     this(T)(T n)// @nogc
     if(isIntegral!(T))
     {
@@ -73,7 +84,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         int n = cast(int)original.length;
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.need_unprotect = true;
-        this.data = Accessor!(Type)(original.sexp)[0..n];
+        this.data = Accessor!(Type)(sexp)[0..n];
         foreach(i; 0..n)
         {
             this.data[i] = original[i];
@@ -212,6 +223,13 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     {
         return data[i];
     }
+    /* Generates a copy for now */
+    RVector opUnary(string op)()
+    {
+        auto result = RVector!(Type)(this);
+        mixin("result.data[] = " ~ op ~ "result.data[];");
+        return result;
+    }
     auto opIndexUnary(string op)(size_t i) 
     {
         mixin ("return " ~ op ~ "data[i];");
@@ -233,9 +251,33 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     {
         static if(op == "~")
         {
-            static assert("Operator ~ not yet implemented.");
+            static assert("Insertion (~) not valid for indexing operation.");
+        }else{
+            mixin("data[i] " ~ op ~ "= value;");
         }
-        mixin ("data[i] " ~ op ~ "= value;");
+    }
+    ref RVector opOpAssign(string op)(ElType value) return
+    {
+        static if(op == "~") /* For appends */
+        {
+            this.length = this.length + 1;
+            data[$ - 1] = value;
+        }else{
+            mixin("data[] " ~ op ~ " = value;");
+        }
+        return this;
+    }
+    ref RVector opOpAssign(string op)(ElType[] arr) return
+    {
+        static if(op == "~") /* For appends */
+        {
+            auto origLength = this.length;
+            this.length = this.length + arr.length;
+            data[origLength..$] = arr[];
+        }else{
+            mixin("data[] " ~ op ~ " = value;");
+        }
+        return this;
     }
     auto opDollar()
     {
@@ -269,37 +311,49 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     }
     auto opSliceOpAssign(string op)(ElType value)
     {
-        static if(op == "~")
+        static if(op == "~") /* For appends */
         {
-            static assert("Operator ~ not yet implemented.");
+            this.length = this.length + 1;
+            data[$ - 1] = value;
+            return;
+        }else{
+            mixin ("data[] " ~ op ~ "= value;");
+            return;
         }
-        mixin ("data[] " ~ op ~ "= value;");
     }
     auto opSliceOpAssign(string op)(ElType[] arr)
     {
-        static if(op == "~")
+        static if(op == "~") /* For appends */
         {
-            static assert("Operator ~ not yet implemented.");
+            auto origLength = this.length;
+            auto n = this.length + arr.length;
+            this.length = n;
+            data[origLength..$] = arr[];
+            return;
+        }else{
+            assert(arr.length == length, "Lengths of array replacement differs from target range");
+            mixin("data[] " ~ op ~ "= arr[];");
+            return;
         }
-        assert(arr.length == length, "Lengths of array replacement differs from target range");
-        mixin ("data[] " ~ op ~ "= arr[];");
     }
     auto opSliceOpAssign(string op)(ElType value, size_t i, size_t j)
     {
         static if(op == "~")
         {
             static assert("Operator ~ not yet implemented.");
+        }else{
+            mixin ("data[i..j] " ~ op ~ "= value;");
         }
-        mixin ("data[i..j] " ~ op ~ "= value;");
     }
     auto opSliceOpAssign(string op)(ElType[] arr, size_t i, size_t j)
     {
         static if(op == "~")
         {
             static assert("Operator ~ not yet implemented.");
+        }else{
+            assert(arr.length == j - i, "Lengths of array replacement differs from target range");
+            mixin ("data[i..j] " ~ op ~ "= arr[];");
         }
-        assert(arr.length == j - i, "Lengths of array replacement differs from target range");
-        mixin ("data[i..j] " ~ op ~ "= arr[];");
     }
 }
 
@@ -383,6 +437,15 @@ unittest
 
     assert(NumericVector(1.0, 2, 4, 5).lteq(NumericVector(0.0, 5, 4, 3)).data == [0, 1, 1, 0], "RVector lteq failed");
     assert(NumericVector(1.0, 2, 4, 5).lteq([0.0, 5, 4, 3]).data == [0, 1, 1, 0], "RVector and array lteq failed");
+
+    x1a.length = 20;
+    assert(x1a.length == 20, "Failed setting the length of the numeric vector");
+
+    x1a = NumericVector(1.0, 2, 3, 4); x1a = -x1a;
+    assert(x1a.data == [-1.0, -2, -3, -4], "RVector opUnary failed.");
+
+    x1a ~= 5.0;
+    assert(x1a.data == [-1.0, -2, -3, -4, 5], "RVector opOpAssign for scalar element failed.");
 
     Rf_endEmbeddedR(0);
 }
