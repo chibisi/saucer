@@ -1173,9 +1173,116 @@ enum Rboolean
 
 struct Rcomplex
 {
+    import std.complex: Complex;
     double r;
     double i;
+
+    this(double r)
+    {
+        this.r = r;
+        this.i = 0;
+    }
+    this(double r, double i)
+    {
+        this.r = r;
+        this.i = i;
+    }
+    this(ref return scope Rcomplex original)
+    {
+        this.r = original.r;
+        this.i = original.i;
+    }
+    Rcomplex opUnary(string op)()
+    {
+        mixin("return Rcomplex(" ~ op ~ " this.r, " ~ op ~ " this.i);");
+    }
+    Rcomplex opBinary(string op)(double num)
+    {
+        static if((op == "+") || (op == "-"))
+        {
+            mixin("return Rcomplex(this.r " ~ op ~ " num, this.i);");
+        }else static if((op == "*") || (op == "/"))
+        {
+            mixin("return Rcomplex(this.r " ~ op ~ " num, this.i " ~ op ~ " num);");
+        }else{
+            assert(0, "No opBinary implementation for operator " ~ op);
+        }
+    }
+    Rcomplex opBinary(string op)(Rcomplex num)
+    {
+        static if((op == "+") || (op == "-"))
+        {
+            mixin("return Rcomplex(this.r " ~ op ~ " num.r, this.i " ~ op ~ " num.i);");
+        }else static if((op == "*") || (op == "/"))
+        {
+            mixin("return Rcomplex((this.r " ~ op ~ " num.r) - (this.i " ~ op ~ " num.i), (this.r " ~ op ~ " num.i) + (this.i " ~ op ~ " num.r));");
+        }else{
+            assert(0, "No opBinary implementation for operator " ~ op);
+        }
+    }
+    auto opEquals(Rcomplex num)
+    {
+        return (this.r == num.r) && (this.i == num.i);
+    }
+    auto opEquals(double num)
+    {
+        return (this.r == num) && (this.i == 0);
+    }
+    @property Rcomplex conjugate()
+    {
+        return Rcomplex(this.r, -this.i);
+    }
+    Complex!(double) opCast(T: Complex!(double))()
+    {
+        return Complex!(double)(this.r, this.i);
+    }
 }
+
+
+unittest
+{
+    import std.stdio: writeln;
+    import std.complex: Complex;
+
+    writeln("\n#########################################\nRcomplex tests ...");
+    
+    auto x1 = Rcomplex(3, 4);
+
+    writeln("\nopEquals tests ...");
+    assert(x1 == Rcomplex(3, 4), "Rcomplex vs Rcomplex opEquals falied!");
+    assert(x1 != Rcomplex(3, 6), "Rcomplex vs Rcomplex opEquals falied!");
+    assert(Rcomplex(3, 0) == 3, "Rcomplex vs real number opEquals falied!");
+    assert(Rcomplex(3, 0) != 4, "Rcomplex vs real number opEquals falied!");
+    writeln("4 opEquals tests passed");
+
+    writeln("\nMultiplication tests");
+    assert(Rcomplex(3, 4) * Rcomplex(1, 3) == Rcomplex(-9, 13), "Rcomplex vs Rcomplex multiplication falied!");
+    assert(x1 * 3 == Rcomplex(9, 12), "Rcomplex vs scalar multiplication falied!");
+    writeln("2 Multiplication tests passed");
+    
+    writeln("\nAddition tests ...");
+    assert(Rcomplex(3, 4) + Rcomplex(1, 3) == Rcomplex(4, 7), "Rcomplex vs Rcomplex addition test falied!");
+    assert(Rcomplex(3, 4) + 3 == Rcomplex(6, 4), "Rcomplex vs scalar addition falied!");
+    writeln("2 Addition tests passed");
+
+    writeln("\nUnary operations ...");
+    assert(-Rcomplex(2, -5) == Rcomplex(-2, 5), "Rcomplex unary negation failed.");
+    assert(++Rcomplex(2, 4) == Rcomplex(3, 5), "Rcomplex unary increment failed.");
+    writeln("3 Unary operation tests passed");
+
+    writeln("\nConjugate tests ....");
+    assert(Rcomplex(2, 6).conjugate == Rcomplex(2, -6), "Rcomplex conjugate test failed.");
+    assert(Rcomplex(2, -3).conjugate == Rcomplex(2, 3), "Rcomplex conjugate test failed.");
+    assert(Rcomplex(-7, -3).conjugate == Rcomplex(-7, 3), "Rcomplex conjugate test failed.");
+    writeln("3 complex conjugate tests passed");
+
+    writeln("\nCast test ...");
+    auto dComplex = cast(Complex!(double)) Rcomplex(6, 3);
+    assert(dComplex == Complex!(double)(6, 3), "Cast to D Compplex!(double) failed.");
+    writeln("1 cast test passed");
+    writeln("#########################################\n\n");
+}
+
 
 void Rf_error (const(char)*, ...);
 void UNIMPLEMENTED (const(char)*);

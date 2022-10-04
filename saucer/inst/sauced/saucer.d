@@ -100,6 +100,11 @@ alias NEWSXP = SEXPTYPE.NEWSXP;
 alias FREESXP = SEXPTYPE.FREESXP;
 alias FUNSXP = SEXPTYPE.FUNSXP;
 
+/* Simplified Rboolean definitions */
+alias FALSE = Rboolean.FALSE;
+alias TRUE = Rboolean.TRUE;
+
+
 /*
   Common element types converting to basic D types
 */

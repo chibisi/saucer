@@ -6,9 +6,33 @@
 1. Do a proper re-write of RVector, RMatrix types to account for protect/unprotect errors. Also re-address the way that you deal with
    stirngs because they cause the most problems.
 
-2. Add testing function for D compilation into the R package to run tests on D's unittest blocks. DONE, but will need to be updated when the compiler/flag options are created.
+2. Add testing function for D compilation into the R package to run tests on D's unittest blocks. DONE.
 
-3. Add pass compilation flags and compiler options to compiler function in R
+3. Re-writing containers.
+    - RVectors
+        - Floats - Done
+        - Ints - Done
+        - Logical - need Rbooleans fully integrated. Stop math functions for logical. Comparisons and negation only.
+        - Complex
+        - Strings
+        - Names attributes
+        - Full vector complement (with caveats)
+    - RMatrices
+        - Floats
+        - Ints
+        - Logical
+        - Complex
+        - Strings
+        - Names attributes
+        - Full vector operator complement  (with caveats)
+    - Lists
+        - Names
+        - Numbers - for DataFrame compatibility
+        - Indexing for names and numbers, assign and return
+    - DataFrames
+        - Inherit from lists
+
+3. Add pass compilation flags and compiler options to all the R functions that do compilation.
 
 4. Things to implement on the D side:
     - Environments
@@ -27,5 +51,11 @@
 1. Complete unittests on both the R and D side.
 2. Memory tests valgrind
 3. Performance testing.
+
+
+## Caeats
+
+1. Design choice: Static relisation of R types, hence vectors based as RVector!(SEXPTYPE)
+2. Design choice with copying and constructor/destructor design
 
 

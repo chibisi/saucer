@@ -7,7 +7,7 @@ alias LogicalVector = RVector!(LGLSXP);
 alias RawVector = RVector!(RAWSXP);
 
 
-import std.stdio: writeln;
+//import std.stdio: writeln;
 
 struct RVector(SEXPTYPE Type)
 if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP))
@@ -65,8 +65,22 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         this.data = Accessor!(Type)(sexp)[0..n];
     }
     /* For logical implicit from bool array */
-    this(T)(T[] arr)
+    this(T)(T[] arr...)
     if(is(T == bool))
+    {
+        static assert(Type == LGLSXP, "Wrong SEXP given :" ~ Type ~ ", LGLSXP expected.");
+        auto n = arr.length;
+        this.sexp = protect(allocVector(LGLSXP, cast(int)n));
+        this.need_unprotect = true;
+        this.data = Accessor!(LGLSXP)(sexp)[0..n];
+        foreach(i; 0..arr.length)
+        {
+            this.data[i] = arr[i];
+        }
+    }
+    /* Using R's boolean */
+    this(T)(T[] arr...)
+    if(is(T == Rboolean))
     {
         static assert(Type == LGLSXP, "Wrong SEXP given :" ~ Type ~ ", LGLSXP expected.");
         auto n = arr.length;
@@ -489,6 +503,9 @@ unittest
     assert((x1a - x1b).data == [-4, -4, -4, -4], "RVector vs RVector opBinary operation failed.");
     assert((x1a - [5., 6, 7, 8]).data == [-4, -4, -4, -4], "RVector vs array opBinary operation failed.");
     assert((x1b - 4).data == [1, 2, 3, 4], "RVector vs element opBinary operation failed.");
+
+    auto x2a = LogicalVector(TRUE, FALSE, TRUE, FALSE);
+    assert(x2a.data == [1, 0, 1, 0], "LogicalVector constructor failed.");
 
     endEmbedR();
 }
