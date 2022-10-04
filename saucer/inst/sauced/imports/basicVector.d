@@ -4,6 +4,7 @@ import std.conv: to;
 alias NumericVector = RVector!(REALSXP);
 alias IntegerVector = RVector!(INTSXP);
 alias LogicalVector = RVector!(LGLSXP);
+alias RawVector = RVector!(RAWSXP);
 
 struct RVector(SEXPTYPE Type)
 if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP))
@@ -39,13 +40,8 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         auto n = arr.length;
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.need_unprotect = true;
-        
-        //If this doesn't work, replace with the commented lines below
         this.data = Accessor!(Type)(sexp)[0..n];
         Accessor!(Type)(sexp)[0..n] = arr[];
-
-        //this.data = Accessor!(Type)(sexp)[0..n];
-        //this.data[] = arr[];
     }
     this(T)(T sexp)// @nogc
     if(is(T == SEXP))
@@ -56,6 +52,20 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         this.need_unprotect = true;
         size_t n = LENGTH(sexp);
         this.data = Accessor!(Type)(sexp)[0..n];
+    }
+    /* For logical implicit from bool array */
+    this(T)(T[] arr)
+    if(is(T == bool))
+    {
+        static assert(Type == LGLSXP, "Wrong SEXP given :" ~ Type ~ ", LGLSXP expected.");
+        auto n = arr.length;
+        this.sexp = protect(allocVector(LGLSXP, cast(int)n));
+        this.need_unprotect = true;
+        this.data = Accessor!(LGLSXP)(sexp)[0..n];
+        foreach(i; 0..arr.length)
+        {
+            this.data[i] = arr[i];
+        }
     }
     /* Copy constructor */
     this(ref return scope RVector original)
@@ -78,7 +88,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     }
     string toString() const
     {
-        return to!(string)(this.data) ~ "\n";
+        return "RVector!(" ~ Type.stringof ~ ")(" ~ to!(string)(this.data) ~ ")\n";
     }
     /*
         Waiting till RVector!(STRSXP) is implemented
@@ -119,9 +129,65 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             return;
         }
     }
-    SEXP implicitCast()
+    LogicalVector opEquals(T)(T arr)
+    if(is(T == ElType[]) || is(T == RVector))
     {
-        return cast(SEXP)this;
+        auto n = this.length;
+        assert(arr.length == n, "Length of arrays not equal");
+        auto result = LogicalVector(n);
+        foreach(i; 0..n)
+        {
+            result[i] = arr[i] == data[i];
+        }
+        return result;
+    }
+    LogicalVector gt(T)(T rvec)
+    if(is(T == ElType[]) || is(T == RVector))
+    {
+        auto n = this.length;
+        assert(rvec.length == n);
+        auto result = LogicalVector(n);
+        foreach(i; 0..n)
+        {
+            result[i] = this.data[i] > rvec[i];
+        }
+        return result;
+    }
+    LogicalVector gteq(T)(T rvec)
+    if(is(T == ElType[]) || is(T == RVector))
+    {
+        auto n = this.length;
+        assert(rvec.length == n);
+        auto result = LogicalVector(n);
+        foreach(i; 0..n)
+        {
+            result[i] = this.data[i] >= rvec[i];
+        }
+        return result;
+    }
+    LogicalVector lt(T)(T rvec)
+    if(is(T == ElType[]) || is(T == RVector))
+    {
+        auto n = this.length;
+        assert(rvec.length == n);
+        auto result = LogicalVector(n);
+        foreach(i; 0..n)
+        {
+            result[i] = this.data[i] < rvec[i];
+        }
+        return result;
+    }
+    LogicalVector lteq(T)(T rvec)
+    if(is(T == ElType[]) || is(T == RVector))
+    {
+        auto n = this.length;
+        assert(rvec.length == n);
+        auto result = LogicalVector(n);
+        foreach(i; 0..n)
+        {
+            result[i] = this.data[i] <= rvec[i];
+        }
+        return result;
     }
     T opCast(T: SEXP)()
     {
@@ -138,7 +204,11 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
           "length is not equal to 1");
       return data[0];
     }
-    auto opIndex(size_t i) inout
+    SEXP implicitCast()
+    {
+        return cast(SEXP)this;
+    }
+    ElType opIndex(size_t i) inout
     {
         return data[i];
     }
@@ -161,17 +231,21 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     }
     auto opIndexOpAssign(string op)(ElType value, size_t i)
     {
+        static if(op == "~")
+        {
+            static assert("Operator ~ not yet implemented.");
+        }
         mixin ("data[i] " ~ op ~ "= value;");
     }
     auto opDollar()
     {
         return length;
     }
-    auto opSlice()
+    ElType[] opSlice()
     {
         return data[];
     }
-    auto opSlice(size_t i, size_t j)
+    ElType[] opSlice(size_t i, size_t j)
     {
         return data[i..j];
     }
@@ -195,20 +269,36 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     }
     auto opSliceOpAssign(string op)(ElType value)
     {
+        static if(op == "~")
+        {
+            static assert("Operator ~ not yet implemented.");
+        }
         mixin ("data[] " ~ op ~ "= value;");
     }
     auto opSliceOpAssign(string op)(ElType[] arr)
     {
+        static if(op == "~")
+        {
+            static assert("Operator ~ not yet implemented.");
+        }
         assert(arr.length == length, "Lengths of array replacement differs from target range");
         mixin ("data[] " ~ op ~ "= arr[];");
     }
     auto opSliceOpAssign(string op)(ElType value, size_t i, size_t j)
     {
+        static if(op == "~")
+        {
+            static assert("Operator ~ not yet implemented.");
+        }
         mixin ("data[i..j] " ~ op ~ "= value;");
     }
     auto opSliceOpAssign(string op)(ElType[] arr, size_t i, size_t j)
     {
-         assert(arr.length == j - i, "Lengths of array replacement differs from target range");
+        static if(op == "~")
+        {
+            static assert("Operator ~ not yet implemented.");
+        }
+        assert(arr.length == j - i, "Lengths of array replacement differs from target range");
         mixin ("data[i..j] " ~ op ~ "= arr[];");
     }
 }
@@ -237,7 +327,6 @@ unittest
     assert(x0a.data == x0b, "Unexpected content in vector, opIndexAssign function failed");
     assert(x0a[1] == 1, "opIndex failed");
 
-    //Testing opIndexOpAssign
     double[] basicData = [1.0, 2, 3, 4, 5];
     auto x1a = NumericVector(basicData);
     auto x1b = NumericVector(basicData.dup);
@@ -278,6 +367,23 @@ unittest
     x1a[1..4] += [2.0, 2, 2];
     assert(x1a.data == [15.0, 15.0, 15.0, 15.0, 15.0], "Three array parameter opSliceOpAssign() function failed");
     
+    assert(LogicalVector([true, false, true]).data == [1, 0, 1], "Error in LogicalVector constructor from bool[]");
+
+    assert((NumericVector(1.0, 2, 4, 5) == NumericVector(1.0, 2, 4, 5)).data == [1, 1, 1, 1], "RVector opEquals failed");
+    assert((NumericVector(1.0, 2, 4, 5) == [1.0, 2, 4, 5]).data == [1, 1, 1, 1], "RVector array opEquals failed");
+
+    assert(NumericVector(1.0, 2, 4, 5).gt(NumericVector(0.0, 1, 7, 8)).data == [1, 1, 0, 0], "RVector gt failed");
+    assert(NumericVector(1.0, 2, 4, 5).gt([0.0, 1, 7, 8]).data == [1, 1, 0, 0], "RVector gt failed");
+
+    assert(NumericVector(1.0, 2, 4, 5).gteq(NumericVector(0.0, 5, 4, 7)).data == [1, 0, 1, 0], "RVector gteq failed");
+    assert(NumericVector(1.0, 2, 4, 5).gteq([0.0, 5, 4, 7]).data == [1, 0, 1, 0], "RVector and array gteq failed");
+
+    assert(NumericVector(1.0, 2, 4, 5).lt(NumericVector(0.0, 1, 7, 8)).data == [0, 0, 1, 1], "RVector lt failed");
+    assert(NumericVector(1.0, 2, 4, 5).lt([0.0, 1, 7, 8]).data == [0, 0, 1, 1], "RVector lt failed");
+
+    assert(NumericVector(1.0, 2, 4, 5).lteq(NumericVector(0.0, 5, 4, 3)).data == [0, 1, 1, 0], "RVector lteq failed");
+    assert(NumericVector(1.0, 2, 4, 5).lteq([0.0, 5, 4, 3]).data == [0, 1, 1, 0], "RVector and array lteq failed");
+
     Rf_endEmbeddedR(0);
 }
 
