@@ -5,22 +5,6 @@ alias NumericVector = RVector!(REALSXP);
 alias IntegerVector = RVector!(INTSXP);
 alias LogicalVector = RVector!(LGLSXP);
 
-import std.stdio: writeln;
-import core.stdc.stdio: sprintf;
-
-
-string stringRepr(T)(T[] arr)// @nogc
-{
-    string result = "[";
-    foreach(i; 0..(arr.length - 1))
-    {
-        result ~= to!(string)(arr[i]) ~ ", ";
-    }
-    result ~= to!(string)(arr[$ - 1]) ~ "]";
-    return result;
-}
-
-
 struct RVector(SEXPTYPE Type)
 if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP))
 {
