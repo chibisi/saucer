@@ -263,7 +263,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             this.length = this.length + 1;
             data[$ - 1] = value;
         }else{
-            mixin("data[] " ~ op ~ " = value;");
+            mixin("data[] " ~ op ~ "= value;");
         }
         return this;
     }
@@ -275,7 +275,19 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             this.length = this.length + arr.length;
             data[origLength..$] = arr[];
         }else{
-            mixin("data[] " ~ op ~ " = value;");
+            mixin("data[] " ~ op ~ "= arr[];");
+        }
+        return this;
+    }
+    ref RVector opOpAssign(string op)(RVector rvec) return
+    {
+        static if(op == "~") /* For appends */
+        {
+            auto origLength = this.length;
+            this.length = this.length + rvec.length;
+            data[origLength..$] = rvec.data[];
+        }else{
+            mixin("data[] " ~ op ~ "= rvec.data[];");
         }
         return this;
     }
@@ -342,7 +354,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         {
             static assert("Operator ~ not yet implemented.");
         }else{
-            mixin ("data[i..j] " ~ op ~ "= value;");
+            mixin("data[i..j] " ~ op ~ "= value;");
         }
     }
     auto opSliceOpAssign(string op)(ElType[] arr, size_t i, size_t j)
@@ -355,23 +367,34 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             mixin ("data[i..j] " ~ op ~ "= arr[];");
         }
     }
+    RVector opBinary(string op)(ElType value)
+    {
+        auto result = RVector!(Type)(this);
+        mixin("result[] " ~ op ~ "=value;");
+        return result;
+    }
+    RVector opBinary(string op)(ElType[] arr)
+    {
+        assert(this.length == arr.length, "Array is of different from the RVector");
+        auto result = RVector!(Type)(this);
+        mixin("result[] " ~ op ~ "= arr[];");
+        return result;
+    }
+    RVector opBinary(string op)(RVector rvec)
+    {
+        assert(this.length == rvec.length, "Array is of different from the RVector");
+        auto result = RVector!(Type)(this);
+        mixin("result[] " ~ op ~ "= rvec[];");
+        return result;
+    }
 }
 
 
 unittest
 {
     import std.stdio: writeln;
-    import rinside.rembedded: Rf_initEmbeddedR, Rf_endEmbeddedR;
-    
-    enum rFlags = ["R", "--quiet", "--vanilla"];
-    char*[] args;
-    foreach(arg; rFlags)
-    {
-        args ~= toCString(arg);
-    }
-    
-    int init = Rf_initEmbeddedR(cast(int)rFlags.length, args.ptr);
-    assert(init, "R standalone failed to initialize");
+
+    initEmbedR();
     
     auto x0a = IntegerVector(3);
     x0a[0] = 0; x0a[1] = 1; x0a[2] = 2;
@@ -447,7 +470,27 @@ unittest
     x1a ~= 5.0;
     assert(x1a.data == [-1.0, -2, -3, -4, 5], "RVector opOpAssign for scalar element failed.");
 
-    Rf_endEmbeddedR(0);
+    x1a = NumericVector(1., 2, 3, 4);
+    x1b = NumericVector(5., 6, 7, 8);
+    x1a ~= x1b;
+    assert(x1a.data == [1., 2, 3, 4, 5, 6, 7, 8], "RVector test for opOpAssign append operation failed");
+
+    x1a = NumericVector(1., 2, 3, 4);
+    x1b = NumericVector(5., 6, 7, 8);
+    x1a += x1b;
+    assert(x1a.data == [6., 8, 10, 12], "RVector test for opOpAssign (+=) operation failed");
+    
+    x1a = NumericVector(1., 2, 3, 4);
+    x1a += [5., 6, 7, 8];
+    assert(x1a.data == [6., 8, 10, 12], "RVector and array test for opOpAssign (+=) operation failed");
+
+    x1a = NumericVector(1., 2, 3, 4);
+    x1b = NumericVector(5., 6, 7, 8);
+    assert((x1a - x1b).data == [-4, -4, -4, -4], "RVector vs RVector opBinary operation failed.");
+    assert((x1a - [5., 6, 7, 8]).data == [-4, -4, -4, -4], "RVector vs array opBinary operation failed.");
+    assert((x1b - 4).data == [1, 2, 3, 4], "RVector vs element opBinary operation failed.");
+
+    endEmbedR();
 }
 
 

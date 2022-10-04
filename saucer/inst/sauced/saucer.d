@@ -14,6 +14,35 @@ import std.string: toStringz, fromStringz;
   be accessible, e.g. unprotect, sexp, and so on.
 */
 
+/+
+  Initializes Rf_initEmbeddedR with basic options for running R API
++/
+auto initEmbedR()
+{
+    import rinside.rembedded: Rf_initEmbeddedR;
+    
+    enum rFlags = ["R", "--quiet", "--vanilla"];
+    char*[] args;
+    foreach(arg; rFlags)
+    {
+        args ~= toCString(arg);
+    }
+    
+    int init = Rf_initEmbeddedR(cast(int)rFlags.length, args.ptr);
+    assert(init, "R standalone failed to initialize");
+    return init;
+}
+
+/+
+  Ends Rf_initEmbeddedR with Rf_endEmbeddedR(0) terminating the
+  R API session. 
++/
+auto endEmbedR()
+{
+    import rinside.rembedded: Rf_endEmbeddedR;
+    Rf_endEmbeddedR(0);
+}
+
 
 /*
   This is uda that marks a function to be exported 
