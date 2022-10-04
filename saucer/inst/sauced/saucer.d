@@ -114,6 +114,11 @@ if(type == REALSXP)
   alias SEXPElementType = double;
 }
 template SEXPElementType(SEXPTYPE type)
+if(type == CPLXSXP)
+{
+  alias SEXPElementType = Rcomplex;
+}
+template SEXPElementType(SEXPTYPE type)
 if(type == INTSXP)
 {
   alias SEXPElementType = int;
@@ -148,6 +153,11 @@ template Accessor(SEXPTYPE type)
 if(type == REALSXP)
 {
   alias Accessor = REAL;
+}
+template Accessor(SEXPTYPE type)
+if(type == CPLXSXP)
+{
+  alias Accessor = COMPLEX;
 }
 template Accessor(SEXPTYPE type)
 if(type == INTSXP)
@@ -236,7 +246,8 @@ enum isBasicType(T) = is(T == bool) || is(T == byte) ||
         is(T == ulong) || is(T == char) || is(T == float) || 
         is(T == double) || is(T == real) || 
         is(T == const(char)*) || 
-        is(T == char*) || is(T == string);
+        is(T == char*) || is(T == string) || 
+        is(T == Rcomplex) || is(R == Rboolean);
 
 
 enum isStringType(T) = is(T == char*) || is(T == const(char)*) || 
@@ -273,6 +284,9 @@ template MapToSEXP(T)
   }else static if(is(T == ubyte))
   {
     enum SEXPTYPE MapToSEXP = RAWSXP;
+  }else static if(is(T == Rcomplex))
+  {
+    enum SEXPTYPE MapToSEXP = CPLXSXP;
   }else static if(is(T == int))
   {
     enum SEXPTYPE MapToSEXP = INTSXP;
@@ -292,6 +306,9 @@ template MapToSEXP(T)
   {
     enum SEXPTYPE MapToSEXP = INTSXP;
   }else static if(is(T == bool))
+  {
+    enum SEXPTYPE MapToSEXP = LGLSXP;
+  }else static if(is(T == Rboolean))
   {
     enum SEXPTYPE MapToSEXP = LGLSXP;
   }else /*static if(is(T == const(char)*))
@@ -499,6 +516,10 @@ string StringOf(T)()
   static if(is(T == mixin("RVector!(REALSXP)")))
   {
     return "RVector!(REALSXP)";
+  }
+  static if(is(T == mixin("RVector!(CPLXSXP)")))
+  {
+    return "RVector!(CPLXSXP)";
   }
   static if(is(T == mixin("RVector!(RAWSXP)")))
   {

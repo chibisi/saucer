@@ -1174,20 +1174,23 @@ enum Rboolean
 struct Rcomplex
 {
     import std.complex: Complex;
+    import std.traits: isANumber = isNumeric;
     double r;
     double i;
 
-    this(double r)
+    this(T)(T r)
+    if(isANumber!(T))
     {
-        this.r = r;
+        this.r = cast(double)r;
         this.i = 0;
     }
-    this(double r, double i)
+    this(T)(T r, T i)
+    if(isANumber!(T))
     {
-        this.r = r;
-        this.i = i;
+        this.r = cast(double)r;
+        this.i = cast(double)i;
     }
-    this(ref return scope Rcomplex original)
+    this(inout ref Rcomplex original) inout
     {
         this.r = original.r;
         this.i = original.i;
@@ -1196,7 +1199,8 @@ struct Rcomplex
     {
         mixin("return Rcomplex(" ~ op ~ " this.r, " ~ op ~ " this.i);");
     }
-    Rcomplex opBinary(string op)(double num)
+    Rcomplex opBinary(string op, T)(T num)
+    if(isANumber!(T))
     {
         static if((op == "+") || (op == "-"))
         {
@@ -1220,6 +1224,13 @@ struct Rcomplex
             assert(0, "No opBinary implementation for operator " ~ op);
         }
     }
+    ref Rcomplex opOpAssign(string op, T)(T num) return
+    if(is(T == Rcomplex) || isANumber!(T))
+    {
+        mixin("this = this " ~ op ~ " num;");
+        return this;
+    }
+
     auto opEquals(Rcomplex num)
     {
         return (this.r == num.r) && (this.i == num.i);
@@ -1235,6 +1246,11 @@ struct Rcomplex
     Complex!(double) opCast(T: Complex!(double))()
     {
         return Complex!(double)(this.r, this.i);
+    }
+    string toString()
+    {
+        import std.conv: to;
+        return "Rcomplex(" ~ to!(string)(this.r) ~ ", " ~ to!(string)(this.i) ~ ")";
     }
 }
 
@@ -1280,6 +1296,15 @@ unittest
     auto dComplex = cast(Complex!(double)) Rcomplex(6, 3);
     assert(dComplex == Complex!(double)(6, 3), "Cast to D Compplex!(double) failed.");
     writeln("1 cast test passed");
+
+    writeln("\nopOpAssign tests ...");
+    x1 = Rcomplex(2, 5);
+    x1 += Rcomplex(1, 2);
+    assert(x1 == Rcomplex(3, 7), "Rcomplex vs Rcomplex opOpAssign failed");
+    x1 -= 7;
+    assert(x1 == Rcomplex(-4, 7), "Rcomplex vs scalar opOpAssign failed");
+    writeln("2 opOpAssign tests passed");
+
     writeln("#########################################\n\n");
 }
 

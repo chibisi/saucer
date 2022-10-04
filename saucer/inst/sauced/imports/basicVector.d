@@ -5,13 +5,16 @@ alias NumericVector = RVector!(REALSXP);
 alias IntegerVector = RVector!(INTSXP);
 alias LogicalVector = RVector!(LGLSXP);
 alias RawVector = RVector!(RAWSXP);
+alias ComplexVector = RVector!(CPLXSXP);
 
 
 //import std.stdio: writeln;
 
 struct RVector(SEXPTYPE Type)
-if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP))
+if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP) || (Type == CPLXSXP))
 {
+    import std.traits: isANumber = isNumeric;
+
     SEXP sexp;
     bool need_unprotect;
     alias ElType = SEXPElementType!(Type);
@@ -26,9 +29,9 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             need_unprotect = false;
         }
     }
-    @property size_t length()
+    @property size_t length() const
     {
-        return LENGTH(sexp);
+        return LENGTH(cast(SEXP)sexp);
     }
     @property auto length(T)(T n)
     if(isIntegral!(T))
@@ -93,7 +96,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         }
     }
     /* Copy constructor */
-    this(ref return scope RVector original)
+    this(inout ref return scope RVector original)
     {
         int n = cast(int)original.length;
         this.sexp = protect(allocVector(Type, cast(int)n));
@@ -113,7 +116,18 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
     }
     string toString() const
     {
-        return "RVector!(" ~ Type.stringof ~ ")(" ~ to!(string)(this.data) ~ ")\n";
+        static if(!(Type == CPLXSXP))
+        {
+            return "RVector!(" ~ Type.stringof ~ ")(" ~ to!(string)(this.data) ~ ")\n";
+        }else{
+            string result = "[";
+            foreach(i; 0..(length - 1))
+            {
+                result ~= to!(string)(data[i]) ~ ", ";
+            }
+            result ~= to!(string)(data[$ - 1]) ~ "]";
+            return result;
+        }
     }
     /*
         Waiting till RVector!(STRSXP) is implemented
@@ -234,9 +248,15 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         return cast(SEXP)this;
     }
     ElType opIndex(size_t i) inout
+    //if(!(Type == CPLXSXP))
     {
         return data[i];
     }
+    //ElType opIndex(size_t i)
+    //if(Type == CPLXSXP)
+    //{
+    //    return data[i];
+    //}
     /* Generates a copy for now */
     RVector opUnary(string op)()
     {
@@ -381,24 +401,53 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             mixin ("data[i..j] " ~ op ~ "= arr[];");
         }
     }
-    RVector opBinary(string op)(ElType value)
+    RVector opBinary(string op, T)(T value)
+    if(is(T == ElType) || isANumber!(T))
     {
         auto result = RVector!(Type)(this);
-        mixin("result[] " ~ op ~ "=value;");
+        static if(!is(ElType == Rcomplex))
+        {
+            mixin("result[] " ~ op ~ "=value;");
+        }else{
+            enum code = "foreach(i; 0..length)
+            {
+                result[i] = result[i] " ~ op ~ " value;
+            }";
+            mixin(code);
+        }
         return result;
     }
     RVector opBinary(string op)(ElType[] arr)
     {
         assert(this.length == arr.length, "Array is of different from the RVector");
         auto result = RVector!(Type)(this);
-        mixin("result[] " ~ op ~ "= arr[];");
+        
+        static if(!is(ElType == Rcomplex))
+        {
+            mixin("result[] " ~ op ~ "= arr[];");
+        }else{
+            enum code = "foreach(i; 0..length)
+            {
+                result[i] " ~ op ~ "= arr[i];
+            }";
+            mixin(code);
+        }
         return result;
     }
     RVector opBinary(string op)(RVector rvec)
     {
         assert(this.length == rvec.length, "Array is of different from the RVector");
         auto result = RVector!(Type)(this);
-        mixin("result[] " ~ op ~ "= rvec[];");
+        static if(!is(ElType == Rcomplex))
+        {
+            mixin("result[] " ~ op ~ "= rvec[];");
+        }else{
+            enum code = "foreach(i; 0..length)
+            {
+                result[i] " ~ op ~ "= rvec[i];
+            }";
+            mixin(code);
+        }
         return result;
     }
 }
@@ -506,6 +555,16 @@ unittest
 
     auto x2a = LogicalVector(TRUE, FALSE, TRUE, FALSE);
     assert(x2a.data == [1, 0, 1, 0], "LogicalVector constructor failed.");
+
+    auto x2b = ComplexVector(Rcomplex(1, 3), Rcomplex(-4, 1), Rcomplex(-5, -7));
+    auto x2c = Rcomplex(2, 3);
+    auto x2d = ComplexVector(Rcomplex(-1, 4), Rcomplex(-4, 9), Rcomplex(-3, 5));
+    
+    auto x3a = x2b * x2c;
+    auto x3b = x2b * x2d;
+    writeln("x3a: ", x3a);
+    writeln("x3b: ", x3b);
+
 
     endEmbedR();
 }

@@ -45,6 +45,8 @@
 
 7. Adding debug mode compilation option.
 
+8. Should I be using D's RefCounted, which auto reference counts an object so that you don't have to implement it in your object? https://dlang.org/library/std/typecons/ref_counted.html
+
 
 ## Testing
 
