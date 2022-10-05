@@ -55,7 +55,7 @@
 3. Performance testing.
 
 
-## Caeats
+## Caveats
 
 1. Design choice: Static relisation of R types, hence vectors based as RVector!(SEXPTYPE)
 2. Design choice with copying and constructor/destructor design

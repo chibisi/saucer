@@ -1260,11 +1260,10 @@ unittest
     import std.stdio: writeln;
     import std.complex: Complex;
 
-    writeln("\n#########################################\nRcomplex tests ...");
-    
-    auto x1 = Rcomplex(3, 4);
+    writeln("Rcomplex tests ...\n######################################################\n");
 
-    writeln("\nopEquals tests ...");
+    writeln("opEquals tests ...");
+    auto x1 = Rcomplex(3, 4);
     assert(x1 == Rcomplex(3, 4), "Rcomplex vs Rcomplex opEquals falied!");
     assert(x1 != Rcomplex(3, 6), "Rcomplex vs Rcomplex opEquals falied!");
     assert(Rcomplex(3, 0) == 3, "Rcomplex vs real number opEquals falied!");
@@ -1305,7 +1304,7 @@ unittest
     assert(x1 == Rcomplex(-4, 7), "Rcomplex vs scalar opOpAssign failed");
     writeln("2 opOpAssign tests passed");
 
-    writeln("#########################################\n\n");
+    writeln("\nEnd of Rcomplex tests\n######################################################\n");
 }
 
 

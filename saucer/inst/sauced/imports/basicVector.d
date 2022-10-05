@@ -8,7 +8,7 @@ alias RawVector = RVector!(RAWSXP);
 alias ComplexVector = RVector!(CPLXSXP);
 
 
-//import std.stdio: writeln;
+import std.stdio: writeln;
 
 struct RVector(SEXPTYPE Type)
 if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP) || (Type == CPLXSXP))
@@ -319,9 +319,18 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         {
             auto origLength = this.length;
             this.length = this.length + rvec.length;
-            data[origLength..$] = rvec.data[];
+            this.data[origLength..$] = rvec.data[];
         }else{
-            mixin("data[] " ~ op ~ "= rvec.data[];");
+            static if(Type != CPLXSXP)
+            {
+                mixin("this.data[] " ~ op ~ "= rvec.data[];");
+            }else{
+                enum code = "foreach(i; 0..rvec.length)
+                {
+                    this.data[i] " ~ op ~ "= rvec.data[i];
+                }";
+                mixin(code);
+            }
         }
         return this;
     }
@@ -402,52 +411,60 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         }
     }
     RVector opBinary(string op, T)(T value)
+    if((op == "~") && (is(T == ElType) || isANumber!(T)))
+    {
+        auto result = RVector!(Type)(this);
+        result.length = result.length + 1;
+        result.data[$ - 1] = value;
+        return result;
+    }
+    RVector opBinary(string op, T)(T value)
+    if((op != "~") && (is(T == ElType) || isANumber!(T)))
+    {
+        auto result = RVector!(Type)(this);
+        static if(is(T == Rboolean))
+        {
+            mixin("result.data[] " ~ op ~ "= value;");
+        }else static if(!is(T == Rboolean)){
+            foreach(i; 0..(result.length))
+            {
+                mixin("result[i] = result[i] " ~ op ~ " value;");
+            }
+        }
+        return result;
+    }
+    auto opBinaryRight(string op, T)(T value)
     if(is(T == ElType) || isANumber!(T))
     {
-        auto result = RVector!(Type)(this);
-        static if(!is(ElType == Rcomplex))
-        {
-            mixin("result[] " ~ op ~ "=value;");
-        }else{
-            enum code = "foreach(i; 0..length)
-            {
-                result[i] = result[i] " ~ op ~ " value;
-            }";
-            mixin(code);
-        }
-        return result;
+        return opBinary!(op, T)(value);
     }
-    RVector opBinary(string op)(ElType[] arr)
+
+    RVector opBinary(string op, T)(T arr)
+    if(is(T == RVector) || is(T == ElType[]))
     {
         assert(this.length == arr.length, "Array is of different from the RVector");
-        auto result = RVector!(Type)(this);
         
-        static if(!is(ElType == Rcomplex))
+        static if(op != "~")
         {
-            mixin("result[] " ~ op ~ "= arr[];");
-        }else{
-            enum code = "foreach(i; 0..length)
+            auto result = RVector!(Type)(this);
+            static if(!is(ElType == Rcomplex))
             {
-                result[i] " ~ op ~ "= arr[i];
-            }";
-            mixin(code);
-        }
-        return result;
-    }
-    RVector opBinary(string op)(RVector rvec)
-    {
-        assert(this.length == rvec.length, "Array is of different from the RVector");
-        auto result = RVector!(Type)(this);
-        static if(!is(ElType == Rcomplex))
+                mixin("result[] " ~ op ~ "= arr[];");
+            }else{
+                enum code = "foreach(i; 0..length)
+                {
+                    result[i] " ~ op ~ "= arr[i];
+                }";
+                mixin(code);
+            }
+        }else if(op == "~")
         {
-            mixin("result[] " ~ op ~ "= rvec[];");
-        }else{
-            enum code = "foreach(i; 0..length)
-            {
-                result[i] " ~ op ~ "= rvec[i];
-            }";
-            mixin(code);
+            auto origLength = this.length;
+            auto result = RVector!(Type)(this);
+            result.length = result.length + arr.length;
+            result[origLength..$] = arr[];
         }
+        
         return result;
     }
 }
@@ -459,6 +476,10 @@ unittest
 
     initEmbedR();
     
+    writeln("\nUnit Tests for Basic Vectors ..." ~
+            "\n######################################################");
+
+    writeln("\nBasic Tests 1: length, content, opIndex, opIndexOpAssign ...");
     auto x0a = IntegerVector(3);
     x0a[0] = 0; x0a[1] = 1; x0a[2] = 2;
     assert(x0a.length == 3, "IntegerVector does not have the correct length");
@@ -475,40 +496,42 @@ unittest
         x1a[i] *= x1b[i];
     }
     assert(x1a.data == [1.0, 4, 9, 16, 25], "opIndexOpAssign function failed");
+    writeln("Basic Tests 1: passed");
 
+    writeln("\nBasic Tests 2: opIndexUnary, opSlice ...");
     ++x1a[1];
     assert(x1a[1] == 5.0, "opIndexUnary test failed");
-
     assert(x1a[$ - 1] == 25, "opDollar failed");
     assert(x1a[] == [1.0, 5, 9, 16, 25], "No parameter opSlice() function failed");
     assert(x1a[1..4] == [5.0, 9, 16], "Two parameter opSlice() function failed");
+    writeln("Basic Tests 2 passed.");
     
+    writeln("\nBasic Tests 3: opSliceAssign tests ...");
     x1a[] = 10.0;
     assert(x1a.data == [10.0, 10.0, 10.0, 10.0, 10.0], "One parameter opSliceAssign() function failed");
-    
     x1a[1..4] = 12.0;
     assert(x1a.data == [10.0, 12.0, 12.0, 12.0, 10.0], "Three parameter opSliceAssign() function failed");
-
     x1a[] = [15.0, 15.0, 15.0, 15.0, 15.0];
     assert(x1a.data == [15.0, 15.0, 15.0, 15.0, 15.0], "One array parameter opSliceAssign() function failed");
-
     x1a[1..4] = [18.0, 18.0, 18.0];
     assert(x1a.data == [15.0, 18.0, 18.0, 18.0, 15.0], "Three parameter opSliceAssign() function failed");
-
     x1a[] -= 2;
     assert(x1a.data == [13.0, 16.0, 16.0, 16.0, 13.0], "One parameter opSliceOpAssign() function failed");
-
     x1a[] += [2.0, -1, -1, -1, 2];
     assert(x1a.data == [15.0, 15.0, 15.0, 15.0, 15.0], "One array parameter opSliceOpAssign() function failed");
-
     x1a[1..4] -= 2.0;
     assert(x1a.data == [15.0, 13.0, 13.0, 13.0, 15.0], "Three parameter opSliceOpAssign() function failed");
-
     x1a[1..4] += [2.0, 2, 2];
     assert(x1a.data == [15.0, 15.0, 15.0, 15.0, 15.0], "Three array parameter opSliceOpAssign() function failed");
+    writeln("Basic Tests 3 passed");
     
+    writeln("\nBasic Tests 4: Logical Vectors ...");
     assert(LogicalVector([true, false, true]).data == [1, 0, 1], "Error in LogicalVector constructor from bool[]");
+    //auto x2a = LogicalVector(TRUE, FALSE, TRUE, FALSE);
+    assert(LogicalVector(TRUE, FALSE, TRUE, FALSE).data == [1, 0, 1, 0], "LogicalVector constructor failed.");
+    writeln("Basic Tests 4 passed.");
 
+    writeln("\nBasic Tests 5 equality: opEquals, gt, gteq, lt, lteq ...");
     assert((NumericVector(1.0, 2, 4, 5) == NumericVector(1.0, 2, 4, 5)).data == [1, 1, 1, 1], "RVector opEquals failed");
     assert((NumericVector(1.0, 2, 4, 5) == [1.0, 2, 4, 5]).data == [1, 1, 1, 1], "RVector array opEquals failed");
 
@@ -523,13 +546,19 @@ unittest
 
     assert(NumericVector(1.0, 2, 4, 5).lteq(NumericVector(0.0, 5, 4, 3)).data == [0, 1, 1, 0], "RVector lteq failed");
     assert(NumericVector(1.0, 2, 4, 5).lteq([0.0, 5, 4, 3]).data == [0, 1, 1, 0], "RVector and array lteq failed");
+    writeln("Basic Tests 5 passed");
 
+    writeln("\nBasic Tests 6: Setting/extending vector length ...");
     x1a.length = 20;
     assert(x1a.length == 20, "Failed setting the length of the numeric vector");
+    writeln("Basic Test 6 passed");
 
+    writeln("\nBasic Test 7: opUnary operations ...");
     x1a = NumericVector(1.0, 2, 3, 4); x1a = -x1a;
     assert(x1a.data == [-1.0, -2, -3, -4], "RVector opUnary failed.");
+    writeln("Basic Test 7");
 
+    writeln("\nBasic Test 8: opOpAssign tests...");
     x1a ~= 5.0;
     assert(x1a.data == [-1.0, -2, -3, -4, 5], "RVector opOpAssign for scalar element failed.");
 
@@ -546,25 +575,36 @@ unittest
     x1a = NumericVector(1., 2, 3, 4);
     x1a += [5., 6, 7, 8];
     assert(x1a.data == [6., 8, 10, 12], "RVector and array test for opOpAssign (+=) operation failed");
+    writeln("Basic Test 8 passed");
 
+    writeln("\nBasic Test 9: opBinary tests ...");
     x1a = NumericVector(1., 2, 3, 4);
     x1b = NumericVector(5., 6, 7, 8);
     assert((x1a - x1b).data == [-4, -4, -4, -4], "RVector vs RVector opBinary operation failed.");
     assert((x1a - [5., 6, 7, 8]).data == [-4, -4, -4, -4], "RVector vs array opBinary operation failed.");
     assert((x1b - 4).data == [1, 2, 3, 4], "RVector vs element opBinary operation failed.");
+    writeln("Basic Test 9 passed.");
 
-    auto x2a = LogicalVector(TRUE, FALSE, TRUE, FALSE);
-    assert(x2a.data == [1, 0, 1, 0], "LogicalVector constructor failed.");
-
+    writeln("\nBasic Test 10: Rcomplex ...");
     auto x2b = ComplexVector(Rcomplex(1, 3), Rcomplex(-4, 1), Rcomplex(-5, -7));
     auto x2c = Rcomplex(2, 3);
     auto x2d = ComplexVector(Rcomplex(-1, 4), Rcomplex(-4, 9), Rcomplex(-3, 5));
-    
+
     auto x3a = x2b * x2c;
     auto x3b = x2b * x2d;
-    writeln("x3a: ", x3a);
-    writeln("x3b: ", x3b);
+    assert(x3a.data == [Rcomplex(-7, 9), Rcomplex(-11, -10), Rcomplex(11, -29)]);
+    assert(x3b.data == [Rcomplex(-13, 1), Rcomplex(7, -40), Rcomplex(50, -4)]);
 
+    auto x2e = [const(Rcomplex)(-1, 0), const(Rcomplex)(-6, -2), const(Rcomplex)(-7, -10)];
+    assert((x2b - x2c).data == x2e, "RVector vs scalar opBinary test failed");
+    assert((x2c - x2b).data == x2e, "RVector vs scalar opBinaryRight test failed");
+    writeln("Basic Test 10 passed");
+
+    x2b += x2d;
+    auto x2f = [const(Rcomplex)(0, 7), const(Rcomplex)(-8, 10), const(Rcomplex)(-8, -2)];
+    assert(x2b.data == x2f, "opOpAssign for ComplexVector vs ComplexVector operation failed");
+
+    writeln("\nEnd of unit tests for Basic Vectors\n######################################################\n");
 
     endEmbedR();
 }
