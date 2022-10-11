@@ -466,7 +466,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
                 return this;
             }else{
                 assert(value.length == this.length, "Lengths of array replacement differs from target range");
-                static if(is(Type == CPLXSXP))
+                static if(Type == CPLXSXP)
                 {
                     auto n = this.length;
                     foreach(i; 0..n)
@@ -550,7 +550,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
                 assert(0, "Operator ~ does not make sense for indexed opSliceOpAssign.");
             }else{
                 assert(value.length == this.data[i..j].length, "Lengths of array replacement differs from target range");
-                static if(is(Type == CPLXSXP))
+                static if(Type == CPLXSXP)
                 {
                     auto len = j - i;
                     foreach(k; 0..len)
@@ -585,60 +585,103 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
         }
     }
     RVector opBinary(string op, T)(T value)
-    if((op == "~") && (is(T == ElType) || isANumber!(T)))
     {
         auto result = RVector!(Type)(this);
-        result.length = result.length + 1;
-        result.data[$ - 1] = value;
-        return result;
-    }
-    RVector opBinary(string op, T)(T value)
-    if((op != "~") && (is(T == ElType) || isANumber!(T)))
-    {
-        auto result = RVector!(Type)(this);
-        static if(is(T == Rboolean))
+        static if(is(T == ElType))
         {
-            mixin("result.data[] " ~ op ~ "= value;");
-        }else static if(!is(T == Rboolean)){
-            foreach(i; 0..(result.length))
+            static if(op == "~") /* For appends */
             {
-                mixin("result[i] = result[i] " ~ op ~ " value;");
+                result.length = result.length + 1;
+                result.data[$ - 1] = value;
+                return result;
+            }else{
+                static if(is(ElType == Rcomplex))
+                {
+                    auto n = result.length;
+                    foreach(i; 0..n)
+                    {
+                        mixin("result.data[i] " ~ op ~ "= value;");
+                    }
+                }else{
+                    mixin ("result.data[] " ~ op ~ "= value;");
+                }
+                return result;
             }
+        }else static if(is(T == ElType[]))
+        {
+            static if(op == "~") /* For appends */
+            {
+                auto origLength = result.length;
+                auto n = origLength + arr.length;
+                result.length = n;
+                result.data[origLength..$] = value[];
+                return result;
+            }else{
+                assert(value.length == result.length, "Lengths of array replacement differs from target range");
+                static if(is(ElType == Rcomplex))
+                {
+                    auto n = result.length;
+                    foreach(i; 0..n)
+                    {
+                        mixin("result.data[i] " ~ op ~ "= value[i];");
+                    }
+                }else{
+                    mixin("result.data[] " ~ op ~ "= value[];");
+                }
+                return result;
+            }
+        }else static if(is(T == RVector))
+        {
+            static if(op == "~") /* For appends */
+            {
+                auto origLength = result.length;
+                auto n = origLength + arr.length;
+                result.length = n;
+                result.data[origLength..$] = value.data[];
+                return result;
+            }else{
+                assert(value.length == result.length, "Lengths of array replacement differs from target range");
+                static if(Type == CPLXSXP)
+                {
+                    writeln("Debug point!");
+                    auto n = result.length;
+                    foreach(i; 0..n)
+                    {
+                        mixin("result.data[i] " ~ op ~ "= value.data[i];");
+                    }
+                }else{
+                    mixin("result.data[] " ~ op ~ "= value.data[];");
+                }
+                return result;
+            }
+        }else static if(__traits(compiles, cast(ElType)value))
+        {
+            auto _value_ = cast(ElType)value;
+            static if(op == "~") /* For appends */
+            {
+                result.length = result.length + 1;
+                result.data[$ - 1] = _value_;
+                return result;
+            }else{
+                static if(is(ElType == Rcomplex))
+                {
+                    auto n = result.length;
+                    foreach(i; 0..n)
+                    {
+                        mixin("result.data[i] " ~ op ~ "= _value_;");
+                    }
+                }else{
+                    mixin ("result.data[] " ~ op ~ "= _value_;");
+                }
+                return result;
+            }
+        }else{
+            static assert(0, "opBinary unknown type " ~ T.stringof ~ " used.");
         }
-        return result;
     }
     auto opBinaryRight(string op, T)(T value)
-    if(is(T == ElType) || isANumber!(T))
     {
         return opBinary!(op, T)(value);
-    }
-
-    RVector opBinary(string op, T)(T arr)
-    if(is(T == RVector) || is(T == ElType[]))
-    {
-        assert(this.length == arr.length, "Array is of different from the RVector");
-        
-        static if(op != "~")
-        {
-            auto result = RVector!(Type)(this);
-            /* 
-                Perhaps need a more efficient 
-                way of doing this 
-            */
-            enum code = "foreach(i; 0..length)
-            {
-                result.data[i] " ~ op ~ "= arr[i];
-            }";
-            mixin(code);
-        }else if(op == "~")
-        {
-            auto origLength = this.length;
-            auto result = RVector!(Type)(this);
-            result.length = result.length + arr.length;
-            result[origLength..$] = arr[];
-        }
-        
-        return result;
     }
 }
 
