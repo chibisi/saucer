@@ -3,5 +3,4 @@
 export(approxEqual)
 export(exit)
 export(removeAndUpdate)
-export(removeAndUpdatePackage)
 export(updatePackage)
