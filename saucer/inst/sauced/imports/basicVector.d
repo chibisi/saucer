@@ -437,7 +437,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             static if(op == "~") /* For appends */
             {
                 auto origLength = this.length;
-                auto n = origLength + arr.length;
+                auto n = origLength + value.length;
                 this.length = n;
                 this.data[origLength..$] = value[];
                 return this;
@@ -460,7 +460,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             static if(op == "~") /* For appends */
             {
                 auto origLength = this.length;
-                auto n = origLength + arr.length;
+                auto n = origLength + value.length;
                 this.length = n;
                 this.data[origLength..$] = value.data[];
                 return this;
@@ -612,7 +612,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             static if(op == "~") /* For appends */
             {
                 auto origLength = result.length;
-                auto n = origLength + arr.length;
+                auto n = origLength + value.length;
                 result.length = n;
                 result.data[origLength..$] = value[];
                 return result;
@@ -635,7 +635,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
             static if(op == "~") /* For appends */
             {
                 auto origLength = result.length;
-                auto n = origLength + arr.length;
+                auto n = origLength + value.length;
                 result.length = n;
                 result.data[origLength..$] = value.data[];
                 return result;
@@ -643,7 +643,6 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP)
                 assert(value.length == result.length, "Lengths of array replacement differs from target range");
                 static if(Type == CPLXSXP)
                 {
-                    writeln("Debug point!");
                     auto n = result.length;
                     foreach(i; 0..n)
                     {
@@ -814,11 +813,31 @@ unittest
     auto x2e = [const(Rcomplex)(-1, 0), const(Rcomplex)(-6, -2), const(Rcomplex)(-7, -10)];
     assert((x2b - x2c).data == x2e, "RVector vs scalar opBinary test failed");
     assert((x2c - x2b).data == x2e, "RVector vs scalar opBinaryRight test failed");
-    writeln("Basic Test 10 passed");
 
     x2b += x2d;
     auto x2f = [const(Rcomplex)(0, 7), const(Rcomplex)(-8, 10), const(Rcomplex)(-8, -2)];
     assert(x2b.data == x2f, "opOpAssign for ComplexVector vs ComplexVector operation failed");
+
+    x2b = ComplexVector(Rcomplex(1, 3), Rcomplex(-4, 1), Rcomplex(-5, -7));
+    x2d = ComplexVector(Rcomplex(-1, 4), Rcomplex(-4, 9), Rcomplex(-3, 5));
+    auto x2g = ComplexVector(Rcomplex(1, 3), Rcomplex(-4, 1), Rcomplex(-5, -7), 
+                Rcomplex(-1, 4), Rcomplex(-4, 9), Rcomplex(-3, 5));
+
+    assert((x2b ~ x2d).data == x2g.data, "opBinary test for ComplexVector failed.");
+    assert((x2b * x2d).data == [Rcomplex(-13, 1), Rcomplex(7, -40), Rcomplex(50, -4)], 
+            "opBinary test for ComplexVector failed.");
+
+    //6  0 -5 -3  4 -1 -2 -1  1 -3  0 -6  6  8  4  2 -7  7  2  1
+    auto x2h = ComplexVector(Rcomplex(6, -5), Rcomplex(-3, 4), Rcomplex(-1, -2), Rcomplex(1, -3));
+    x2g[2..6] = x2h;
+    assert(x2g[2..6].data == x2h.data, "opSliceAssign test for ComplexVector failed");
+
+    x2g = ComplexVector(Rcomplex(1, 3), Rcomplex(-4, 1), Rcomplex(-5, -7), 
+                Rcomplex(-1, 4), Rcomplex(-4, 9), Rcomplex(-3, 5));
+    x2g[2..6] *= x2h;
+    assert(x2g[2..6].data == [Rcomplex(-65, -17), Rcomplex(-13, -16), Rcomplex(22, -1), 
+                Rcomplex(12, 14)], "opSliceOpAssign test for ComplexVector failed.");
+    writeln("Basic Test 10 passed\n");
 
     writeln("\nEnd of unit tests for Basic Vectors\n######################################################\n");
 
