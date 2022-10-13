@@ -136,8 +136,8 @@ if(type == RAWSXP)
 template SEXPElementType(SEXPTYPE type)
 if(type == STRSXP)
 {
-  //alias SEXPElementType = string;
-  alias SEXPElementType = const(char)*;
+  alias SEXPElementType = string;
+  //alias SEXPElementType = const(char)*;
 }
 template SEXPElementType(SEXPTYPE type)
 if(type == VECSXP)
@@ -179,7 +179,6 @@ if(type == STRSXP)
 {
   import std.string: fromStringz, toStringz;
   alias Accessor = (SEXP x, R_xlen_t i) =>
-      //R_CHAR(STRING_ELT(x, i)); 
       cast(string)fromStringz(R_CHAR(STRING_ELT(x, i)));
 }
 
@@ -311,10 +310,10 @@ template MapToSEXP(T)
   }else static if(is(T == Rboolean))
   {
     enum SEXPTYPE MapToSEXP = LGLSXP;
-  }else /*static if(is(T == const(char)*))
+  }else static if(is(T == const(char)*))
   {
     enum SEXPTYPE MapToSEXP = STRSXP;
-  }else */static if(is(T == string))
+  }else static if(is(T == string))
   {
     enum SEXPTYPE MapToSEXP = STRSXP;
   }else{
@@ -525,10 +524,10 @@ string StringOf(T)()
   {
     return "RVector!(RAWSXP)";
   }
-  /* static if(is(T == RVector!(STRSXP)))
+  static if(is(T == RVector!(STRSXP)))
   {
     return "RVector!(STRSXP)";
-  } */
+  }
   static if(is(T == mixin("RMatrix!(LGLSXP)")))
   {
     return "RMatrix!(LGLSXP)";
