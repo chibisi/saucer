@@ -227,7 +227,31 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
             return;
         }
     }
-    LogicalVector opEquals(T)(T arr)
+    bool opEquals(T)(T arr)
+    if(is(T == ElType[]) || is(T == RVector))
+    {
+        static if(Type != STRSXP)
+        {
+            static if(is(T == RVector))
+            {
+                return this.data == arr.data;
+            }else static if(is(T == ElType[]))
+            {
+                return this.data == arr;
+            }
+        }else{
+            auto n = this.length;
+            foreach(i; 0..n)
+            {
+                if(arr[i] != this[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    LogicalVector eq(T)(T arr)
     if(is(T == ElType[]) || is(T == RVector))
     {
         auto n = this.length;
@@ -235,7 +259,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
         auto result = LogicalVector(n);
         foreach(i; 0..n)
         {
-            result[i] = arr[i] == data[i];
+            result[i] = arr[i] == this[i];
         }
         return result;
     }
@@ -247,7 +271,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
         auto result = LogicalVector(n);
         foreach(i; 0..n)
         {
-            result[i] = this.data[i] > rvec[i];
+            result[i] = this[i] > rvec[i];
         }
         return result;
     }
@@ -259,7 +283,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
         auto result = LogicalVector(n);
         foreach(i; 0..n)
         {
-            result[i] = this.data[i] >= rvec[i];
+            result[i] = this[i] >= rvec[i];
         }
         return result;
     }
@@ -271,7 +295,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
         auto result = LogicalVector(n);
         foreach(i; 0..n)
         {
-            result[i] = this.data[i] < rvec[i];
+            result[i] = this[i] < rvec[i];
         }
         return result;
     }
@@ -283,7 +307,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
         auto result = LogicalVector(n);
         foreach(i; 0..n)
         {
-            result[i] = this.data[i] <= rvec[i];
+            result[i] = this[i] <= rvec[i];
         }
         return result;
     }
@@ -905,8 +929,9 @@ unittest
     writeln("Basic Tests 4 passed.");
 
     writeln("\nBasic Tests 5 equality: opEquals, gt, gteq, lt, lteq ...");
-    assert((NumericVector(1.0, 2, 4, 5) == NumericVector(1.0, 2, 4, 5)).data == [1, 1, 1, 1], "RVector opEquals failed");
-    assert((NumericVector(1.0, 2, 4, 5) == [1.0, 2, 4, 5]).data == [1, 1, 1, 1], "RVector array opEquals failed");
+    assert(NumericVector(1.0, 2, 4, 5) == NumericVector(1.0, 2, 4, 5), "RVector vs RVector opEquals failed");
+    assert((NumericVector(1.0, 2, 4, 5).eq(NumericVector(1.0, 2, 4, 5))).data == [1, 1, 1, 1], "RVector vs RVector eq failed");
+    assert((NumericVector(1.0, 2, 4, 5).eq([1.0, 2, 4, 5])).data == [1, 1, 1, 1], "RVector vs array eq failed");
 
     assert(NumericVector(1.0, 2, 4, 5).gt(NumericVector(0.0, 1, 7, 8)).data == [1, 1, 0, 0], "RVector gt failed");
     assert(NumericVector(1.0, 2, 4, 5).gt([0.0, 1, 7, 8]).data == [1, 1, 0, 0], "RVector gt failed");
@@ -1020,6 +1045,15 @@ unittest
     assert(x4b.length == 8, "opIndexAssign vector append length tests failed.");
     assert((x4b[6] == "so") && (x4b[7] == "there"),
             "opIndexAssign wrong items appended");
+    
+    x4a = CharacterVector("Flying", "in", "a", "blue", "dream");
+    x4b = CharacterVector("Flying", "in", "a", "blue", "dream");
+    auto x4c = ["Flying", "in", "a", "blue", "dream"];
+    
+    assert(x4a == x4b, " opEquals for CharacterVector failed.");
+    assert(x4a.eq(x4b) == LogicalVector(1, 1, 1, 1, 1), "eq() for CharacterVector failed.");
+    assert(x4a.eq(x4c) == LogicalVector(1, 1, 1, 1, 1), " eq() for CharacterVector vs string array failed.");
+    
     writeln("Basic Test 11 passed.");
 
     writeln("\nEnd of unit tests for Basic Vectors\n######################################################\n");
