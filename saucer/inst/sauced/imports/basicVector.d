@@ -529,16 +529,36 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
     {
         return this.length();
     }
-    static if(Type != STRSXP)
+    // Returns a copy
+    RVector opSlice()
     {
-        RVector opSlice()
+        static if(Type != STRSXP)
         {
-            return RVector!(Type)(this.data[]);
+            return RVector!(Type)(this);
+        }else{
+            return RVector!(Type)(this);
         }
-        RVector opSlice(size_t i, size_t j)
+    }
+    RVector opSlice(size_t i, size_t j)
+    {
+        assert(j >= i, 
+            "opSlice error, the second index is not" ~ 
+            " greater than or equal to the first");
+        static if(Type != STRSXP)
         {
             return RVector!(Type)(this.data[i..j]);
+        }else{
+            auto n = j - i;
+            auto result = RVector!(Type)(n);
+            foreach(k; 0..n)
+            {
+                result[k] = this[i + k];
+            }
+            return result;
         }
+    }
+    static if(Type != STRSXP)
+    {
         auto ref RVector opSliceAssign(T)(T value) return
         {
             static if(is(T == ElType))
@@ -565,7 +585,7 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
                 static assert(0, "opSliceAssign unknown type " ~ T.stringof ~ " used.");
             }
         }
-        auto opSliceAssign(T)(T value, size_t i, size_t j)
+        RVector opSliceAssign(T)(T value, size_t i, size_t j)
         {
             assert(j >= i, "Second index is not less than or equal to the first index.");
             static if(is(T == ElType))
@@ -1053,7 +1073,12 @@ unittest
     assert(x4a == x4b, " opEquals for CharacterVector failed.");
     assert(x4a.eq(x4b) == LogicalVector(1, 1, 1, 1, 1), "eq() for CharacterVector failed.");
     assert(x4a.eq(x4c) == LogicalVector(1, 1, 1, 1, 1), " eq() for CharacterVector vs string array failed.");
+
+    assert(x4a[] == CharacterVector("Flying", "in", "a", "blue", "dream"), 
+        "opSlice() for CharacterVector failed.");
     
+    assert(x4a[1..4] == CharacterVector("in", "a", "blue"),
+        "opSlice(i, j) for CharacterVector failed");
     writeln("Basic Test 11 passed.");
 
     writeln("\nEnd of unit tests for Basic Vectors\n######################################################\n");
