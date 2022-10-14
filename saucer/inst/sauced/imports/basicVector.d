@@ -728,89 +728,68 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
             static assert(0, "opSliceOpAssign unknown type " ~ T.stringof ~ " used.");
         }
     }
-    static if(Type != STRSXP)
+    RVector opSliceOpAssign(string op, T)(T value, size_t i, size_t j)
     {
-        RVector opSliceOpAssign(string op, T)(T value, size_t i, size_t j)
+        assert(j >= i, "The second slice index is not greater than or equal to the first index.");
+        static if(is(T == ElType))
         {
-            assert(j >= i, "The second slice index is not greater than or equal to the first index.");
-            static if(is(T == ElType))
+            static if((Type == CPLXSXP) || (Type == STRSXP))
             {
-                static if(op == "~")
+                foreach(k; i..j)
                 {
-                    assert(0, "Operator ~ does not make sense for indexed opSliceOpAssign.");
-                }else{
-                    static if(is(ElType == Rcomplex))
-                    {
-                        auto n = this.length;
-                        foreach(k; i..j)
-                        {
-                            mixin("this.data[k] " ~ op ~ "= value;");
-                        }
-                    }else{
-                        mixin ("this.data[i..j] " ~ op ~ "= value;");
-                    }
-                    return this[i..j];
-                }
-            }else static if(is(T == ElType[]))
-            {
-                static if(op == "~")
-                {
-                    assert(0, "Operator ~ does not make sense for indexed opSliceOpAssign.");
-                }else{
-                    assert(value.length == this[i..j].length, "Lengths of array replacement differs from target range");
-                    static if(is(ElType == Rcomplex))
-                    {
-                        auto len = j - i;
-                        foreach(k; 0..len)
-                        {
-                            mixin("this.data[k + i] " ~ op ~ "= value[k];");
-                        }
-                    }else{
-                        mixin("this.data[i..j] " ~ op ~ "= value[];");
-                    }
-                    return this[i..j];
-                }
-            }else static if(is(T == RVector))
-            {
-                static if(op == "~")
-                {
-                    assert(0, "Operator ~ does not make sense for indexed opSliceOpAssign.");
-                }else{
-                    assert(value.length == this.data[i..j].length, "Lengths of array replacement differs from target range");
-                    static if(Type == CPLXSXP)
-                    {
-                        auto len = j - i;
-                        foreach(k; 0..len)
-                        {
-                            mixin("this.data[k + i] " ~ op ~ "= value.data[k];");
-                        }
-                    }else{
-                        mixin("this.data[i..j] " ~ op ~ "= value.data[];");
-                    }
-                    return this[i..j];
-                }
-            }else static if(__traits(compiles, cast(ElType)value))
-            {
-                auto _value_ = cast(ElType)value;
-                static if(op == "~")
-                {
-                    assert(0, "Operator ~ does not make sense for indexed opSliceOpAssign.");
-                }else{
-                    static if(is(ElType == Rcomplex))
-                    {
-                        foreach(k; i..j)
-                        {
-                            mixin("this.data[k] " ~ op ~ "= _value_;");
-                        }
-                    }else{
-                        mixin ("this.data[i..j] " ~ op ~ "= _value_;");
-                    }
-                    return this[i..j];
+                    mixin("this[k] " ~ op ~ "= value;");
                 }
             }else{
-                static assert(0, "opSliceOpAssign unknown type " ~ T.stringof ~ " used.");
+                mixin ("this.data[i..j] " ~ op ~ "= value;");
             }
+            return this[i..j];
+        }else static if(is(T == ElType[]))
+        {
+            auto n = j - i;
+            assert(value.length == n, "Lengths of array replacement differs from target range");
+            static if((Type == CPLXSXP) || (Type == STRSXP))
+            {
+                foreach(k; 0..n)
+                {
+                    mixin("this[i + k] " ~ op ~ "= value[k];");
+                }
+            }else{
+                mixin("this.data[i..j] " ~ op ~ "= value[];");
+            }
+            return this[i..j];
+        }else static if(is(T == RVector))
+        {
+            auto n = j - i;
+            assert(value.length == n, "Lengths of array replacement differs from target range");
+            static if((Type == CPLXSXP) || (Type == STRSXP))
+            {
+                foreach(k; 0..n)
+                {
+                    mixin("this[i + k] " ~ op ~ "= value[k];");
+                }
+            }else{
+                mixin("this.data[i..j] " ~ op ~ "= value.data[];");
+            }
+            return this[i..j];
+        }else static if(__traits(compiles, cast(ElType)value))
+        {
+            auto _value_ = cast(ElType)value;
+            static if(is(ElType == Rcomplex))
+            {
+                foreach(k; i..j)
+                {
+                    mixin("this.data[k] " ~ op ~ "= _value_;");
+                }
+            }else{
+                mixin ("this.data[i..j] " ~ op ~ "= _value_;");
+            }
+            return this[i..j];
+        }else{
+            static assert(0, "opSliceOpAssign unknown type " ~ T.stringof ~ " used.");
         }
+    }
+    static if(Type != STRSXP)
+    {
         RVector opBinary(string op, T)(T value)
         {
             auto result = RVector!(Type)(this);
@@ -1138,6 +1117,17 @@ unittest
     x4a = CharacterVector("I", "love", "shouting");
     x4a[] ~= x4c;
     assert(x4a == x4b, "opSliceOpAssign() test failed for CharacterVector vs string[].");
+
+    x4a = CharacterVector("Mystical", "potatohead", "groove", "thing");
+    x4a[1..3] = "cool";
+    assert(x4a == CharacterVector("Mystical", "cool", "cool", "thing"),
+        "opSliceOpAssign(i..j) failed for CharacterVector vs string.");
+    x4a[1..3] = CharacterVector("egghead", "awesome");
+    assert(x4a == CharacterVector("Mystical", "egghead", "awesome", "thing"),
+        "opSliceOpAssign(i..j) failed for CharacterVectors.");
+    x4a[1..3] = ["potatohead", "groove"];
+    assert(x4a == CharacterVector("Mystical", "potatohead", "groove", "thing"),
+        "opSliceOpAssign(i..j) failed for CharacterVector vs string[].");
 
     writeln("Basic Test 11 passed.");
 
