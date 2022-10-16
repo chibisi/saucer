@@ -1165,11 +1165,58 @@ int R_IsNA (double);
 int R_IsNaN (double);
 int R_finite (double);
 
-enum Rboolean
+//enum Rboolean
+//{
+//    FALSE = 0,
+//    TRUE = 1
+//}
+
+/* Simplified Rboolean definitions */
+//alias FALSE = Rboolean.FALSE;
+//alias TRUE = Rboolean.TRUE;
+
+
+struct Rboolean
 {
-    FALSE = 0,
-    TRUE = 1
+    int _data_;
+    alias _data_ this;
+    this(int value)
+    {
+        if(value == 0)
+        {
+            this._data_ = 0;
+        }else{
+            this._data_ = 1;
+        }
+    }
+    auto opAssign(bool value)
+    {
+        if(!value)
+        {
+            _data_ = 0;
+        }else{
+            _data_ = 1;
+        }
+    }
+    string toString()
+    {
+        if(_data_ == 0)
+        {
+            return "FALSE";
+        }else{
+            return "TRUE";
+        }
+    }
 }
+
+enum FALSE = Rboolean(0);
+enum TRUE = Rboolean(1);
+
+
+
+
+
+
 
 struct Rcomplex
 {
@@ -1250,7 +1297,17 @@ struct Rcomplex
     string toString()
     {
         import std.conv: to;
-        return "Rcomplex(" ~ to!(string)(this.r) ~ ", " ~ to!(string)(this.i) ~ ")";
+        //return "Rcomplex(" ~ to!(string)(this.r) ~ ", " ~ to!(string)(this.i) ~ ")";
+        string result = to!(string)(this.r);
+        if(this.i >= 0)
+        {
+            result ~= "+";
+            result ~= to!(string)(this.i) ~ "i";
+        }else{
+            result ~= "-";
+            result ~= to!(string)(-1*this.i) ~ "i";
+        }
+        return result;
     }
 }
 

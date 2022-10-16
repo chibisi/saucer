@@ -100,47 +100,43 @@ alias NEWSXP = SEXPTYPE.NEWSXP;
 alias FREESXP = SEXPTYPE.FREESXP;
 alias FUNSXP = SEXPTYPE.FUNSXP;
 
-/* Simplified Rboolean definitions */
-alias FALSE = Rboolean.FALSE;
-alias TRUE = Rboolean.TRUE;
-
 
 /*
   Common element types converting to basic D types
 */
-template SEXPElementType(SEXPTYPE type)
-if(type == REALSXP)
+template SEXPElementType(SEXPTYPE Type)
+if(Type == REALSXP)
 {
   alias SEXPElementType = double;
 }
-template SEXPElementType(SEXPTYPE type)
-if(type == CPLXSXP)
+template SEXPElementType(SEXPTYPE Type)
+if(Type == CPLXSXP)
 {
   alias SEXPElementType = Rcomplex;
 }
-template SEXPElementType(SEXPTYPE type)
-if(type == INTSXP)
+template SEXPElementType(SEXPTYPE Type)
+if(Type == INTSXP)
 {
   alias SEXPElementType = int;
 }
-template SEXPElementType(SEXPTYPE type)
-if(type == LGLSXP)
+template SEXPElementType(SEXPTYPE Type)
+if(Type == LGLSXP)
 {
   alias SEXPElementType = int;
 }
-template SEXPElementType(SEXPTYPE type)
-if(type == RAWSXP)
+template SEXPElementType(SEXPTYPE Type)
+if(Type == RAWSXP)
 {
   alias SEXPElementType = ubyte;
 }
-template SEXPElementType(SEXPTYPE type)
-if(type == STRSXP)
+template SEXPElementType(SEXPTYPE Type)
+if(Type == STRSXP)
 {
   alias SEXPElementType = string;
   //alias SEXPElementType = const(char)*;
 }
-template SEXPElementType(SEXPTYPE type)
-if(type == VECSXP)
+template SEXPElementType(SEXPTYPE Type)
+if(Type == VECSXP)
 {
   alias SEXPElementType = SEXP;
 }
@@ -149,33 +145,33 @@ if(type == VECSXP)
 /*
   Templates return accessor functions
 */
-template Accessor(SEXPTYPE type)
-if(type == REALSXP)
+template Accessor(SEXPTYPE Type)
+if(Type == REALSXP)
 {
   alias Accessor = REAL;
 }
-template Accessor(SEXPTYPE type)
-if(type == CPLXSXP)
+template Accessor(SEXPTYPE Type)
+if(Type == CPLXSXP)
 {
   alias Accessor = COMPLEX;
 }
-template Accessor(SEXPTYPE type)
-if(type == INTSXP)
+template Accessor(SEXPTYPE Type)
+if(Type == INTSXP)
 {
   alias Accessor = INTEGER;
 }
-template Accessor(SEXPTYPE type)
-if(type == LGLSXP)
+template Accessor(SEXPTYPE Type)
+if(Type == LGLSXP)
 {
   alias Accessor = LOGICAL;
 }
-template Accessor(SEXPTYPE type)
-if(type == RAWSXP)
+template Accessor(SEXPTYPE Type)
+if(Type == RAWSXP)
 {
   alias Accessor = RAW;
 }
-template Accessor(SEXPTYPE type)
-if(type == STRSXP)
+template Accessor(SEXPTYPE Type)
+if(Type == STRSXP)
 {
   import std.string: fromStringz, toStringz;
   alias Accessor = (SEXP x, R_xlen_t i) =>
@@ -183,7 +179,7 @@ if(type == STRSXP)
 }
 
 //Pasting in RVector and RMatrix types
-mixin(import("imports/basicVector.d"));
+mixin(import("imports/basicVector1.d"));
 //mixin(import("imports/rvector.d"));
 mixin(import("imports/rmatrix.d"));
 //mixin(import("imports/dataframe.d"));
@@ -242,12 +238,13 @@ alias getSubType(alias V) = getSubType!(typeof(V));
 enum isBasicType(T) = is(T == bool) || is(T == byte) || 
         is(T == ubyte) || is(T == short) || is(T == ushort) || 
         is(T == int) || is(T == uint) || is(T == long) || 
-        is(T == ulong) || is(T == char) || is(T == float) || 
+        is(T == ulong) || is(T == float) || 
         is(T == double) || is(T == real) || 
-        is(T == const(char)*) || 
-        is(T == char*) || is(T == string) || 
-        is(T == Rcomplex) || is(R == Rboolean);
+        is(T == string) || is(T == Rcomplex) || 
+        is(R == Rboolean);
 
+// is(T == char) || is(T == const(char)*) || 
+//        is(T == char*) || 
 
 enum isStringType(T) = is(T == char*) || is(T == const(char)*) || 
                        is(T == string);

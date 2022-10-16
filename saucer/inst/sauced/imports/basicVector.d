@@ -1,5 +1,4 @@
 import std.conv: to;
-import std.traits: Unqual;
 
 /* Vector aliases */
 alias NumericVector = RVector!(REALSXP);
@@ -31,7 +30,6 @@ struct RVector(SEXPTYPE Type)
 if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || 
     (Type == RAWSXP) || (Type == CPLXSXP) || (Type == STRSXP))
 {
-    import std.traits: isANumber = isNumeric;
 
     SEXP sexp;
     bool need_unprotect;
