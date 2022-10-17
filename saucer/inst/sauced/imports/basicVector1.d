@@ -16,6 +16,9 @@ enum bool NonStringSEXP(SEXPTYPE Type) = (Type == REALSXP) ||
     (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP) || 
     (Type == RAWSXP) || (Type == CPLXSXP);
 
+enum bool SEXPDataTypes(SEXPTYPE Type) = (Type == REALSXP) || (Type == INTSXP) || 
+    (Type == LGLSXP) || (Type == RAWSXP) || (Type == CPLXSXP) || 
+    (Type == STRSXP);
 
 /+
     Function to set a string as an element in an R character SEXP
@@ -114,10 +117,8 @@ if(isIntegral!(I) /* && NonStringSEXP!(Type) */)
 
 
 
-
 struct RVector(SEXPTYPE Type)
-if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) || 
-    (Type == RAWSXP) || (Type == CPLXSXP) || (Type == STRSXP))
+if(SEXPDataTypes!(Type))
 {
     SEXP sexp;
     bool need_unprotect;
@@ -327,6 +328,32 @@ if((Type == REALSXP) || (Type == INTSXP) || (Type == LGLSXP) ||
                 " RVector!(" ~ Type.stringof ~ ").");
         }
     }
+    auto opIndexOpAssign(string op, T)(auto ref T value, size_t i)
+    {
+        static if((Type != STRSXP) && is(T == ElType))
+        {
+            auto _ptr_ = Accessor!(Type)(this.sexp);
+            mixin("_ptr_[i] " ~ op ~ "= value;");
+            return _ptr_[i];
+        }else static if((Type == STRSXP) && is(T == ElType))
+        {
+            auto element = getSEXP!(Type)(this.sexp, i);
+            mixin("element " ~ op ~ "= value;");
+            setSEXP!(Type)(this.sexp, i, element);
+            return element;
+        }else static if(__traits(compiles, cast(ElType)value))
+        {
+            ElType _value_ = cast(ElType)value;
+            auto element = getSEXP!(Type)(this.sexp, i);
+            mixin("element " ~ op ~ "= _value_;");
+            setSEXP!(Type)(this.sexp, i, element);
+            return element;
+        }else{
+            static assert(0, "Type " ~ T.stringof ~ 
+                " not implemented for opIndexOpAssign in " ~ 
+                " RVector!(" ~ Type.stringof ~ ").");
+        }
+    }
 }
 
 
@@ -385,11 +412,27 @@ unittest
     writeln("Test 3 for opCast and opIndexAssign done.\n");
 
     writeln("Test 4 for opUnary and opIndexUnary ...");
-    auto x = IntegerVector(1, 2, 3, 4);
-    assert((-x).data == [-1, -2, -3, -4], "Test for opUnary failed");
-    assert(++x[2] == 4, "Test for opIndexUnary failed.");
-    assert((++x).data == [2, 3, 4, 5], "Tests for opUnary failed.");
+    auto x0bc = IntegerVector(1, 2, 3, 4);
+    assert((-x0bc).data == [-1, -2, -3, -4], "Test for opUnary failed");
+    assert(++x0bc[2] == 4, "Test for opIndexUnary failed.");
+    assert((++x0bc).data == [2, 3, 4, 5], "Tests for opUnary failed.");    
     writeln("Test 4 for opUnary done.\n");
+
+    writeln("Test 5 for opIndexOpAssign");
+    x0a[0] ~= " by";
+    assert(x0a[0] == "Flying by", "opIndexOpAssign for STRSXP failed.");
+
+    x0bc = IntegerVector(1, 2, 3, 4);
+    x0bc[1] *= 3;
+    assert(x0bc[1] == 6, "opIndexOpAssign for INTSXP failed.");
+
+    auto x0c = LogicalVector(TRUE, FALSE , TRUE, TRUE);
+    x0c[3] &= FALSE;
+    assert(x0c[3] == FALSE, "opIndexOpAssign for LGLSXP failed.");
+    writeln("Test 5 for opIndexOpAssign done.\n");
+
+
+
     
     endEmbedR();
 }
