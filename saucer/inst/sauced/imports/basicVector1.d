@@ -20,6 +20,31 @@ enum bool SEXPDataTypes(SEXPTYPE Type) = (Type == REALSXP) || (Type == INTSXP) |
     (Type == LGLSXP) || (Type == RAWSXP) || (Type == CPLXSXP) || 
     (Type == STRSXP);
 
+
+/+
+    Accessor function for character vector
+    Allows you to slice a character vector
+    by returning const(char)** where each
+    const(char)* can be converted to a
+    const(char)[] or a string by obtaining
+    the length with C's strlen() function.
++/
+const(char)** CHARV(SEXP sexp)
+{
+    auto Type = TYPEOF(sexp);
+    assert(Type == STRSXP, "Wrong SEXP type " ~ 
+        Type.stringof ~ " is not value");
+    auto n = LENGTH(sexp);
+    SEXP* ps = cast(SEXP*)STDVEC_DATAPTR(sexp);
+    const(char)*[] result;
+    foreach(i; 0..n)
+    {
+        result ~= CHAR(ps[i]);
+    }
+    return result.ptr;
+}
+
+
 /+
     Function to set a string as an element in an R character SEXP
     vector
@@ -632,6 +657,14 @@ unittest
     assert(CharacterVector(x0a).data == x0a.data,
                 "Copy constructor for character vector failed.");
     writeln("Test 7 for copy contructor passed.\n");
+
+    auto items = CHARV(x0a);
+    auto n = x0a.length;
+    foreach(i; 0..n)
+    {
+        auto m = strlen(items[i]);
+        writeln("Item: ", to!(string)(i), ", ", cast(string)items[i][0..m]);
+    }
     
     endEmbedR();
 }
