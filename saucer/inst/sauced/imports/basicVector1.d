@@ -48,7 +48,8 @@ auto getSEXP(SEXPTYPE Type, I)(SEXP sexp, I i)
 if((Type == STRSXP) && isIntegral!(I))
 {
     const(char)* element = CHAR(STRING_ELT(sexp, cast(int)i));
-    return cast(string)fromStringz(element);
+    auto n = strlen(element);
+    return cast(string)element[0..n];
 }
 
 
@@ -172,7 +173,7 @@ if(SEXPDataTypes!(Type))
         SETLENGTH(this.sexp, cast(int)n);
         return this.length;
     }
-    @property data()
+    @property ElType[] data()
     {
         auto n = this.length;
         static if(NonStringSEXP!(Type))
@@ -266,13 +267,16 @@ if(SEXPDataTypes!(Type))
         int n = cast(int)original.length;
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.need_unprotect = true;
-        static if((Type == STRSXP) || (Type == CPLXSXP))
+        static if((Type == STRSXP))
         {
             foreach(i; 0..n)
             {
                 ElType element = getSEXP!(Type)(original.sexp, i);
                 setSEXP!(Type)(this.sexp, i, element);
             }
+        }else static if(Type == LGLSXP)
+        {
+            Accessor!(Type)(this.sexp)[0..n] = (cast(int*)original.ptr)[0..n];
         }else{
             Accessor!(Type)(this.sexp)[0..n] = 
                         Accessor!(Type)(original.sexp)[0..n];
@@ -621,6 +625,13 @@ unittest
     assert(x0c.data == [TRUE, FALSE , TRUE, FALSE, TRUE, FALSE],
             "opOpAssign for LogicalVector and LogicalVector failed");
     writeln("Test 6 for opOpAssign passed\n");
+
+    writeln("Test 7 for copy constructor ...");
+    assert(LogicalVector(x0c).data == x0c.data,
+                "Copy constructor for logical vector failed.");
+    assert(CharacterVector(x0a).data == x0a.data,
+                "Copy constructor for character vector failed.");
+    writeln("Test 7 for copy contructor passed.\n");
     
     endEmbedR();
 }
