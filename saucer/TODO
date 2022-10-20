@@ -6,16 +6,17 @@
 1. Do a proper re-write of RVector, RMatrix types to account for protect/unprotect errors. Also re-address the way that you deal with
    stirngs because they cause the most problems.
 
-2. Add testing function for D compilation into the R package to run tests on D's unittest blocks. DONE.
+2. Add testing function for D compilation into the R package to run tests on D's unittest blocks. Done.
 
 3. Re-writing containers.
     - RVectors
         - Floats - Done
         - Ints - Done
-        - Logical - need Rbooleans fully integrated. Stop math functions for logical. Comparisons and negation only.
-        - Complex - in progress, added to RVector with some basic functionality not yet fully integrated and tested
-        - Strings
+        - Logical - Done
+        - Complex - Done
+        - Strings -Done
         - Names attributes
+        - Any attributes
         - Full vector complement (with caveats)
     - RMatrices
         - Floats
@@ -31,6 +32,7 @@
         - Indexing for names and numbers, assign and return
     - DataFrames
         - Inherit from lists
+    - Rather than just unprotecting destructors should deallocate resources.
 
 3. Add pass compilation flags and compiler options to all the R functions that do compilation.
 
