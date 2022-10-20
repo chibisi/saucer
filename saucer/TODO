@@ -14,7 +14,8 @@
         - Ints - Done
         - Logical - Done
         - Complex - Done
-        - Strings -Done
+        - Strings - Done
+        - All D object operator overloads.
         - Names attributes
         - Any attributes
         - Full vector complement (with caveats)

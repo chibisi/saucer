@@ -742,6 +742,70 @@ if(SEXPDataTypes!(Type))
         }
         return result;
     }
+    auto opBinaryRight(string op, T)(T value)
+    {
+        return opBinary!(op, T)(value);
+    }
+    auto opSliceAssign(T)(T value, size_t i, size_t j)
+    {
+        auto n = j - i;
+        assert(n > 0, 
+            "Number of elements to be replace is not greater than zero.");
+        static if(is(T == ElType))
+        {
+            static if(Type != STRSXP)
+            {
+                this.ptr[i..j] = value;
+            }else
+            {
+                setSlice!(Type)(this.sexp, i, j, value);
+            }
+        }else static if(is(T == ElType[]) || is(T == Rboolean[]))
+        {
+            assert(value.length == n, 
+                "Length of replacement vector not equal " ~ 
+                "to replacement zone length");
+            static if(is(T == Rboolean[]))
+            {
+                int[] _value_ = (cast(int*)(value.ptr))[0..n];
+                this.ptr[i..j] = _value_;
+            }else static if(Type == STRSXP)
+            {
+                setSlice!(Type)(this.sexp, i, value);
+            }else{
+                this.ptr[i..j] = value;
+            }
+        }else static if(is(T == RVector))
+        {
+            assert(value.length == n, 
+                "Length of replacement vector not equal " ~ 
+                "to replacement zone length");
+            static if(is(Type == LGLSXP))
+            {
+                int[] _value_ = (cast(int*)(value.ptr))[0..n];
+                this.ptr[i..j] = _value_;
+            }else static if(Type == STRSXP)
+            {
+                setSlice!(Type)(this.sexp, i, value.data);
+            }else{
+                this.ptr[i..j] = value.ptr[0..n];
+            }
+        }else static if(__traits(compiles, cast(ElType)value) && (Type != STRSXP))
+        {
+            auto _value_ = cast(ElType)value;
+            this.ptr[i..j] = _value_;
+        }else
+        {
+            static assert(0, "opSliceAssign unknown type " ~ T.stringof ~ " used.");
+        }
+        static if(Type == STRSXP)
+        {
+            return RVector!(Type)(this.data[i..j]);
+        }else
+        {
+            return RVector!(Type)(this.ptr[i..j]);
+        }
+    }
 }
 
 
@@ -891,8 +955,41 @@ unittest
     assert((LogicalVector(FALSE, TRUE, FALSE, TRUE) ~ FALSE).data == 
         [FALSE, TRUE, FALSE, TRUE, FALSE], 
         "opBinary test h (~) for LogicalVector and Rboolean item.");
-    writeln("Test 9 for opBinary passed");
+    writeln("Test 9 for opBinary passed.\n");
 
+    writeln("Test 10 for opSliceAssign ...");
+    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
+    x1c[3..$] = CharacterVector("crimson", "lake");
+    assert(x1c.data == ["Flying", "in", "a", "crimson", "lake"],
+        "opSliceAssign test a for CharacterVectors failed.");
+    x1c[3..$] = ["blue", "dream"];
+    assert(x1c.data == ["Flying", "in", "a", "blue", "dream"],
+        "opSliceAssign test b for CharacterVector and string[] failed.");
+    x1c[3..$] = "ahhh ...";
+    assert(x1c.data == ["Flying", "in", "a", "ahhh ...", "ahhh ..."],
+        "opSliceAssign test c for CharacterVector and string failed");
+    auto x2c = NumericVector(1., 2, 3, 4, 5, 6);
+    x2c[1..5] = 42.0;
+    assert(x2c.data == [1., 42, 42, 42, 42, 6],
+        "opSliceAssign test d for NumericVector and double failed");
+    x2c[1..5] = [2., 3, 4, 5];
+    assert(x2c.data == [1., 2, 3, 4, 5, 6],
+        "opSliceAssign test e for NumericVector and double[] failed");
+    x2c[1..5] = NumericVector(42., 42., 42., 42.);
+    assert(x2c.data == [1., 42, 42, 42, 42, 6],
+        "opSliceAssign test e for NumericVectors failed");
+    x0c = LogicalVector(TRUE, FALSE, TRUE, FALSE);
+    x0c[1..3] = FALSE;
+    assert(x0c.data == [TRUE, FALSE, FALSE, FALSE],
+        "opSliceAssign test f for LogicalVector and Rboolean failed");
+    x0c[1..3] = [TRUE, TRUE];
+    assert(x0c.data == [TRUE, TRUE, TRUE, FALSE],
+        "opSliceAssign test g for LogicalVector and Rboolean[] failed");
+    x0c[1..3] = LogicalVector(FALSE, FALSE);
+    assert(x0c.data == [TRUE, FALSE, FALSE, FALSE],
+        "opSliceAssign test h for LogicalVectors failed");
+    writeln("Test 10 for opSliceAssign passed.\n");
+    
     writeln("End of RVector tests.\n" ~ 
         "######################################################\n");
 }
