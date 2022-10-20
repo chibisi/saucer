@@ -6,6 +6,8 @@ public import sauced.r2d;
 mixin(import("imports/r_aliases.d"));
 import std.string: toStringz, fromStringz;
 
+static bool RSessionInitialized = 0;
+
 /*
   TODO:
   
@@ -19,6 +21,8 @@ import std.string: toStringz, fromStringz;
 +/
 auto initEmbedR()
 {
+  if(RSessionInitialized == 0)
+  {
     import rinside.rembedded: Rf_initEmbeddedR;
     
     enum rFlags = ["R", "--quiet", "--vanilla"];
@@ -30,17 +34,20 @@ auto initEmbedR()
     
     int init = Rf_initEmbeddedR(cast(int)rFlags.length, args.ptr);
     assert(init, "R standalone failed to initialize");
-    return init;
+    RSessionInitialized = 1;
+  }
+  return 0;
 }
+
 
 /+
   Ends Rf_initEmbeddedR with Rf_endEmbeddedR(0) terminating the
   R API session. 
 +/
-auto endEmbedR()
+auto endEmbedR(int fatal)
 {
-    import rinside.rembedded: Rf_endEmbeddedR;
-    Rf_endEmbeddedR(0);
+  import rinside.rembedded: Rf_endEmbeddedR;
+  Rf_endEmbeddedR(fatal);
 }
 
 
@@ -179,7 +186,7 @@ if(Type == STRSXP)
 }
 
 //Pasting in RVector and RMatrix types
-mixin(import("imports/basicVector1.d"));
+mixin(import("imports/basicVector.d"));
 //mixin(import("imports/rvector.d"));
 mixin(import("imports/rmatrix.d"));
 //mixin(import("imports/dataframe.d"));

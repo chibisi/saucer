@@ -21,7 +21,7 @@
 module sauced.rinside.rinterface;
 
 import sauced.r2d;
-import sauced.rinside.rstartup: SA_TYPE;
+import rinside.rstartup: SA_TYPE;
 import core.stdc.config;
 import core.stdc.stdio;
 

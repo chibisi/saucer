@@ -1165,16 +1165,6 @@ int R_IsNA (double);
 int R_IsNaN (double);
 int R_finite (double);
 
-//enum Rboolean
-//{
-//    FALSE = 0,
-//    TRUE = 1
-//}
-
-/* Simplified Rboolean definitions */
-//alias FALSE = Rboolean.FALSE;
-//alias TRUE = Rboolean.TRUE;
-
 
 struct Rboolean
 {
@@ -1211,11 +1201,6 @@ struct Rboolean
 
 enum FALSE = Rboolean(0);
 enum TRUE = Rboolean(1);
-
-
-
-
-
 
 
 struct Rcomplex
@@ -1297,7 +1282,6 @@ struct Rcomplex
     string toString()
     {
         import std.conv: to;
-        //return "Rcomplex(" ~ to!(string)(this.r) ~ ", " ~ to!(string)(this.i) ~ ")";
         string result = to!(string)(this.r);
         if(this.i >= 0)
         {
@@ -1316,6 +1300,9 @@ unittest
 {
     import std.stdio: writeln;
     import std.complex: Complex;
+
+    import sauced.saucer: initEmbedR;
+    initEmbedR();
 
     writeln("Rcomplex tests ...\n######################################################\n");
 
