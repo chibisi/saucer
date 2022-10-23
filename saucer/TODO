@@ -15,9 +15,9 @@
         - Logical - Done
         - Complex - Done
         - Strings - Done
-        - Names attributes
-        - Any attributes
-        - Full vector operator overloads (with caveats)
+        - Names attributes - Done
+        - Any attributes - Done
+        - Full vector operator overloads (with caveats) - Done
         - Finalize destructor to deallocate.
     - RMatrices
         - Floats

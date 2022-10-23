@@ -1178,16 +1178,16 @@ unittest
     writeln("Test 11 for opSliceOpAssign passed\n");
 
 
-    writeln("Test 12 for names(string[]) function ...");
+    writeln("Test 12 for names() and attributes ...");
     auto x2e = IntegerVector(1, 2, 3, 4);
     auto strNames = ["a", "b", "c", "d"];
     x2e.names = strNames;
     assert(x2e.names == strNames, "names(...) function test a failed");
     x2e = IntegerVector(1, 2, 3, 4);
-    x2e.setAttrib(To!(SEXP)("names"), To!(SEXP)(strNames));
-    x2e.print;
-    writeln("Test 12 for names() passed\n");
-
+    attr(x2e, "names", strNames);
+    assert(x2e.names == strNames, "attr() function test b failed");
+    writeln("Test 12 for names() and attributes passed\n");
+    
     writeln("End of RVector tests.\n" ~ 
         "######################################################\n");
 }
