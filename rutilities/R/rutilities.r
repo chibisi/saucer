@@ -85,3 +85,36 @@ approxEqual = function(x, y, absError = 1E-8)
   return(abs(x - y) < absError)
 }
 
+
+#' @title assert assertion function to enforce conditions
+#' 
+#' @param expr the expression to be evaluated
+#' @param message character to be displaced in the event of an error
+#'
+#' return NULL (invisibly)
+#'
+#' @export
+#'
+assert = function(expr, message = "There was an error!", envir = NULL)
+{
+  expr = substitute(expr)
+  if(is.null(envir))
+  {
+    envir = parent.frame()
+  }
+  evaled = eval(expr, envir = envir)
+  boolValue = (class(evaled) != "logical") | 
+                  (class(evaled) != "integer") | 
+                    (class(evaled) != "numeric")
+  if(!boolValue)
+  {
+    stop("Expression expr does not evaluate to logical");
+  }
+  if(!evaled)
+  {
+    stop(message)
+  }
+  return(invisible(NULL))
+}
+
+

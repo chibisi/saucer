@@ -373,17 +373,19 @@ if(isSEXP!(T) && isBasicArray!(F))
 {
   alias E = GetElementType!(F);
   enum SEXPTYPE STYPE = MapToSEXP!(E);
-  auto result = allocVector(STYPE, arr.length);
+  auto n = arr.length;
+  auto result = protect(allocVector(STYPE, n));
   static if(STYPE != STRSXP)
   {
     auto ptr = Accessor!(STYPE)(result);
-    ptr[0..arr.length] = arr[];
+    ptr[0..n] = arr[];
   }else{
-    for(long i = 0; i < arr.length; ++i)
+    for(long i = 0; i < n; ++i)
     {
-      SET_STRING_ELT(result, i, mkChar(cast(const(char)*)toStringz(arr[i])));
+      setSEXP!(STYPE)(result, i, arr[i]);
     }
   }
+  unprotect(1);
   return result;
 }
 
@@ -391,17 +393,17 @@ if(isSEXP!(T) && isBasicArray!(F))
   Type conversion from any Basic type to an SEXP
 */
 pragma(inline, true)
-T To(T, F)(auto ref F b_type)
+T To(T, F)(auto ref F value)
 if(isSEXP!(T) && isBasicType!(F))
 {
   enum SEXPTYPE STYPE = MapToSEXP!(F);
-  auto result = allocVector(STYPE, 1);
   static if(STYPE != STRSXP)
   {
+    SEXP result = allocVector(STYPE, 1);
     auto ptr = Accessor!(STYPE)(result);
-    ptr[0] = b_type;
+    ptr[0] = value;
   }else{
-    SET_STRING_ELT(result, 0, mkChar(cast(const(char)*)toStringz(b_type)));
+    SEXP result = makeSEXPString(value);
   }
   
   return result;

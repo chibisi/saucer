@@ -15,10 +15,10 @@
         - Logical - Done
         - Complex - Done
         - Strings - Done
-        - All D object operator overloads.
         - Names attributes
         - Any attributes
-        - Full vector complement (with caveats)
+        - Full vector operator overloads (with caveats)
+        - Finalize destructor to deallocate.
     - RMatrices
         - Floats
         - Ints
@@ -26,7 +26,7 @@
         - Complex
         - Strings
         - Names attributes
-        - Full vector operator complement  (with caveats)
+        - Full matrix operator overloads  (with caveats)
     - Lists
         - Names
         - Numbers - for DataFrame compatibility

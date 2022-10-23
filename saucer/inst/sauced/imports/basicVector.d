@@ -67,6 +67,23 @@ unittest
 
 
 /+
+    Converts a string to an SEXP
++/
+pragma(inline, true)
+SEXP makeSEXPString(string value)
+{
+    int n = cast(int)value.length;
+    auto result = protect(allocVector(STRSXP, 1));
+    const(char*) _ptr_ = cast(const(char*))&value[0];
+    auto element = Rf_mkCharLen(_ptr_, n);
+    SEXP* ps = cast(SEXP*)STDVEC_DATAPTR(result);
+	ps[0] = element;
+    return result;
+}
+
+
+
+/+
     Function to set a string as an element in an R character SEXP
     vector
 +/
@@ -251,7 +268,6 @@ if(SEXPDataTypes!(Type))
     {
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.needUnprotect = true;
-        //this.refCount = 1;
     }
     this(T)(T value)
     if(is(T == ElType) && !isIntegral!(T))
@@ -264,7 +280,6 @@ if(SEXPDataTypes!(Type))
         }else{
             Accessor!(Type)(this.sexp)[0] = value;
         }
-        //this.refCount = 1;
     }
     this(T)(T[] arr...)
     if(is(T == ElType))
@@ -281,7 +296,6 @@ if(SEXPDataTypes!(Type))
         }else{
             Accessor!(Type)(this.sexp)[0..n] = arr[];
         }
-        //this.refCount = 1;
     }
     this(T)(T sexp)
     if(is(T == SEXP))
@@ -291,7 +305,6 @@ if(SEXPDataTypes!(Type))
         
         this.sexp = protect(sexp);
         this.needUnprotect = true;
-        //this.refCount = 1;
     }
     /* For logical implicit from bool array */
     this(T)(T[] arr...)
@@ -307,7 +320,6 @@ if(SEXPDataTypes!(Type))
         {
             _data_[i] = arr[i];
         }
-        //this.refCount = 1;
     }
     /* Using R's boolean */
     this(T)(T[] arr...)
@@ -319,7 +331,6 @@ if(SEXPDataTypes!(Type))
         this.sexp = protect(allocVector(LGLSXP, cast(int)n));
         this.needUnprotect = true;
         Accessor!(LGLSXP)(this.sexp)[0..n] = (cast(int*)arr.ptr)[0..n];
-        //this.refCount = 1;
     }
     /* Copy constructor */
     this(ref return scope RVector original)
@@ -341,32 +352,14 @@ if(SEXPDataTypes!(Type))
             Accessor!(Type)(this.sexp)[0..n] = 
                         Accessor!(Type)(original.sexp)[0..n];
         }
-        //this.refCount = 1;
     }
     
     //disable const copy for now
     //@disable this(ref const(typeof(this)));
 
-    //this(this)
-    //{
-    //    if(needUnprotect)
-    //    {
-    //        assert(this.sexp !is null, "Can not copy a null object");
-    //        refCount += 1;
-    //    }
-    //}
     ~this()
     {
-        //if(needUnprotect)
-        //{
-        //    assert(this.sexp !is null, "Can not destroy a null object");
-        //    this.refCount -= 1;
-        //    if(this.refCount == 0)
-        //    {
-        //        unprotect_ptr(this.sexp);
-        //        needUnprotect = false;
-        //    }
-        //}
+
         this.unprotect;
     }
     string toString()
@@ -414,6 +407,7 @@ if(SEXPDataTypes!(Type))
     {
         return this.length();
     }
+    pragma(inline, true)
     ElType opIndex(size_t i)
     {
         return getSEXP!(Type)(this.sexp, i);
@@ -487,12 +481,22 @@ if(SEXPDataTypes!(Type))
                 static if(Type == STRSXP)
                 {
                     setSEXP!(Type)(this.sexp, last, value);
-                }else{
+                }else
+                {
                     this.ptr[last] = value;
                 }
-            }else{ /* For other operations */
+            }else
+            { /* For other operations */
                 auto n = this.length;
-                static if(Type != STRSXP)
+                static if(Type == CPLXSXP)
+                {
+                    foreach(i; 0..n)
+                    {
+                        auto element = this.ptr[i];
+                        mixin("element " ~ op ~ "= value;");
+                        this.ptr[i] = element;
+                    }
+                }else static if(Type != STRSXP)
                 {
                     mixin("this.ptr[0..n] " ~ op ~ "= value;");
                 }else{
@@ -504,7 +508,6 @@ if(SEXPDataTypes!(Type))
                     }
                 }
             }
-            return this;
         }else static if(is(T == ElType[]) || is(T == Rboolean[]))
         {
             /* For appends */
@@ -551,7 +554,6 @@ if(SEXPDataTypes!(Type))
                     }
                 }
             }
-            return this;
         }else static if(is(T == RVector))
         {
             /* For appends */
@@ -586,7 +588,6 @@ if(SEXPDataTypes!(Type))
                     }
                 }
             }
-            return this;
         }else static if(__traits(compiles, cast(ElType)value) && !is(Eltype == string))
         {
             auto _value_ = cast(ElType)value;
@@ -598,10 +599,10 @@ if(SEXPDataTypes!(Type))
             }else{
                 mixin("this.ptr[0..n] " ~ op ~ "= _value_;");
             }
-            return this;
         }else{
             static assert(0, "Unknown type " ~ T.stringof ~ " for opOpAssign.");
         }
+        return this;
     }
 
     RVector opSlice()
@@ -637,7 +638,15 @@ if(SEXPDataTypes!(Type))
                 result.length = result.length + 1;
                 result[$ - 1] = value;
             }else{
-                static if(Type != STRSXP)
+                static if(Type == CPLXSXP)
+                {
+                    foreach(i; 0..n)
+                    {
+                        auto element = this.ptr[i];
+                        mixin("element " ~ op ~ "= value;");
+                        result.ptr[i] = element;
+                    }
+                }else static if(Type != STRSXP)
                 {
                     mixin("result.ptr[0..n] " ~ op ~ "= value;");
                 }else
@@ -645,7 +654,7 @@ if(SEXPDataTypes!(Type))
                     foreach(i; 0..n)
                     {
                         auto element = getSEXP!(Type)(result.sexp, i);
-                        mixin("element " ~ op ~ "=value;");
+                        mixin("element " ~ op ~ "= value;");
                         setSEXP!(Type)(result.sexp, i, element);
                     }
                 }
@@ -683,7 +692,7 @@ if(SEXPDataTypes!(Type))
                     foreach(i; 0..n)
                     {
                         auto element = getSEXP!(Type)(result.sexp, i);
-                        mixin("element " ~ op ~ "=value[i];");
+                        mixin("element " ~ op ~ "= value[i];");
                         setSEXP!(Type)(result.sexp, i, element);
                     }
                 }
@@ -720,7 +729,7 @@ if(SEXPDataTypes!(Type))
                     foreach(i; 0..n)
                     {
                         auto element = getSEXP!(Type)(result.sexp, i);
-                        mixin("element " ~ op ~ "=value[i];");
+                        mixin("element " ~ op ~ "= value[i];");
                         setSEXP!(Type)(result.sexp, i, element);
                     }
                 }
@@ -748,6 +757,10 @@ if(SEXPDataTypes!(Type))
     }
     auto opSliceAssign(T)(T value, size_t i, size_t j)
     {
+        if(i == j)
+        {
+            return RVector!(Type)(0);
+        }
         auto n = j - i;
         assert(n > 0, 
             "Number of elements to be replace is not greater than zero.");
@@ -805,6 +818,135 @@ if(SEXPDataTypes!(Type))
         {
             return RVector!(Type)(this.ptr[i..j]);
         }
+    }
+    auto opSliceAssign(T)(T value)
+    {
+        return opSliceAssign!(T)(value, 0, this.length);
+    }
+    RVector opSliceOpAssign(string op, T)(T value, size_t i, size_t j)
+    {
+        if(i == j)
+        {
+            return RVector!(Type)(0);
+        }
+        assert(i <= j, 
+            "Index requested is not valid j is not greater than i");
+        auto n = j - i;
+        static if(is(T == ElType))
+        {
+            static if(Type == STRSXP)
+            {
+                foreach(k; i..j)
+                {
+                    auto element = this[k];
+                    mixin("element " ~ op ~ "= value;");
+                    setSEXP!(Type)(this.sexp, k, element);
+                }
+            }else static if(Type == CPLXSXP)
+            {
+                foreach(k; i..j)
+                {
+                    auto element = this.ptr[k];
+                    mixin("element " ~ op ~ "= value;");
+                    this.ptr[k] = element;
+                }
+            }else
+            {
+                mixin("this.ptr[i..j] " ~ op ~ "= value;");
+            }
+        }else static if(is(T == ElType[]) || is(T == Rboolean[]))
+        {
+            assert(value.length == n,
+                "Length of array not equal to replacement length.");
+            static if(is(T == Rboolean[]))
+            {
+                int[] _value_ = (cast(int*)(value.ptr))[0..n];
+                mixin("this.ptr[i..j] " ~ op ~ "= _value_[];");
+            }else static if(Type != STRSXP)
+            {
+                mixin("this.ptr[i..j] " ~ op ~ "= value[];");
+            }else static if(Type == STRSXP)
+            {
+                foreach(k; 0..n)
+                {
+                    auto element = this[i + k];
+                    mixin("element " ~ op ~ "= value[k];");
+                    setSEXP!(Type)(this.sexp, i + k, element);
+                }
+            }
+        }else static if(is(T == RVector))
+        {
+            assert(value.length == n, 
+                "Length of candidate vector not equal to replacement length");
+            static if(Type == STRSXP)
+            {
+                foreach(k; 0..n)
+                {
+                    auto element = this[i + k];
+                    mixin("element " ~ op ~ "= value[k];");
+                    setSEXP!(Type)(this.sexp, i + k, element);
+                }
+            }else static if(Type != LGLSXP)
+            {
+                foreach(k; 0..n)
+                {
+                    auto element = this[i + k];
+                    mixin("element " ~ op ~ "= value[k];");
+                    this.ptr[i + k] = element;
+                }
+            }else static if(Type != STRSXP)
+            {
+                mixin("this.ptr[i..j] " ~ op ~ "= value.ptr[0..n];");
+            }
+        }else static if(__traits(compiles, cast(ElType)value) && (Type != STRSXP))
+        {
+            auto _value_ = cast(ElType)value;
+            mixin ("this.ptr[i..j] " ~ op ~ "= _value_;");
+        }else
+        {
+            static assert(0, "opSliceOpAssign unknown type " ~ T.stringof ~ " used.");
+        }
+        return this[i..j];
+    }
+    auto opSliceOpAssign(string op, T)(T value)
+    {
+        return opSliceOpAssign!(op, T)(value, 0, this.length);
+    }
+    @property string[] names()
+    {
+        SEXP _names_ = Rf_getAttrib(this.sexp, R_NamesSymbol);
+        return getSlice!(STRSXP)(_names_, 0, this.length);
+    }
+    @property auto names(string[] _names_)
+    {
+        Rf_setAttrib(this.sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
+        return;
+    }
+    @property auto names(SEXP _names_)
+    {
+        auto type = TYPEOF(_names_);
+        assert(type == STRSXP, "Error no implementation of names method for type " 
+            ~ type.stringof);
+        Rf_setAttrib(this.sexp, R_NamesSymbol, _names_);
+        return;
+    }
+    auto setAttrib(SEXP symbol, SEXP attrib)
+    {
+        Rf_setAttrib(this.sexp, symbol, attrib);
+        return;
+    }
+    auto setAttrib(string symbol, SEXP attrib)
+    {
+        Rf_setAttrib(this.sexp, RVector!(STRSXP)(symbol), attrib);
+        return;
+    }
+    auto getAttrib(SEXP symbol)
+    {
+        return Rf_getAttrib(this.sexp, symbol);
+    }
+    auto getAttrib(string symbol)
+    {
+        return Rf_getAttrib(this.sexp, RVector!(STRSXP)(symbol));
     }
 }
 
@@ -934,27 +1076,33 @@ unittest
     assert((ComplexVector(Rcomplex(1, 2)) ~ 
             ComplexVector(Rcomplex(-3, 1), Rcomplex(-5, 11))).data == x2a.data,
             "opBinary test b (~) for ComplexVector failed");
+    x2a = ComplexVector(Rcomplex(1, 2), Rcomplex(-3, 1), Rcomplex(-5, 11),
+                        Rcomplex(4, -5), Rcomplex(6, -3), Rcomplex(10, 4));
+    auto x2d = ComplexVector(Rcomplex(-3, 4), Rcomplex(-5, -5), Rcomplex(-27, 1), 
+                    Rcomplex(14, 3), Rcomplex(12, 9), Rcomplex(2, 24));
+    assert((x2a * Rcomplex(1, 2)).data == x2d.data,
+        "opBinary failed test c (*) for ComplexVectors");
     auto x2b = ["Flying", "in", "a", "blue", "dream"];
     assert((CharacterVector("Flying", "in", "a") ~ 
         CharacterVector("blue", "dream")).data == x2b,
-        "opBinary test c (~) for CharacterVectors failed.");
+        "opBinary test d (~) for CharacterVectors failed.");
     assert((CharacterVector("Flying", "in", "a") ~ 
         ["blue", "dream"]).data == x2b,
-        "opBinary test d (~) for CharacterVector and string[] failed.");
+        "opBinary test e (~) for CharacterVector and string[] failed.");
     
     assert((NumericVector(1., 2.) ~ 
         NumericVector(3., 4.)).data == [1., 2, 3, 4], 
-        "opBinary test e for NumericVectors failed.");
+        "opBinary test f for NumericVectors failed.");
     assert((NumericVector(1., 2., 3.) + 
         NumericVector(3., 4., 6.)).data == [4., 6, 9],
-        "opBinary test f (+) for NumericVectors failed.");
+        "opBinary test g (+) for NumericVectors failed.");
     assert((LogicalVector(TRUE, FALSE, TRUE) & 
         LogicalVector(FALSE, FALSE, TRUE)).data == [FALSE, FALSE, TRUE],
-        "opBinary test g (&) for LogicalVector operators failed.");
+        "opBinary test h (&) for LogicalVector operators failed.");
     
     assert((LogicalVector(FALSE, TRUE, FALSE, TRUE) ~ FALSE).data == 
         [FALSE, TRUE, FALSE, TRUE, FALSE], 
-        "opBinary test h (~) for LogicalVector and Rboolean item.");
+        "opBinary test i (~) for LogicalVector and Rboolean item.");
     writeln("Test 9 for opBinary passed.\n");
 
     writeln("Test 10 for opSliceAssign ...");
@@ -988,8 +1136,58 @@ unittest
     x0c[1..3] = LogicalVector(FALSE, FALSE);
     assert(x0c.data == [TRUE, FALSE, FALSE, FALSE],
         "opSliceAssign test h for LogicalVectors failed");
+    x0c[] = TRUE;
+    assert(x0c.data == [TRUE, TRUE, TRUE, TRUE],
+        "opSliceAssign test i for LogicalVector and Rboolean failed");
     writeln("Test 10 for opSliceAssign passed.\n");
+
+    writeln("Test 11 for opSliceOpAssign ...");
+    x2c = NumericVector(1., 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    x2c[3..6] *= 3;
+    assert(x2c[3..6].data == [12., 15, 18],
+        "opSliceOpAssign failed test a for NumericVector");
+    x2c[3..6] /= NumericVector(3., 3, 3);
+    assert(x2c[3..6].data == [4., 5, 6],
+        "opSliceOpAssign failed test b for NumericVector");
+    x2c[3..6] *= [3., 3, 3];
+    assert(x2c[3..6].data == [12., 15, 18],
+        "opSliceOpAssign failed test c for NumericVector");
     
+    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
+    x1c[1..4] ~= " ahh...";
+    assert(x1c.data == ["Flying", "in ahh...", "a ahh...", 
+            "blue ahh...", "dream"], 
+            "opSliceOpAssign failed test d for NumericVector");
+    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
+    x1c[1..4] ~= CharacterVector(" ahh...", " ahh...", " ahh...");
+    assert(x1c.data == ["Flying", "in ahh...", "a ahh...", 
+            "blue ahh...", "dream"], 
+            "opSliceOpAssign failed test e for NumericVector");
+    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
+    x1c[1..4] ~= [" ahh...", " ahh...", " ahh..."];
+    assert(x1c.data == ["Flying", "in ahh...", "a ahh...", 
+            "blue ahh...", "dream"], 
+            "opSliceOpAssign failed test f for NumericVector");
+    
+    x2a = ComplexVector(Rcomplex(1, 2), Rcomplex(-3, 1), Rcomplex(-5, 11),
+                        Rcomplex(4, -5), Rcomplex(6, -3), Rcomplex(10, 4));
+    x2a[1..($ - 1)] *= Rcomplex(1, 2);
+    assert(x2a[1..($-1)].data == [Rcomplex(-5, -5), Rcomplex(-27, 1), 
+            Rcomplex(14, 3), Rcomplex(12, 9)],
+            "opSliceOpAssign failed test g for ComplexVector");
+    writeln("Test 11 for opSliceOpAssign passed\n");
+
+
+    writeln("Test 12 for names(string[]) function ...");
+    auto x2e = IntegerVector(1, 2, 3, 4);
+    auto strNames = ["a", "b", "c", "d"];
+    x2e.names = strNames;
+    assert(x2e.names == strNames, "names(...) function test a failed");
+    x2e = IntegerVector(1, 2, 3, 4);
+    x2e.setAttrib(To!(SEXP)("names"), To!(SEXP)(strNames));
+    x2e.print;
+    writeln("Test 12 for names() passed\n");
+
     writeln("End of RVector tests.\n" ~ 
         "######################################################\n");
 }
