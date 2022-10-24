@@ -92,7 +92,7 @@ demoMatrixA = "
 "
 
 dfunctions(demoMatrixA)
-
+helloMatrix(5L, 4L)
 
 demoMatrixB = "
 @Export(\"RNGMatrix\") auto func(int nrow, int ncol)
@@ -110,4 +110,30 @@ demoMatrixB = "
 "
 
 dfunctions(demoMatrixB)
+helloMatrix(10L, 6L)
+
+
+
+demoGetCol = "
+@Export(\"getCol\") auto func1(NumericMatrix mat, int i)
+{
+    return mat[i - 1];
+}
+
+@Export(\"setCol\") auto func2(NumericMatrix mat, int i, NumericVector col)
+{
+    mat[i - 1] = col;
+    return mat;
+}
+"
+
+dfunctions(demoGetCol)
+rmat = matrix(runif(60), ncol = 6)
+all(rmat[,3] == getCol(rmat, 3L))
+
+newCol = runif(10)
+setCol(rmat, 4L, newCol)
+all(rmat[,4] == newCol)
+
+
 

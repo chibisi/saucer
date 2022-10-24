@@ -61,9 +61,15 @@ if(SEXPDataTypes!(Type))
     assert(Type == TYPEOF(sexp), 
       "Type of input is not the same of SEXPTYPE type submitted");
     this.sexp = protect(sexp);
-    size_t n = LENGTH(sexp);
     this.needUnprotect = true;
     this.sexp = sexp;
+  }
+  this(ref return scope RMatrix original)
+  {
+    int n = cast(int)original.length;
+    this.sexp = protect(allocMatrix(Type, cast(int)original.nrows, cast(int)original.ncols));
+    this.needUnprotect = true;
+    copyMatrix(this.sexp, original.sexp, FALSE);
   }
     
   ~this()
@@ -217,6 +223,36 @@ if(SEXPDataTypes!(Type))
       mixin("this.ptr[idx] op= cast(ElType)value;");
       return this.ptr[idx];
     }
+  }
+  auto colIndices(I)(I i)
+  if(isIntegral!(I))
+  {
+    auto from = get_index(0, i);
+    auto to = get_index(this.nrows - 1, i) + 1;
+    return [from, to];
+  }
+  RVector!(Type) opIndex(I)(I j)
+  if(isIntegral!(I))
+  {
+    auto range = colIndices!(I)(j);
+    auto n = this.nrows;
+    static if(Type != STRSXP)
+    {
+      auto result = RVector!(Type)(this.ptr[range[0]..range[1]]);
+    }else{
+      auto result = RVector!(Type)(n);
+      foreach(i; 0..n)
+      {
+        result[i] = this[i, j];
+      }
+    }
+    return result;
+  }
+  auto opIndexAssign(I)(RVector!(Type) col, I j)
+  if(isIntegral!(I))
+  {
+    auto range = colIndices!(I)(j);
+    this.ptr[range[0]..range[1]] = col.ptr[0..col.length];
   }
 }
 
