@@ -354,20 +354,6 @@ if(SEXPDataTypes!(Type))
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.needUnprotect = true;
         copyVector(this.sexp, original.sexp);
-        //static if((Type == STRSXP))
-        //{
-        //    foreach(i; 0..n)
-        //    {
-        //        ElType element = getSEXP!(Type)(original.sexp, i);
-        //        setSEXP!(Type)(this.sexp, i, element);
-        //    }
-        //}else static if(Type == LGLSXP)
-        //{
-        //    Accessor!(Type)(this.sexp)[0..n] = (cast(int*)original.ptr)[0..n];
-        //}else{
-        //    Accessor!(Type)(this.sexp)[0..n] = 
-        //                Accessor!(Type)(original.sexp)[0..n];
-        //}
     }
     
     //disable const copy for now
