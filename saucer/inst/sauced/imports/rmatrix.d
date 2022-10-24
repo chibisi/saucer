@@ -17,8 +17,6 @@ if(SEXPDataTypes!(Type))
 {
   SEXP sexp;
   bool needUnprotect;
-  //Try with String elemenets as 
-  //SEXP and see what happens
   static if(Type != STRSXP)
   {
     alias ElType = SEXPElementType!(Type);
@@ -165,7 +163,7 @@ if(SEXPDataTypes!(Type))
   {
     return i + nrows*j;
   }
-  auto opIndex(I)(I i, I j) inout
+  auto opIndex(I)(I i, I j)
   if(isIntegral!(I))
   {
     static if(Type != STRSXP)
@@ -175,7 +173,7 @@ if(SEXPDataTypes!(Type))
       return getSEXP(this.sexp, get_index(i, j));
     }
   }
-  auto opIndexUnary(string op, I)(I i, I j) inout
+  auto opIndexUnary(string op, I)(I i, I j)
   if(isIntegral!(I))
   {
     static if(Type != STRSXP)
