@@ -177,18 +177,32 @@ if(Type == RAWSXP)
 {
   alias Accessor = RAW;
 }
+
 template Accessor(SEXPTYPE Type)
 if(Type == STRSXP)
 {
-  import std.string: fromStringz, toStringz;
-  alias Accessor = (SEXP x, R_xlen_t i) =>
-      cast(string)fromStringz(R_CHAR(STRING_ELT(x, i)));
+  alias Accessor = function SEXP* (SEXP x){ return STRING_PTR(x);};
+}
+
+//Deprecated remove soon
+static if(false)
+{
+  template Accessor(SEXPTYPE Type)
+  if(Type == STRSXP)
+  {
+    import std.string: fromStringz, toStringz;
+    alias Accessor = (SEXP x, R_xlen_t i) =>
+        cast(string)fromStringz(R_CHAR(STRING_ELT(x, i)));
+  }
 }
 
 //Pasting in RVector and RMatrix types
 mixin(import("imports/basicVector.d"));
 //mixin(import("imports/rvector.d"));
+
+//Remove this until it is properly implemented
 mixin(import("imports/rmatrix.d"));
+
 //mixin(import("imports/dataframe.d"));
 mixin(import("imports/commonfunctions.d"));
 
@@ -403,7 +417,7 @@ if(isSEXP!(T) && isBasicType!(F))
     auto ptr = Accessor!(STYPE)(result);
     ptr[0] = value;
   }else{
-    SEXP result = makeSEXPString(value);
+    SEXP result = mkString(value);
   }
   
   return result;
@@ -488,8 +502,8 @@ if(isBasicType!(E) && isSEXP!(F))
     alias func = Accessor!(MapToSEXP!(E));
     return cast(E)func(sexp)[0];
   }else{
-    alias func = Accessor!(STRSXP);
-    return cast(E)func(sexp, 0);
+    //alias func = Accessor!(STRSXP);
+    return getSEXP!(STRSXP)(sexp, 0);
   }
 }
 

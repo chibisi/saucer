@@ -50,6 +50,7 @@
 
 8. Should I be using D's RefCounted, which auto reference counts an object so that you don't have to implement it in your object? https://dlang.org/library/std/typecons/ref_counted.html
 
+9. Cleanup wrapped R function argument names should not start with "_" - should
 
 ## Testing
 

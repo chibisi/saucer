@@ -76,5 +76,38 @@ demoVariadicD = "
 dfunctions(demoVariadicD)
 variadic()
 
+demoMatrixA = "
+@Export(\"helloMatrix\") auto func(int nrow, int ncol)
+{
+    auto result = CharacterMatrix(nrow, ncol);
+    foreach(j; 0..ncol)
+    {
+        foreach(i; 0..nrow)
+        {
+            result[i, j] = \"Hello World\";
+        }
+    }
+    return result;
+}
+"
 
+dfunctions(demoMatrixA)
+
+
+demoMatrixB = "
+@Export(\"RNGMatrix\") auto func(int nrow, int ncol)
+{
+    auto result = NumericMatrix(nrow, ncol);
+    foreach(j; 0..ncol)
+    {
+        foreach(i; 0..nrow)
+        {
+            result[i, j] = runif(0, 1);
+        }
+    }
+    return result;
+}
+"
+
+dfunctions(demoMatrixB)
 

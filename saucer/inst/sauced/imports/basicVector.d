@@ -22,6 +22,7 @@ enum bool SEXPDataTypes(SEXPTYPE Type) = (Type == REALSXP) || (Type == INTSXP) |
 
 
 /+
+    DEPRECATED!
     Accessor function for character vector
     Allows you to slice a character vector
     by returning const(char)** where each
@@ -68,17 +69,31 @@ unittest
 
 /+
     Converts a string to an SEXP
+    Perhaps you should be using STRING_PTR(SEXP)
+    instead of STDVEC_DATAPTR(SEXP)?
 +/
 pragma(inline, true)
-SEXP makeSEXPString(string value)
+SEXP mkString(string value)
 {
     int n = cast(int)value.length;
     auto result = protect(allocVector(STRSXP, 1));
     const(char*) _ptr_ = cast(const(char*))&value[0];
     auto element = Rf_mkCharLen(_ptr_, n);
-    SEXP* ps = cast(SEXP*)STDVEC_DATAPTR(result);
+    SEXP* ps = STRING_PTR(result);
 	ps[0] = element;
     return result;
+}
+
+/+
+  Overloads R's mkChar function to return a CHARSXP
+  from a string
++/
+pragma(inline, true)
+SEXP mkChar(string value)
+{
+    int n = cast(int)value.length;
+    const(char*) ptr = cast(const(char*))&value[0];
+    return mkCharLen(ptr, n);
 }
 
 
@@ -237,7 +252,7 @@ if(SEXPDataTypes!(Type))
         SETLENGTH(this.sexp, cast(int)n);
         return this.length;
     }
-    @property ElType[] data()
+    @property auto data()
     {
         auto n = this.length;
         static if(NonStringSEXP!(Type))

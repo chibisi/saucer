@@ -186,6 +186,7 @@ compileScript = function(fileName, currWd)
 #' 
 saucerize = function(modules, ...)
 {
+  currDir = getwd()
   for(i in 1:length(modules))
   {
     tryCatch(
@@ -197,6 +198,7 @@ saucerize = function(modules, ...)
       }
     )
   }
+  setwd(currDir)
   return(invisible())
 }
 
