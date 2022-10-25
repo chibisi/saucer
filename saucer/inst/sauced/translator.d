@@ -50,18 +50,30 @@ string[] getExportedFunctions(string moduleName)()
     //Iterating over all the items in the module
     static foreach(string item; __traits(allMembers, mixin(moduleName)))
     {
-        //Select if there are attributes in the item
-        static if(__traits(getAttributes, mixin(item)).length > 0)
+        /*
+            Possibility exists to restrict to functions
+        */
+        static if(false)
         {
-            //Iterating over the attributes
-            static foreach(attr; __traits(getAttributes, mixin(item)))
-            {{
-                //Filters for the export attribute
-                static if(is(typeof(attr) == Export))
-                {
-                    result ~= item;
-                }
-            }}
+            import std.traits: isSomeFunction;
+            pragma(msg, item, ", is a function? ", mixin("isSomeFunction!(" ~ item ~ ")"));
+        }
+        
+        //Select if there are attributes in the item
+        static if(__traits(compiles, __traits(getAttributes, mixin(item)).length > 0))
+        {
+            static if(__traits(getAttributes, mixin(item)).length > 0)
+            {
+                //Iterating over the attributes
+                static foreach(attr; __traits(getAttributes, mixin(item)))
+                {{
+                    //Filters for the export attribute
+                    static if(is(typeof(attr) == Export))
+                    {
+                        result ~= item;
+                    }
+                }}
+            }
         }
     }
     assert(result.length > 0, "Number of exported items is zero please check that you are exporting functions");
@@ -786,7 +798,7 @@ string wrapModule(string moduleName, string path = "")()
     enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
 
     enum string[] funcs = wrapFunctions!(signatures, functionCalls);
-    string result = "extern (C)\n{\n";
+    string result = "\nextern (C)\n{\n";
     static foreach(func; funcs)
     {{
       result ~= func ~ "\n";

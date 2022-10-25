@@ -136,4 +136,11 @@ setCol(rmat, 4L, newCol)
 all(rmat[,4] == newCol)
 
 
+require(rutilities)
+require(saucer)
 
+
+sauce("deOptim")
+
+testRuntimeObjective()
+testOrder(c("d", "a", "c", "b"))

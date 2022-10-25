@@ -1,5 +1,5 @@
 import std.conv: to;
-import std.stdio: writeln;
+//import std.stdio: writeln;
 
 /* Vector aliases */
 alias NumericVector = RVector!(REALSXP);
@@ -19,53 +19,6 @@ enum bool NonStringSEXP(SEXPTYPE Type) = (Type == REALSXP) ||
 enum bool SEXPDataTypes(SEXPTYPE Type) = (Type == REALSXP) || (Type == INTSXP) || 
     (Type == LGLSXP) || (Type == RAWSXP) || (Type == CPLXSXP) || 
     (Type == STRSXP);
-
-
-/+
-    DEPRECATED!
-    Accessor function for character vector
-    Allows you to slice a character vector
-    by returning const(char)** where each
-    const(char)* can be converted to a
-    const(char)[] or a string by obtaining
-    the length with C's strlen() function.
-
-    This is wrong, it creates a copy. 
-    Remove or fix later!
-+/
-const(char)** CHARV(SEXP sexp)
-{
-    auto Type = TYPEOF(sexp);
-    assert(Type == STRSXP, "Wrong SEXP type " ~ 
-        Type.stringof ~ " is not value");
-    auto n = LENGTH(sexp);
-    SEXP* ps = STRING_PTR(sexp);
-    const(char)*[] result = new const(char)*[n];
-    foreach(i; 0..n)
-    {
-        result[i] = CHAR(ps[i]);
-    }
-    return result.ptr;
-}
-
-unittest
-{
-    import std.stdio: writeln;
-    initEmbedR();
-    writeln("Tests for CHARV function ...");
-    auto arr = CharacterVector("Flying", "in", "a", "blue", "dream");
-    auto items = CHARV(arr);
-    auto n = arr.length;
-    foreach(i; 0..n)
-    {
-        auto m = strlen(items[i]);
-        auto element = cast(string)items[i][0..m];
-        assert(element == arr[i], "CHARV element check test failed");
-    }
-    writeln("Tests for CHARV function done.\n");
-    import rinside.rinterface: R_Suicide;
-}
-
 
 /+
     Converts a string to an SEXP
@@ -950,6 +903,109 @@ if(SEXPDataTypes!(Type))
     {
         return Rf_getAttrib(this.sexp, RVector!(STRSXP)(symbol));
     }
+    bool opEquals(RVector arr)
+    {
+        return this.data == arr.data;
+    }
+    auto eq(RVector arr)
+    {
+        auto n = arr.length;
+        assert(this.length == n, "Legnths of vector comparisons differ");
+        auto result = RVector!(LGLSXP)(n);
+        foreach(i; 0..n)
+        {
+            result[i] = arr[i] == this[i];
+        }
+        return result;
+    }
+    auto cmp(string op)(RVector arr)
+    {
+        static if(isCmp!op)
+        {
+            auto n = arr.length;
+            assert(this.length == n, "Legnths of vector comparisons differ");
+            auto result = RVector!(LGLSXP)(n);
+            foreach(i; 0..n)
+            {
+                mixin("result[i] = this[i] " ~ op ~ " arr[i];");
+            }
+            return result;
+        }else{
+            static assert(0, "Operator " ~ op ~ " is not a comparison operator");
+        }
+    }
+}
+
+enum bool isCmp(string op) = (op == "==") || (op == ">") || (op == "<") || 
+                (op == ">=") || (op == "<=");
+
+/*
+    Gets the SEXPTYPR for the RType RVector, RMatrix, etc.
+*/
+template GetSEXPType(U: R!T, alias R, SEXPTYPE T)
+if(isRType!U)
+{
+    enum GetSEXPType = T;
+}
+
+
+bool all(T)(auto ref T vec)
+if(is(T == LogicalVector))
+{
+    int total = 0;
+    auto n = vec.length;
+    foreach(i; 0..n)
+    {
+        total += cast(int)vec[i];
+    }
+    return n == total ? true : false;
+}
+
+
+auto ref rep(SEXPTYPE Type, T, I)(auto ref T element, auto ref I times)
+if(is(T == SEXPElementType!(Type)) && isIntegral!(I))
+{
+    auto result = RVector!(Type)(times);
+    /* 
+        Rethink returning copies of things and use views 
+        instead when new objects don't need to be created 
+    */
+    static if(Type != STRSXP)
+    {
+        result.ptr[0..times] = element;
+    }else{
+        result[] = element;
+    }
+    return result;
+}
+
+
+auto seq(SEXPTYPE Type, T)(T from, T to, T by = 1)
+if(is(T == SEXPElementType!(Type)))
+{
+    import std.range: iota;
+    auto _n_ = (to - from)/by;
+    assert(_n_ >= 0, "Number of elements is negative");
+    auto n = cast(size_t)(_n_);
+    auto result = RVector!(Type)(n);
+    size_t i = 0;
+    foreach(ref element; iota(from, to, by))
+    {
+        result[i] = element;
+        ++i;
+    }
+    return result;
+}
+
+
+auto order(SEXPTYPE Type)(RVector!(Type) arr, 
+            Rboolean decreasing = FALSE)
+{
+    auto n = cast(int)arr.length;
+    auto result = seq!(INTSXP)(0, n);
+    R_orderVector1(result.ptr, n, arr.sexp, 
+        TRUE, decreasing);
+    return result + 1;
 }
 
 

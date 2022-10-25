@@ -91,7 +91,7 @@ compileScript = function(fileName, currWd)
 
 
 # Internal workshorse function for compiling and loading a D module
-.saucerize = function(module, dropFolder = NULL, folderName = NULL)
+.sauce = function(module, dropFolder = NULL, folderName = NULL)
 {
   currWd = getwd()
   sourceDir = system.file("sauced", package = "saucer")
@@ -171,7 +171,7 @@ compileScript = function(fileName, currWd)
 #' @examples
 #' 
 #' # require(saucer)
-#' # saucerize("script", dropFolder = TRUE)
+#' # sauce("script", dropFolder = TRUE)
 #' # 
 #' # x = seq(1.0, 10.0, by = 0.5); y = seq(1.0, 10.0, by = 0.5)
 #' # generate_numbers(as.integer(100))
@@ -184,13 +184,13 @@ compileScript = function(fileName, currWd)
 #' 
 #' @export
 #' 
-saucerize = function(modules, ...)
+sauce = function(modules, ...)
 {
   currDir = getwd()
   for(i in 1:length(modules))
   {
     tryCatch(
-      .saucerize(modules[i], ...), 
+      .sauce(modules[i], ...), 
       error = function(e)
       {
         cat("Failed to compile and load module:", modules[i], "\n")
@@ -239,8 +239,8 @@ createFileName = function(prefix = "script", extn = NULL, nrand = 12)
   codeFile = paste0(moduleName, ".d")
   cat(code, file = codeFile)
   executionError = FALSE
-  tryCatch(.saucerize(moduleName, dropFolder = dropFolder), error = function(e){
-    cat("Error on .saucerize:\n")
+  tryCatch(.sauce(moduleName, dropFolder = dropFolder), error = function(e){
+    cat("Error on .sauce:\n")
     paste(e)
     executionError <<- TRUE
   })

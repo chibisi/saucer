@@ -159,7 +159,7 @@ if(SEXPDataTypes!(Type))
     }
   }
   pragma(inline, true)
-  size_t get_index(size_t i, size_t j) const
+  size_t getIndex(size_t i, size_t j) const
   {
     return i + nrows*j;
   }
@@ -168,9 +168,9 @@ if(SEXPDataTypes!(Type))
   {
     static if(Type != STRSXP)
     {
-      return ptr[get_index(i, j)];
+      return ptr[getIndex(i, j)];
     }else{
-      return getSEXP(this.sexp, get_index(i, j));
+      return getSEXP(this.sexp, getIndex(i, j));
     }
   }
   auto opIndexUnary(string op, I)(I i, I j)
@@ -178,16 +178,16 @@ if(SEXPDataTypes!(Type))
   {
     static if(Type != STRSXP)
     {
-      mixin ("return " ~ op ~ "this.ptr[get_index(i, j)];");
+      mixin ("return " ~ op ~ "this.ptr[getIndex(i, j)];");
     }else{
-      auto element = getSEXP(this.sexp, get_index(i, j));
+      auto element = getSEXP(this.sexp, getIndex(i, j));
       mixin ("return " ~ op ~ "element;");
     }
   }
   auto opIndexAssign(T, I)(auto ref T value, I i, I j) 
   if(isIntegral!(I))
   {
-    auto idx = get_index(i, j);
+    auto idx = getIndex(i, j);
     static if((Type != STRSXP) && is(T == ElType))
     {
       this.ptr[idx] = value;
@@ -206,7 +206,7 @@ if(SEXPDataTypes!(Type))
   auto opIndexOpAssign(string op, T, I)(auto ref T value, I i, I j)
   if(isIntegral!(I))
   {
-    auto idx = get_index(i, j);
+    auto idx = getIndex(i, j);
     static if((Type != STRSXP) && is(T == ElType))
     {
       mixin ("this.ptr[idx] " ~ op ~ "= value;");
@@ -225,8 +225,8 @@ if(SEXPDataTypes!(Type))
   auto colIndices(I)(I i)
   if(isIntegral!(I))
   {
-    auto from = get_index(0, i);
-    auto to = get_index(this.nrows - 1, i) + 1;
+    auto from = getIndex(0, i);
+    auto to = getIndex(this.nrows - 1, i) + 1;
     return [from, to];
   }
   RVector!(Type) opIndex(I)(I j)
@@ -251,6 +251,31 @@ if(SEXPDataTypes!(Type))
   {
     auto range = colIndices!(I)(j);
     this.ptr[range[0]..range[1]] = col.ptr[0..col.length];
+  }
+  auto colView(I)(I j)
+  if(isIntegral!(I))
+  {
+    auto idx = getIndex(0, j);
+    return View!(Type)(&this.ptr[idx], this.nrows);
+  }
+}
+
+
+
+struct View(SEXPTYPE Type)
+if(SEXPDataTypes!(Type))
+{
+  alias ElType = SEXPElementType!(Type);
+  private ElType* ptr;
+  immutable size_t length;
+  this(ElType* ptr, size_t length)
+  {
+    this.ptr = ptr;
+    this.length = length;
+  }
+  ElType opIndex(size_t i)
+  {
+    return ptr[i];
   }
 }
 
