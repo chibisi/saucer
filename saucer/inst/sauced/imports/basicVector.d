@@ -1034,12 +1034,10 @@ if(isIntegral!(typeof(n)))
 +/
 auto InternalCall(Args...)(string fName, Args args)
 {
-    import std.stdio: writeln;
     enum nargs = Args.length;
-    SEXP call, curr, arg;
+    SEXP call, arg;
     protect(call = allocVector(LANGSXP, cast(int)(nargs + 1)));
     SETCAR(call, Rf_installChar(mkChar(fName)));
-    curr = CDR(call);
     static foreach(i; 0..nargs)
     {
         arg = To!(SEXP)(args[i]);

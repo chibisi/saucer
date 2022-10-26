@@ -150,3 +150,26 @@ sampleInt(10, 100) # from D's Random library
 
 
 
+require(rutilities)
+require(saucer)
+
+dotDemo = "
+@Export(\"dot\") auto func(NumericVector x, NumericVector y)
+{
+    auto n = x.length;
+    assert(n == y.length);
+    double result = 0;
+    foreach(i; 0..n)
+    {
+        result += x[i]*y[i];
+    }
+    return result;
+}
+"
+
+dfunctions(dotDemo)
+
+x = runif(10)
+y = runif(10)
+approxEqual(dot(x, y), sum(x*y))
+# TRUE
