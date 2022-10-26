@@ -273,8 +273,15 @@ if(SEXPDataTypes!(Type))
     this.ptr = ptr;
     this.length = length;
   }
+  ~this()
+  {
+    this.ptr = null;
+  }
   ElType opIndex(size_t i)
   {
+    assert((i >= 0) && (i < this.length), 
+      "Invalid index subscript " ~ to!(string)(i) ~ 
+      " for data range.");
     return ptr[i];
   }
 }

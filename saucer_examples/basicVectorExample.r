@@ -143,4 +143,10 @@ require(saucer)
 sauce("deOptim")
 
 testRuntimeObjective()
-testOrder(c("d", "a", "c", "b"))
+x = c("d", "a", "c", "b")
+testOrder(x)
+testSample(10, 100, TRUE) # From R's sample function
+sampleInt(10, 100) # from D's Random library
+
+
+

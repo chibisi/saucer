@@ -56,7 +56,9 @@ import sauced.saucer;
 
 @Export() auto testOrder(CharacterVector arr)
 {
-    return order(arr);
+    auto result = order(arr);
+    result.print;
+    return result;
 }
 
 
@@ -108,4 +110,27 @@ auto objectiveRuntimePass(NumericMatrix parameters, Objective func)
             func);
 }
 
+
+@Export() auto testSample(SEXP n, SEXP size, SEXP replace)
+{
+    return InternalCall("sample", n, size, replace, R_NilValue);
+}
+
+/+
+    Sample n integers from 0..size without replacement
++/
+@Export() auto sampleInt(int n, int size)
+{
+    import std.range : iota;
+    import std.array: array;
+    import std.random: Random, unpredictableSeed, randomSample, randomShuffle;
+    auto result = IntegerVector(n);
+    auto rnd = Random(unpredictableSeed);
+    auto _sample_ = (iota(0, size))
+                        .randomSample(n, rnd)
+                        .array()
+                        .randomShuffle(rnd);
+    result.ptr[0..n] = _sample_;
+    return result;
+}
 

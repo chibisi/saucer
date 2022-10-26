@@ -997,7 +997,10 @@ if(is(T == SEXPElementType!(Type)))
     return result;
 }
 
-
+/+
+    Order function returns the order of the items in the vector and leaves the order 
+    of the original vector unchanged.
++/
 auto order(SEXPTYPE Type)(RVector!(Type) arr, 
             Rboolean decreasing = FALSE)
 {
@@ -1006,6 +1009,45 @@ auto order(SEXPTYPE Type)(RVector!(Type) arr,
     R_orderVector1(result.ptr, n, arr.sexp, 
         TRUE, decreasing);
     return result + 1;
+}
+
+
+auto constructNestedCall(string fName = "CDR", string arg = "arg", alias n)()
+if(isIntegral!(typeof(n)))
+{
+    string tmp0 = fName, tmp1 = ")";
+    static foreach(i; 0..n)
+    {
+        tmp0 ~= "(" ~ fName;
+        tmp1 ~= ")";
+    }
+    tmp0 = tmp0 ~ "(";
+    return tmp0 ~ arg ~ tmp1;
+}
+
+
+/+
+    Generalized R call for any function with string fName
+    and arguments args with type sequence Args...
+    which are coerable to SEXP with the To!(SEXP)(...) template 
+    function
++/
+auto InternalCall(Args...)(string fName, Args args)
+{
+    import std.stdio: writeln;
+    enum nargs = Args.length;
+    SEXP call, curr, arg;
+    protect(call = allocVector(LANGSXP, cast(int)(nargs + 1)));
+    SETCAR(call, Rf_installChar(mkChar(fName)));
+    curr = CDR(call);
+    static foreach(i; 0..nargs)
+    {
+        arg = To!(SEXP)(args[i]);
+        SETCAR(mixin(constructNestedCall!("CDR", "call", i)()), arg);
+    }
+    auto result = eval(call, R_GlobalEnv);
+    unprotect(1);
+    return result;
 }
 
 
