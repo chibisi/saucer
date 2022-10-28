@@ -262,12 +262,6 @@ if(SEXPDataTypes!(Type))
     }
     return;
   }
-  //auto opIndexAssign(I)(RVector!(Type) col, I j)
-  //if(isIntegral!(I))
-  //{
-  //  auto range = colIndices!(I)(j);
-  //  this.ptr[range[0]..range[1]] = col.ptr[0..col.length];
-  //}
   auto colView(J)(J j)
   if(isIntegral!(J))
   {

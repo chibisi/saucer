@@ -263,7 +263,7 @@ enum isBasicType(T) = is(T == bool) || is(T == byte) ||
         is(T == ulong) || is(T == float) || 
         is(T == double) || is(T == real) || 
         is(T == string) || is(T == Rcomplex) || 
-        is(R == Rboolean);
+        is(T == Rboolean);
 
 // is(T == char) || is(T == const(char)*) || 
 //        is(T == char*) || 
@@ -596,6 +596,8 @@ auto modifyArg(T)(string arg)
 if(!isSEXP!(T) && !isRType!(T) && 
    !isBasicArray!(T) && !isBasicType!(T))
 {
+  pragma(msg, "Type: " ~ T.stringof, 
+    ", isBasicType!(T)? ", isBasicType!(T));
   static assert(0, "argument type unknown.");
 }
 

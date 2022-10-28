@@ -1012,18 +1012,36 @@ auto order(SEXPTYPE Type)(RVector!(Type) arr,
 }
 
 
-auto constructNestedCall(string fName = "CDR", string arg = "arg", alias n)()
-if(isIntegral!(typeof(n)))
-{
-    string tmp0 = fName, tmp1 = ")";
-    static foreach(i; 0..n)
-    {
-        tmp0 ~= "(" ~ fName;
-        tmp1 ~= ")";
-    }
-    tmp0 = tmp0 ~ "(";
-    return tmp0 ~ arg ~ tmp1;
-}
+//auto constructNestedCall(string fName = "CDR", string arg = "arg", alias n)()
+//if(isIntegral!(typeof(n)))
+//{
+//    string tmp0 = fName, tmp1 = ")";
+//    static foreach(i; 0..n)
+//    {
+//        tmp0 ~= "(" ~ fName;
+//        tmp1 ~= ")";
+//    }
+//    tmp0 = tmp0 ~ "(";
+//    return tmp0 ~ arg ~ tmp1;
+//}
+//
+//
+//
+//auto InternalCall0(Args...)(string fName, Args args)
+//{
+//    enum nargs = Args.length;
+//    SEXP call, arg;
+//    protect(call = allocVector(LANGSXP, cast(int)(nargs + 1)));
+//    SETCAR(call, Rf_installChar(mkChar(fName)));
+//    static foreach(i; 0..nargs)
+//    {
+//        arg = To!(SEXP)(args[i]);
+//        SETCAR(mixin(constructNestedCall!("CDR", "call", i)()), arg);
+//    }
+//    auto result = eval(call, R_GlobalEnv);
+//    unprotect(1);
+//    return result;
+//}
 
 
 /+
@@ -1037,16 +1055,19 @@ auto InternalCall(Args...)(string fName, Args args)
     enum nargs = Args.length;
     SEXP call, arg;
     protect(call = allocVector(LANGSXP, cast(int)(nargs + 1)));
-    SETCAR(call, Rf_installChar(mkChar(fName)));
+    SETCAR(call, installChar(mkChar(fName)));
+    SEXP tmp = call;
     static foreach(i; 0..nargs)
     {
         arg = To!(SEXP)(args[i]);
-        SETCAR(mixin(constructNestedCall!("CDR", "call", i)()), arg);
+        tmp = CDR(tmp);
+        SETCAR(tmp, arg);
     }
     auto result = eval(call, R_GlobalEnv);
     unprotect(1);
     return result;
 }
+
 
 
 unittest

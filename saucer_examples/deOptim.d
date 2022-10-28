@@ -202,7 +202,10 @@ auto func01(NumericVector parameters)
 }
 
 
-
+@Export() testCall(int n, int size, Rboolean replace)
+{
+    return InternalCall("sample", n, size, replace, R_NilValue);
+}
 
 
 
