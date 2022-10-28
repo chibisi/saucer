@@ -181,7 +181,8 @@ if(Type == RAWSXP)
 template Accessor(SEXPTYPE Type)
 if(Type == STRSXP)
 {
-  alias Accessor = function SEXP* (SEXP x){ return STRING_PTR(x);};
+  //returns SEXP*
+  alias Accessor = STRING_PTR;
 }
 
 //Deprecated remove soon

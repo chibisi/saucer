@@ -246,14 +246,30 @@ if(SEXPDataTypes!(Type))
     }
     return result;
   }
-  auto opIndexAssign(I)(RVector!(Type) col, I j)
-  if(isIntegral!(I))
+  auto opIndexAssign(J)(RVector!(Type) vec, J j)
+  if(isIntegral!(J))
   {
-    auto range = colIndices!(I)(j);
-    this.ptr[range[0]..range[1]] = col.ptr[0..col.length];
+    auto range = colIndices!(J)(j);
+    auto n = vec.length;
+    static if(Type != STRSXP)
+    {
+      this.ptr[range[0]..range[1]] = vec.ptr[0..n];
+    }else{
+      foreach(i;0..n)
+      {
+        this.ptr[range[0] + i] = mkChar(vec[i]);
+      }
+    }
+    return;
   }
-  auto colView(I)(I j)
-  if(isIntegral!(I))
+  //auto opIndexAssign(I)(RVector!(Type) col, I j)
+  //if(isIntegral!(I))
+  //{
+  //  auto range = colIndices!(I)(j);
+  //  this.ptr[range[0]..range[1]] = col.ptr[0..col.length];
+  //}
+  auto colView(J)(J j)
+  if(isIntegral!(J))
   {
     auto idx = getIndex(0, j);
     return View!(Type)(&this.ptr[idx], this.nrows);

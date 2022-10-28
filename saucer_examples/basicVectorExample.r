@@ -139,20 +139,6 @@ all(rmat[,4] == newCol)
 require(rutilities)
 require(saucer)
 
-
-sauce("deOptim")
-
-testRuntimeObjective()
-x = c("d", "a", "c", "b")
-testOrder(x)
-testSample(10, 100, TRUE) # From R's sample function
-sampleInt(10, 100) # from D's Random library
-
-
-
-require(rutilities)
-require(saucer)
-
 dotDemo = "
 @Export(\"dot\") auto func(NumericVector x, NumericVector y)
 {
@@ -173,3 +159,13 @@ x = runif(10)
 y = runif(10)
 approxEqual(dot(x, y), sum(x*y))
 # TRUE
+
+
+require(rutilities)
+require(saucer)
+
+sauce("deOptim")
+
+deOptim01(50L, 500L, rep(-100, 5), 
+        rep(100, 5), c(0.9, 0.5))
+
