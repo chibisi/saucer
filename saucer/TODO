@@ -62,7 +62,8 @@
 11. Should be able to export function overloads with different @Export() names and
     have it all work.
 12. Numerics be auto-converted to integer when approriate from R, which is the expected behaviour?
-    
+13. Formally export all the `.Internal` functions so that they can be called with
+    func(...) obviating the need for InternalCall(...) function.
 
 ## Testing
 
