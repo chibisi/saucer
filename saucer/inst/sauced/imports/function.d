@@ -15,7 +15,7 @@ struct Function
         assert(Rf_isFunction(func), 
                 "input given is not a function");
         this.func = func;
-        this.envir = R_GlobalEnv;
+        this.envir = R_GlobalEnv; //R_GetCurrentEnv();
     }
     this(SEXP func, SEXP envir)
     {

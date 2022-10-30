@@ -27,7 +27,9 @@
         - Strings - Done
         - Names attributes
         - Full matrix operator overloads  (with caveats)
-    - Functions - Done
+    - Functions
+        - Implementation for basic functionality - Done
+        - Able to do parallelism in when called in D
     - Lists
         - Names
         - Numbers - for DataFrame compatibility

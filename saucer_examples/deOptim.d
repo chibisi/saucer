@@ -225,30 +225,39 @@ auto func01(NumericVector parameters)
 
 
 
-
-
-
-
-
+/+
+    Example of parallelism
+    usage:
+    parRNorm(100L)
++/
+@Export("parRNorm") auto randGaussian(int n)
+{
+    import std.range: iota;
+    import std.parallelism: parallel;
+    double[] result = new double[n];
+    foreach(i; parallel(iota(n)))
+    {
+        result[i] = rnorm(0, 1);
+    }
+    return result;
+}
 
 
 /+
-    Doesn't work (yet) will need to sort out how R instances 
-    are created on each thread or else segfaults occur
+    Usage:
+    x = runif(10);
+    y = runif(10);
+    approxEqual(dot(x, y), sum(x*y)) # TRUE
 +/
-@Export("parallelLapply") auto lapplyP(SEXP inlist, SEXP func)
+@Export("dot") auto dotProduct(double[] x, double[] y)
 {
-    import std.range: iota;
-    import std.parallelism: parallel, taskPool;
-    assert(TYPEOF(inlist) == VECSXP, "Second argument must be a function");
-    assert(Rf_isFunction(func), "Second argument must be a function");
-    auto n = LENGTH(inlist);
-    auto list = List(inlist);
-    auto result = List(n);
-    auto call = Function(func);
-    foreach(i; parallel(iota(n)))
+    auto n = x.length;
+    assert(n == y.length, 
+        "Lengths of input arrays do not match");
+    double result = 0;
+    foreach(i; 0..n)
     {
-        result[i] = call(list[i]);
+        result += x[i] * y[i];
     }
     return result;
 }
