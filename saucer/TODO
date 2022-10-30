@@ -27,6 +27,7 @@
         - Strings - Done
         - Names attributes
         - Full matrix operator overloads  (with caveats)
+    - Functions - Done
     - Lists
         - Names
         - Numbers - for DataFrame compatibility
