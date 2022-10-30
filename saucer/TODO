@@ -65,6 +65,8 @@
 13. Formally export all the `.Internal` functions so that they can be called with
     func(...) obviating the need for InternalCall(...) function.
 
+14. Error handling for no return type given in `@Export()` function.
+
 ## Testing
 
 1. Complete unittests on both the R and D side.

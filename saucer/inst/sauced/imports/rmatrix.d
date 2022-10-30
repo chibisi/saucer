@@ -118,9 +118,10 @@ if(SEXPDataTypes!(Type))
   /*
     Unprotect on casting back to SEXP
   */
+  pragma(inline, true)
   SEXP opCast(T: SEXP)()
   {
-    unprotect();
+    //unprotect();
     return sexp;
   }
   /*

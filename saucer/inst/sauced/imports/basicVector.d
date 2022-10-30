@@ -338,6 +338,7 @@ if(SEXPDataTypes!(Type))
         result ~= ")";
         return result;
     }
+    pragma(inline, true)
     T opCast(T: SEXP)()
     {
         return this.sexp;
@@ -867,24 +868,6 @@ if(SEXPDataTypes!(Type))
     {
         return opSliceOpAssign!(op, T)(value, 0, this.length);
     }
-    @property string[] names()
-    {
-        SEXP _names_ = Rf_getAttrib(this.sexp, R_NamesSymbol);
-        return getSlice!(STRSXP)(_names_, 0, this.length);
-    }
-    @property auto names(string[] _names_)
-    {
-        Rf_setAttrib(this.sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
-        return;
-    }
-    @property auto names(SEXP _names_)
-    {
-        auto type = TYPEOF(_names_);
-        assert(type == STRSXP, "Error no implementation of names method for type " 
-            ~ type.stringof);
-        Rf_setAttrib(this.sexp, R_NamesSymbol, _names_);
-        return;
-    }
     auto setAttrib(SEXP symbol, SEXP attrib)
     {
         Rf_setAttrib(this.sexp, symbol, attrib);
@@ -935,6 +918,28 @@ if(SEXPDataTypes!(Type))
         }
     }
 }
+
+
+@property string[] names(SEXP sexp)
+{
+    SEXP _names_ = Rf_getAttrib(sexp, R_NamesSymbol);
+    return getSlice!(STRSXP)(_names_, 0, LENGTH(sexp));
+}
+@property auto names(SEXP sexp, string[] _names_)
+{
+    Rf_setAttrib(sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
+    return;
+}
+@property auto names(SEXP sexp, SEXP _names_)
+{
+    auto type = TYPEOF(_names_);
+    assert(type == STRSXP, "Error no implementation of names method for type " 
+        ~ type.stringof);
+    Rf_setAttrib(sexp, R_NamesSymbol, _names_);
+    return;
+}
+
+
 
 enum bool isCmp(string op) = (op == "==") || (op == ">") || (op == "<") || 
                 (op == ">=") || (op == "<=");
@@ -1012,36 +1017,38 @@ auto order(SEXPTYPE Type)(RVector!(Type) arr,
 }
 
 
-//auto constructNestedCall(string fName = "CDR", string arg = "arg", alias n)()
-//if(isIntegral!(typeof(n)))
-//{
-//    string tmp0 = fName, tmp1 = ")";
-//    static foreach(i; 0..n)
-//    {
-//        tmp0 ~= "(" ~ fName;
-//        tmp1 ~= ")";
-//    }
-//    tmp0 = tmp0 ~ "(";
-//    return tmp0 ~ arg ~ tmp1;
-//}
-//
-//
-//
-//auto InternalCall0(Args...)(string fName, Args args)
-//{
-//    enum nargs = Args.length;
-//    SEXP call, arg;
-//    protect(call = allocVector(LANGSXP, cast(int)(nargs + 1)));
-//    SETCAR(call, Rf_installChar(mkChar(fName)));
-//    static foreach(i; 0..nargs)
-//    {
-//        arg = To!(SEXP)(args[i]);
-//        SETCAR(mixin(constructNestedCall!("CDR", "call", i)()), arg);
-//    }
-//    auto result = eval(call, R_GlobalEnv);
-//    unprotect(1);
-//    return result;
-//}
+auto constructNestedCall(string fName = "CDR", string arg = "arg", alias n)()
+if(isIntegral!(typeof(n)))
+{
+    string tmp0 = fName, tmp1 = ")";
+    static foreach(i; 0..n)
+    {
+        tmp0 ~= "(" ~ fName;
+        tmp1 ~= ")";
+    }
+    tmp0 = tmp0 ~ "(";
+    return tmp0 ~ arg ~ tmp1;
+}
+
+
+/+
+    This is the nested call version ...
++/
+auto InternalCall0(Args...)(string fName, Args args)
+{
+    enum nargs = Args.length;
+    SEXP call, arg;
+    protect(call = allocVector(LANGSXP, cast(int)(nargs + 1)));
+    SETCAR(call, Rf_installChar(mkChar(fName)));
+    static foreach(i; 0..nargs)
+    {
+        arg = To!(SEXP)(args[i]);
+        SETCAR(mixin(constructNestedCall!("CDR", "call", i)()), arg);
+    }
+    auto result = eval(call, R_GlobalEnv);
+    unprotect(1);
+    return result;
+}
 
 
 /+
@@ -1057,14 +1064,21 @@ auto InternalCall(Args...)(string fName, Args args)
     protect(call = allocVector(LANGSXP, cast(int)(nargs + 1)));
     SETCAR(call, installChar(mkChar(fName)));
     SEXP tmp = call;
+    int nProtect = 1;
     static foreach(i; 0..nargs)
     {
-        arg = To!(SEXP)(args[i]);
+        static if(!(is(Args[i] == SEXP) || isRType!(Args[i])))
+        {
+            arg = protect(To!(SEXP)(args[i]));
+            ++nProtect;
+        }else{
+            arg = args[i];
+        }
         tmp = CDR(tmp);
         SETCAR(tmp, arg);
     }
     auto result = eval(call, R_GlobalEnv);
-    unprotect(1);
+    unprotect(nProtect);
     return result;
 }
 

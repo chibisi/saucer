@@ -169,3 +169,6 @@ sauce("deOptim")
 deOptim01(50L, 500L, rep(-100, 5), 
         rep(100, 5), c(0.9, 0.5))
 
+lapplyd(as.list(rep(10, 5)), rnorm)
+
+

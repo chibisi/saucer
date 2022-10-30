@@ -4,6 +4,7 @@
 
 module deOptim;
 import sauced.saucer;
+import std.stdio: writeln;
 
 /+
     Function to initialize the population of the DE algorithm
@@ -39,7 +40,6 @@ auto initialize(int p, int N,
 /* @Export() */ auto test()
 {
     import std.range: iota, zip;
-    import std.stdio: writeln;
     import std.algorithm.sorting: sort;
     import std.array: array;
     auto x = ["d", "b", "a", "c"];
@@ -191,7 +191,6 @@ auto func01(NumericVector parameters)
 @Export() auto deOptim01(int N, int niter, NumericVector lbounds, 
                 NumericVector ubounds, NumericVector parameters)
 {
-    import std.stdio: writeln;
     int p = cast(int)lbounds.length;
     auto result = initialize(p, N, lbounds, ubounds);
     foreach(i; 0..niter)
@@ -208,8 +207,49 @@ auto func01(NumericVector parameters)
 }
 
 
+/+
+    D version of lapply
+    usage:
+    lapplyd(as.list(rep(10, 5)), rnorm)
++/
+@Export("lapplyd") auto lapply(List list, Function func)
+{
+    auto n = list.length;
+    auto result = List(n);
+    foreach(i; 0..n)
+    {
+        result[i] = func(list[i]);
+    }
+    return result;
+}
 
 
 
 
+
+
+
+
+
+
+/+
+    Doesn't work (yet) will need to sort out how R instances 
+    are created on each thread or else segfaults occur
++/
+@Export("parallelLapply") auto lapplyP(SEXP inlist, SEXP func)
+{
+    import std.range: iota;
+    import std.parallelism: parallel, taskPool;
+    assert(TYPEOF(inlist) == VECSXP, "Second argument must be a function");
+    assert(Rf_isFunction(func), "Second argument must be a function");
+    auto n = LENGTH(inlist);
+    auto list = List(inlist);
+    auto result = List(n);
+    auto call = Function(func);
+    foreach(i; parallel(iota(n)))
+    {
+        result[i] = call(list[i]);
+    }
+    return result;
+}
 

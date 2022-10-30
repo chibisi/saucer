@@ -197,12 +197,14 @@ static if(false)
   }
 }
 
-//Pasting in RVector and RMatrix types
+
 mixin(import("imports/basicVector.d"));
 //mixin(import("imports/rvector.d"));
 
-//Remove this until it is properly implemented
 mixin(import("imports/rmatrix.d"));
+
+mixin(import("imports/function.d"));
+mixin(import("imports/list.d"));
 
 //mixin(import("imports/dataframe.d"));
 mixin(import("imports/commonfunctions.d"));
@@ -230,17 +232,22 @@ enum isRMatrix(M) = false;
 enum isRMatrix(M: RMatrix!T, SEXPTYPE T) = true;
 enum isRMatrix(alias M) = isRMatrix!(typeof(M));
 
+enum isRFunction(F) = is(F == Function);
+enum isRFunction(alias F) = isRFunction!(typeof(F));
+
+enum isRList(L) = is(L == List);
+enum isRList(alias L) = isRList!(typeof(L));
 
 /*
   Template trait for whether an item is a saucer R 
   type or not.
 */
-enum isRType(P) = isRVector!(P) || isRMatrix!(P);
+enum isRType(P) = isRVector!(P) || isRMatrix!(P) || 
+                      isRFunction!(P) || isRList!(P);
 enum isRType(alias P) = isRType!(typeof(P));
 
 
 enum isSEXP(T) = is(T == SEXP);
-//enum isSEXP(SEXP T) = true;
 enum isSEXP(alias T) = isSEXP!(typeof(T));
 //enum isSEXP(string arg) = isSEXP!(mixin(arg));
 
@@ -369,7 +376,7 @@ pragma(inline, true)
 T To(T, F)(auto ref F r_type)
 if(isSEXP!(T) && isRType!(F))
 {
-  return r_type.sexp;
+  return cast(SEXP)r_type;
 }
 
 pragma(inline, true)
