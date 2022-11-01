@@ -927,6 +927,7 @@ if(SEXPDataTypes!(Type))
 }
 @property auto names(SEXP sexp, string[] _names_)
 {
+    assert(_names_.length == LENGTH(sexp), "length of names not equal to length of sexp");
     Rf_setAttrib(sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
     return;
 }
@@ -935,6 +936,7 @@ if(SEXPDataTypes!(Type))
     auto type = TYPEOF(_names_);
     assert(type == STRSXP, "Error no implementation of names method for type " 
         ~ type.stringof);
+    assert(LENGTH(_names_) == LENGTH(sexp), "length of names not equal to length of sexp");
     Rf_setAttrib(sexp, R_NamesSymbol, _names_);
     return;
 }

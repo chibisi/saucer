@@ -30,10 +30,10 @@ struct List
         {
             static if(!(is(Args[i] == SEXP) || isRType!(Args[i])))
             {
-                result[i] = args[i];
-            }else{
                 arg = To!(SEXP)(args[i]);
                 result[i] = arg;
+            }else{
+                result[i] = args[i];
             }
         }
         return result;

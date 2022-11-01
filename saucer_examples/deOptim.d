@@ -3,7 +3,9 @@
 +/
 
 module deOptim;
+import std.traits: isIntegral;
 import sauced.saucer;
+import std.math: abs;
 import std.stdio: writeln;
 
 /+
@@ -101,6 +103,53 @@ auto sampleInt(int n, int size)
     return result;
 }
 
+
+auto simpleMutation(I)(ref NumericMatrix population, ref NumericVector parameters, ref I i)
+if(isIntegral!(I))
+{
+    auto p = population.nrows;
+    auto N = population.ncols;
+    auto idx = new int[3];
+    auto idx0 = sampleInt(6, cast(int)N);
+    size_t j = 0, k = 0;
+    while(k < 3)
+    {
+        if(i != idx0[j])
+        {
+            idx[k] = idx0[j];
+            ++k;
+        }
+        ++j;
+    }
+    auto mutant = NumericVector(p);
+    auto a = population[idx[0]];
+    auto b = population[idx[1]];
+    auto c = population[idx[2]];
+
+    foreach(m; 0..p)
+    {
+        mutant[m] = a[m] + parameters[0] * (b[m] + c[m]);
+    }
+    return mutant;
+}
+
+struct Best
+{
+    size_t index;
+    double value;
+    alias value this;
+    this(size_t index, double value)
+    {
+        this.index = index;
+        this.value = value;
+    }
+    string toString()
+    {
+        return "index: " ~ to!string(index) ~ 
+                ", value: " ~ to!string(value); 
+    }
+}
+
 /+
     Uses the scheme x_m = x_1 + F(x_2 + x_3)
     parameters is a vector of length 2
@@ -111,44 +160,27 @@ auto sampleInt(int n, int size)
     @param population is the population matrix each column is an item
     @param parameters is the length two parameters containing 
             the parameters for mutation
-    @param func the objective function that calculates an objective value
+    @param objective the objective function that calculates an objective value
             from a vector
 +/
-NumericMatrix simpleMutation(alias func)(ref NumericMatrix population, 
+auto iterate(alias objective)(ref NumericMatrix population, 
                         ref NumericVector parameters)
 {
     auto N = population.ncols;
     auto p = population.nrows;
-    //auto result = NumericMatrix(p, N);
-    auto idx = new int[3];
     auto F = parameters[0];
     auto Cr = parameters[1];
+    
+    double delta = 0;
+    Best result = Best(0, double.max);
+    Best value = Best(0, double.max);
     /* Iteration over columns */
     foreach(i; 0..N)
     {
-        auto idx0 = sampleInt(6, cast(int)N);
-        size_t j = 0, k = 0;
-        while(k < 3)
-        {
-            if(i != idx0[j])
-            {
-                idx[k] = idx0[j];
-                ++k;
-            }
-            ++j;
-        }
-        auto mutant = NumericVector(p);
-        auto a = population[idx[0]];
-        auto b = population[idx[1]];
-        auto c = population[idx[2]];
-
-        foreach(m; 0..p)
-        {
-            mutant[m] = a[m] + F * (b[m] + c[m]);
-        }
         auto candidate = population[i];
         //This element always crosses over
         auto coi = sampleInt(1, cast(int)p)[0];
+        auto mutant = simpleMutation(population, parameters, i);
         candidate[coi] = mutant[coi];
         foreach(m; 0..p)
         {
@@ -161,16 +193,24 @@ NumericMatrix simpleMutation(alias func)(ref NumericMatrix population,
                 }
             }
         }
-        auto candidateObj = func(candidate);
-        auto currObj = func(population[i]);
+        auto candidateObj = objective(candidate);
+        auto currObj = objective(population[i]);
         if(candidateObj < currObj)
         {
             population[i] = candidate;
+            value = Best(i, candidateObj);
         }else{
-            population[i] = population[i];
+            value = Best(i, currObj);
+        }
+        delta = result - value;
+        if(delta > 0)
+        {
+            result = value;
         }
     }
-    return population;
+    writeln("Iteration result, index ", 
+        result.toString);
+    return result;
 }
 
 //Objective function 01
@@ -191,12 +231,24 @@ auto func01(NumericVector parameters)
 @Export() auto deOptimize(int N, int niter, NumericVector lbounds, 
                 NumericVector ubounds, NumericVector parameters)
 {
+    enum double eps = 1E-8;
     int p = cast(int)lbounds.length;
-    auto result = initialize(p, N, lbounds, ubounds);
+    auto population = initialize(p, N, lbounds, ubounds);
+    Best value = Best(0, double.max);
+    Best best = Best(0, double.max);
     foreach(i; 0..niter)
     {
-        simpleMutation!(func01)(result, parameters);
+        value = iterate!(func01)(population, parameters);
+        auto delta = best - value;
+        if(delta > 0)
+        {
+            best = value;
+        }
     }
+    auto result = List.init(cast(int)best.index, best.value, 
+                population[best.index], population);
+    result.names = ["bestIndex", "bestValue", "bestIndividual", 
+            "population"];
     return result;
 }
 
