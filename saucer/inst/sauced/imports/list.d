@@ -21,6 +21,24 @@ struct List
     {
         unprotect_ptr(sexp);
     }
+    static auto init(Args...)(Args args)
+    {
+        enum n = Args.length;
+        auto result = List(n);
+        SEXP arg;
+        static foreach(i; 0..n)
+        {
+            static if(!(is(Args[i] == SEXP) || isRType!(Args[i])))
+            {
+                result[i] = args[i];
+            }else{
+                arg = To!(SEXP)(args[i]);
+                result[i] = arg;
+            }
+        }
+        return result;
+    }
+
     pragma(inline, true)
     SEXP opCast(T: SEXP)()
     {

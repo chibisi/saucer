@@ -188,7 +188,7 @@ auto func01(NumericVector parameters)
 
 
 
-@Export() auto deOptim01(int N, int niter, NumericVector lbounds, 
+@Export() auto deOptimize(int N, int niter, NumericVector lbounds, 
                 NumericVector ubounds, NumericVector parameters)
 {
     int p = cast(int)lbounds.length;
@@ -260,5 +260,15 @@ auto func01(NumericVector parameters)
         result += x[i] * y[i];
     }
     return result;
+}
+
+
+/+
+    Usage
+    makeList("a", "b", runif(10), 1:10, rnorm(10))
++/
+@Export() auto makeList(SEXP x0, SEXP x1, SEXP x2, SEXP x3, SEXP x4)
+{
+    return List.init(x0, x1, x2, x3, x4);
 }
 
