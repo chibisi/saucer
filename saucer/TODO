@@ -67,7 +67,7 @@
 12. Formally export all the `.Internal` functions so that they can be called with
     func(...) obviating the need for InternalCall(...) function.
 
-13. Error handling for no return type given in `@Export()` function.
+12. Error handling for no return type given in `@Export()` function.
 
 ## Testing
 
