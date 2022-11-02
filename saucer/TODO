@@ -8,7 +8,7 @@
 
 2. Add testing function for D compilation into the R package to run tests on D's unittest blocks. Done.
 
-3. Re-writing containers.
+3. Re/writing containers.
     - RVectors
         - Numeric - Done
         - Ints - Done
@@ -31,11 +31,12 @@
         - Implementation for basic functionality - Done
         - Able to do parallelism in when called in D
     - Lists
+        - Basic implementation - Done
         - Names
         - Numbers - for DataFrame compatibility
         - Indexing for names and numbers, assign and return
     - DataFrames
-        - Inherit from lists
+        - Inherit from lists?
     - Rather than just unprotecting destructors should deallocate resources.
 
 3. "RInside"
@@ -59,16 +60,14 @@
 
 8. Adding debug mode compilation option.
 
-9. Should I be using D's RefCounted, which auto reference counts an object so that you don't have to implement it in your object? https://dlang.org/library/std/typecons/ref_counted.html
-
-10. Cleanup wrapped R function argument names should not start with "_" - should
-11. Should be able to export function overloads with different @Export() names and
+9. Cleanup wrapped R function argument names should not start with "_" - should
+10. Should be able to export function overloads with different @Export() names and
     have it all work.
-12. Numerics be auto-converted to integer when approriate from R, which is the expected behaviour?
-13. Formally export all the `.Internal` functions so that they can be called with
+11. Numerics be auto-converted to integer when approriate from R, which is the expected behaviour?
+12. Formally export all the `.Internal` functions so that they can be called with
     func(...) obviating the need for InternalCall(...) function.
 
-14. Error handling for no return type given in `@Export()` function.
+13. Error handling for no return type given in `@Export()` function.
 
 ## Testing
 

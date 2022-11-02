@@ -4,10 +4,10 @@
 \alias{sauce}
 \title{Function compiles and loads D modules into R session}
 \usage{
-sauce(modules, ...)
+sauce(fileNames, ...)
 }
 \arguments{
-\item{modules}{character vector containing the module names to 
+\item{fileNames}{character vector containing the module names to 
 be compiled and loaded into the R session. Excludes the
 ".d" extension (for now)
 TODO: this functionality requires more work}
@@ -20,7 +20,8 @@ folder where the code will be created. If missing
 the compilation artifacts once the compilation is done.}
 }
 \description{
-Function compiles and loads D modules into R session
+The first file given is the main file containing functions
+       to be exported, other files given are supporting files
 }
 \examples{
 

@@ -1,4 +1,4 @@
-module script;
+module example1;
 import sauced.saucer;
 import std.algorithm.sorting: sort;
 

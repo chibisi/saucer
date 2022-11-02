@@ -164,11 +164,9 @@ approxEqual(dot(x, y), sum(x*y))
 require(rutilities)
 require(saucer)
 
-sauce("deOptim")
+sauce("simpleDE.d")
 
 deOptimize(50L, 200L, rep(-100, 5), 
         rep(100, 5), c(0.9, 0.5))
-
-lapplyd(as.list(rep(10, 5)), rnorm)
 
 

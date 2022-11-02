@@ -42,7 +42,7 @@ test_that("1. Basic tests that the dfunction plugin style is working", {
 
 
 # The rest of the functions are located in a script
-saucer("script", dropFolder = TRUE)
+saucer("example1", dropFolder = TRUE)
 
 test_that("2. Testing functions from script", {
   
