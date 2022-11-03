@@ -205,6 +205,7 @@ mixin(import("imports/rmatrix.d"));
 
 mixin(import("imports/function.d"));
 mixin(import("imports/list.d"));
+mixin(import("imports/xptr.d"));
 
 //mixin(import("imports/dataframe.d"));
 mixin(import("imports/commonfunctions.d"));
@@ -238,12 +239,19 @@ enum isRFunction(alias F) = isRFunction!(typeof(F));
 enum isRList(L) = is(L == List);
 enum isRList(alias L) = isRList!(typeof(L));
 
+
+enum isXPtr(P) = false;
+enum isXPtr(P: XPtr!T, T) = true;
+enum isXPtr(alias P) = isXPtr!(typeof(P));
+
+
 /*
   Template trait for whether an item is a saucer R 
   type or not.
 */
 enum isRType(P) = isRVector!(P) || isRMatrix!(P) || 
-                      isRFunction!(P) || isRList!(P);
+                      isRFunction!(P) || isRList!(P) ||
+                      isXPtr!(P);
 enum isRType(alias P) = isRType!(typeof(P));
 
 

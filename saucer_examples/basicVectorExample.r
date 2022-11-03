@@ -160,6 +160,7 @@ y = runif(10)
 approxEqual(dot(x, y), sum(x*y))
 # TRUE
 
+#################################################################
 
 require(rutilities)
 require(saucer)
@@ -168,5 +169,48 @@ sauce("simpleDE.d")
 
 deOptimize(50L, 200L, rep(-100, 5), 
         rep(100, 5), c(0.9, 0.5))
+
+
+
+#################################################################
+
+require(rutilities)
+require(saucer)
+
+ptrDemo = "
+alias fType = double function(double);
+
+@Export() double timesTwo(double x)
+{
+    return x*2;
+}
+@Export() SEXP getDFun()
+{
+    return XPtr!(fType)(&timesTwo);
+}
+@Export() auto applyDFunc(SEXP ptr, SEXP data)
+{
+    import std.range: iota;
+    import std.parallelism: parallel;
+    
+    auto obj = XPtr!(fType)(ptr);
+    auto func = cast(fType)(obj);
+    auto result = NumericVector(data);
+    
+    foreach(i; parallel(iota(result.length)))
+    {
+        result[i] = func(result[i]);
+    }
+    return result;
+}
+"
+
+dfunctions(ptrDemo)
+
+x = runif(10)
+vapply(x, timesTwo, 0)
+func = getDFun()
+applyDFunc(func, x)
+
 
 

@@ -443,8 +443,7 @@ dir.remove = function(directory, flags = "-rf")
 #' 
 #' @export
 #' 
-compileRInside = function(fileName, flags = c("-O", "-fPIC", "-L-lR", "-L-lRmath", 
-                                              "-mcpu=native"), cleanup = TRUE)
+compileRInside = function(fileName, flags = c("-O", "-mcpu=native"), cleanup = TRUE)
 {
   sourceDir = system.file("sauced", package = "saucer")
   destDir = createFileName(prefix = "tmpFolder", NULL, 6)
@@ -459,7 +458,8 @@ compileRInside = function(fileName, flags = c("-O", "-fPIC", "-L-lR", "-L-lRmath
   files = c(fileName, files)
   jFlag = paste0("-J=", "\"", destDir, "\"")
 
-  command = paste0(c("dmd", files, flags, jFlag), collapse = " ")
+  command = paste0(c("dmd", files, flags, "-fPIC", "-L-lR", 
+                  "-L-lRmath", jFlag), collapse = " ")
   system(command)
 
   if(cleanup)

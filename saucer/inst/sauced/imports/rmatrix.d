@@ -16,7 +16,7 @@ struct RMatrix(SEXPTYPE Type)
 if(SEXPDataTypes!(Type))
 {
   SEXP sexp;
-  bool needUnprotect;
+  bool needUnprotect = false;
   static if(Type != STRSXP)
   {
     alias ElType = SEXPElementType!(Type);
@@ -58,8 +58,6 @@ if(SEXPDataTypes!(Type))
   {
     assert(Type == TYPEOF(sexp), 
       "Type of input is not the same of SEXPTYPE type submitted");
-    this.sexp = protect(sexp);
-    this.needUnprotect = true;
     this.sexp = sexp;
   }
   this(ref return scope RMatrix original)

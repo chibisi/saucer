@@ -6,20 +6,24 @@ struct List
 {
     SEXP sexp;
     alias implicitCast this;
-
+    bool needUnprotect = false;
     this(I)(I n)
     if(isIntegral!(I))
     {
         this.sexp = protect(allocVector(VECSXP, cast(int)n));
+        needUnprotect = true;
     }
     this(SEXP sexp)
     {
         assert(TYPEOF(sexp) == VECSXP, "Argument is not a list.");
-        this.sexp = protect(sexp);
+        this.sexp = sexp;
     }
     ~this()
     {
-        unprotect_ptr(sexp);
+        if(needUnprotect)
+        {
+            unprotect_ptr(sexp);
+        }
     }
     static auto init(Args...)(Args args)
     {

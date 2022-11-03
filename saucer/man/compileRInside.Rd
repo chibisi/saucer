@@ -4,11 +4,7 @@
 \alias{compileRInside}
 \title{Compile RInside D code}
 \usage{
-compileRInside(
-  fileName,
-  flags = c("-O", "-fPIC", "-L-lR", "-L-lRmath", "-mcpu=native"),
-  cleanup = TRUE
-)
+compileRInside(fileName, flags = c("-O", "-mcpu=native"), cleanup = TRUE)
 }
 \arguments{
 \item{fileNames}{single string item for path to file to be}

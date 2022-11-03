@@ -182,7 +182,7 @@ struct RVector(SEXPTYPE Type)
 if(SEXPDataTypes!(Type))
 {
     SEXP sexp;
-    bool needUnprotect;
+    bool needUnprotect = false;
     //long refCount;
     alias ElType = SEXPElementType!(Type);
     alias implicitCast this;
@@ -265,14 +265,15 @@ if(SEXPDataTypes!(Type))
             Accessor!(Type)(this.sexp)[0..n] = arr[];
         }
     }
+    /*
+        Here we assume that SEXP are already protected
+    */
     this(T)(T sexp)
     if(is(T == SEXP))
     {
         assert(Type == TYPEOF(sexp), 
             "Type of input is not the same as SEXPTYPE Type submitted");
-        
-        this.sexp = protect(sexp);
-        this.needUnprotect = true;
+        this.sexp = sexp;
     }
     /* For logical implicit from bool array */
     this(T)(T[] arr...)
