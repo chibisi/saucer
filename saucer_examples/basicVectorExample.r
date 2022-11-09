@@ -205,12 +205,34 @@ alias fType = double function(double);
 }
 "
 
-dfunctions(ptrDemo)
+dfunctions(ptrDemo, dropFolder = FALSE)
 
 x = runif(10)
 vapply(x, timesTwo, 0)
 func = getDFun()
 applyDFunc(func, x)
+
+
+#################################################################
+
+require(rutilities)
+require(saucer)
+
+
+envDemo = "
+@Export() auto envTest()
+{
+    auto envir = Environment(3);
+    envir.assign(\"letters\", CharacterVector([\"a\", \"b\", \"c\", \"d\"]));
+    envir.assign(\"numbers\", NumericVector([1.0, 2, 3, 4, 5, 6]));
+    envir.assign(\"bools\", LogicalVector([FALSE, TRUE, TRUE, FALSE]));
+    return envir;
+}
+"
+
+dfunctions(envDemo, dropFolder = TRUE)
+
+
 
 
 

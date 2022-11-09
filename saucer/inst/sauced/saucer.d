@@ -206,6 +206,7 @@ mixin(import("imports/rmatrix.d"));
 mixin(import("imports/function.d"));
 mixin(import("imports/list.d"));
 mixin(import("imports/xptr.d"));
+mixin(import("imports/environment.d"));
 
 //mixin(import("imports/dataframe.d"));
 mixin(import("imports/commonfunctions.d"));
@@ -244,6 +245,9 @@ enum isXPtr(P) = false;
 enum isXPtr(P: XPtr!T, T) = true;
 enum isXPtr(alias P) = isXPtr!(typeof(P));
 
+enum isEnvir(E) = is(E == Environment);
+enum isEnvir(alias E) = isEnvir!(typeof(E));
+
 
 /*
   Template trait for whether an item is a saucer R 
@@ -251,7 +255,7 @@ enum isXPtr(alias P) = isXPtr!(typeof(P));
 */
 enum isRType(P) = isRVector!(P) || isRMatrix!(P) || 
                       isRFunction!(P) || isRList!(P) ||
-                      isXPtr!(P);
+                      isXPtr!(P) || isEnvir!(P);
 enum isRType(alias P) = isRType!(typeof(P));
 
 
@@ -511,7 +515,16 @@ pragma(inline, true)
 E To(E, F)(auto ref F sexp)
 if(isBasicType!(E) && isSEXP!(F))
 {
+  import std.stdio: writeln;
   long n = LENGTH(sexp);
+  if(n != 1)
+  {
+    auto intype = to!string(TYPEOF(sexp));
+    writeln("Length of SEXP is ", n, 
+      " and it should be 1.", " The input SEXP type is ",
+      intype, " and the output type is ", E.stringof);
+    assert(0, "Length error.");
+  }
   assert(n == 1, "Length of SEXP is not equal to 1");
   static if(!isStringType!E)
   {

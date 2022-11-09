@@ -324,7 +324,7 @@ sauce = function(fileNames, ...)
 #'
 #' @export
 #' 
-createFileName = function(prefix = "script", extn = NULL, nrand = 12)
+createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 {
   postfix = paste0(sample(c(0:9, letters), nrand), collapse = "")
   .file = paste0(c(prefix, postfix), collapse = "_")

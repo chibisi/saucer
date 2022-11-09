@@ -23,6 +23,7 @@ struct List
         if(needUnprotect)
         {
             unprotect_ptr(sexp);
+            needUnprotect = false;
         }
     }
     static auto init(Args...)(Args args)

@@ -20,6 +20,18 @@ enum bool SEXPDataTypes(SEXPTYPE Type) = (Type == REALSXP) || (Type == INTSXP) |
     (Type == LGLSXP) || (Type == RAWSXP) || (Type == CPLXSXP) || 
     (Type == STRSXP);
 
+
+/+
+    Casts a string to a c string const(char) *
++/
+const(char)* castChar(string symbol)
+{
+    auto n = symbol.length;
+    const(char)* result = cast(const(char)*)(symbol[0..$] ~ '\0');
+    return result;
+}
+
+
 /+
     Converts a string to an SEXP
     Perhaps you should be using STRING_PTR(SEXP)

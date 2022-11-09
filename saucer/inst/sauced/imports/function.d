@@ -1,6 +1,10 @@
 struct Function
 {
     SEXP func;
+    /*
+        The environment where the function func is 
+        evaluated
+    */
     SEXP envir;
     alias implicitCast this;
     

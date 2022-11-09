@@ -929,6 +929,7 @@ auto createRFunction(string moduleName, string item)()
 
     string fBody = signature.rName ~ " = function(";
     string call = "\n  .Call(\"" ~ signature.newName ~ "\"";
+    call ~= ", PACKAGE = \"" ~ extractShortModuleName!(moduleName) ~ "\"";
     static foreach(i, param; mixin("ParameterIdentifierTuple!" ~ item))
     {
       if(i < (signature.nArgs - 1))

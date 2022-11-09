@@ -1,4 +1,4 @@
-import std.stdio: writeln;
+//import std.stdio: writeln;
 
 struct XPtr(T)
 {
@@ -18,10 +18,14 @@ struct XPtr(T)
         this.extptr = extptr;
     }
     this(T object, SEXP tag = R_NilValue, SEXP prot = R_NilValue)
-    if(isCallable!(T) || isPointer!(T))
     {
-        this.extptr = R_MakeExternalPtr(cast(void*) object, tag, prot);
-        R_RegisterCFinalizerEx(this.extptr, &R_ClearExternalPtr, TRUE);
+        static if(isCallable!(T) || isPointer!(T))
+        {
+            this.extptr = R_MakeExternalPtr(cast(void*) object, tag, prot);
+            R_RegisterCFinalizerEx(this.extptr, &R_ClearExternalPtr, TRUE);
+        }else{
+            static assert(0, "object submitted to XPtr is not callable or a pointer.");
+        }
     }
     T opCast(U: T)()
     {
