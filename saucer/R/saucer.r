@@ -39,6 +39,32 @@ logger = function(...)
 }
 
 
+
+#' @title Function to return pointer of an exported item from 
+#'         loaded DLL table
+#' 
+#' @param symbolName character for the name of the native 
+#'          symbol to be retrieved
+#' @param packageName character the name of the package
+#'          can be left as NULL
+#' 
+#' @return An object of class externalptr
+#' 
+#' @seealso getNativeSymbolInfo, getLoadedDLLs, dyn.load, 
+#'              getDLLRegisteredRoutines
+#' 
+#' @export
+#' 
+getExternalPtr = function(symbolName, packageName = NULL)
+{
+  symbolInfo = getNativeSymbolInfo(symbolName, packageName)
+  ptr = symbolInfo$address
+  attr(ptr, "class") = NULL
+  return(ptr)
+}
+
+
+
 #' @title unix-style function to copy a directory from
 #' 
 #' @param from the path to the directory to be copied
@@ -342,18 +368,22 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 }
 
 
-.dfunction = function(code, dropFolder)
+.dfunction = function(code, dropFolder = NULL, folderName = NULL, moduleName = NULL)
 {
-  moduleName = createFileName()
+  if(is.null(moduleName))
+  {
+    moduleName = createFileName()
+  }
   prefix = paste0("module ", moduleName,";\nimport sauced.saucer;\n\n")
   code = paste0(prefix, code)
   codeFile = paste0(moduleName, ".d")
   cat(code, file = codeFile)
   executionError = FALSE
-  tryCatch(.sauce(codeFile, dropFolder = dropFolder), error = function(e){
-    cat("Error on .sauce:\n")
-    paste(e)
-    executionError <<- TRUE
+  tryCatch(.sauce(codeFile, dropFolder = dropFolder, folderName = folderName), 
+    error = function(e){
+      cat("Error on .sauce:\n")
+      paste(e)
+      executionError <<- TRUE
   })
   if(executionError)
   {
@@ -376,7 +406,7 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 
 #' @title Compile D code from string
 #' @description Compiles and loads D code from string array, note that the desired 
-#'              export functions must still be marked with `@exportd()`
+#'              export functions must still be marked with `@Export()`
 #' 
 #' @param code character containing the code to be compiled
 #' 
@@ -385,13 +415,13 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 #' @examples
 #'         dfunctions("
 #'         import std.stdio: writeln;
-#'         @exportd() int squared(int x)
+#'         @Export() int squared(int x)
 #'         {
 #'           x = x*x;
 #'           writeln(\"x squared: \", x);
 #'           return x;
 #'         }
-#'         @exportd() double cubed(double x)
+#'         @Export() double cubed(double x)
 #'         {
 #'           x = x*x*x;
 #'           writeln(\"x cubed: \", x);
@@ -404,9 +434,11 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 #' 
 #' @export
 #' 
-dfunctions = function(codeArr, dropFolder = TRUE)
+dfunctions = function(codeArr, dropFolder = TRUE, folderName = NULL, moduleName = NULL)
 {
-  result = .dfunction(paste0(codeArr, collapse = "\n"), dropFolder)
+  result = .dfunction(paste0(codeArr, collapse = "\n"), 
+              dropFolder = dropFolder, folderName = folderName, 
+              moduleName = moduleName)
   return(invisible(result))
 }
 

@@ -170,7 +170,7 @@ sauce("simpleDE.d")
 deOptimize(50L, 200L, rep(-100, 5), 
         rep(100, 5), c(0.9, 0.5))
 
-
+# dlls  = getLoadedDLLs()
 
 #################################################################
 
@@ -178,23 +178,20 @@ require(rutilities)
 require(saucer)
 
 ptrDemo = "
-alias fType = double function(double);
 
-@Export() double timesTwo(double x)
+alias FunctionType = extern (C) double function(double x);
+extern(C) @Export() double timesTwo(double x)
 {
     return x*2;
 }
-@Export() SEXP getDFun()
-{
-    return XPtr!(fType)(&timesTwo);
-}
+
 @Export() auto applyDFunc(SEXP ptr, SEXP data)
 {
     import std.range: iota;
     import std.parallelism: parallel;
     
-    auto obj = XPtr!(fType)(ptr);
-    auto func = cast(fType)(obj);
+    auto obj = XPtr!(FunctionType)(ptr);
+    auto func = cast(FunctionType)(obj);
     auto result = NumericVector(data);
     
     foreach(i; parallel(iota(result.length)))
@@ -205,13 +202,13 @@ alias fType = double function(double);
 }
 "
 
-dfunctions(ptrDemo, dropFolder = FALSE)
+dfunctions(ptrDemo, dropFolder = FALSE, 
+                    moduleName = "script")
 
 x = runif(10)
 vapply(x, timesTwo, 0)
-func = getDFun()
+func = getExternalPtr("timesTwo", "script")
 applyDFunc(func, x)
-
 
 #################################################################
 
@@ -219,18 +216,21 @@ require(rutilities)
 require(saucer)
 
 
-envDemo = "
-@Export() auto envTest()
+envDemoCode = "
+@Export() auto envDemo()
 {
     auto envir = Environment(3);
-    envir.assign(\"letters\", CharacterVector([\"a\", \"b\", \"c\", \"d\"]));
-    envir.assign(\"numbers\", NumericVector([1.0, 2, 3, 4, 5, 6]));
-    envir.assign(\"bools\", LogicalVector([FALSE, TRUE, TRUE, FALSE]));
+    envir.assign(\"letters\", 
+            CharacterVector([\"a\", \"b\", \"c\", \"d\"]));
+    envir.assign(\"numbers\", 
+            NumericVector([1.0, 2, 3, 4, 5, 6]));
+    envir.assign(\"bools\", 
+            LogicalVector([FALSE, TRUE, TRUE, FALSE]));
     return envir;
 }
 "
 
-dfunctions(envDemo, dropFolder = TRUE)
+dfunctions(envDemoCode, dropFolder = TRUE)
 
 
 

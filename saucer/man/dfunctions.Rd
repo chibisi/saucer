@@ -4,7 +4,7 @@
 \alias{dfunctions}
 \title{Compile D code from string}
 \usage{
-dfunctions(codeArr, dropFolder = TRUE)
+dfunctions(codeArr, dropFolder = TRUE, folderName = NULL, moduleName = NULL)
 }
 \arguments{
 \item{code}{character containing the code to be compiled}
@@ -14,18 +14,18 @@ character array of code submitted into the code array
 }
 \description{
 Compiles and loads D code from string array, note that the desired 
-             export functions must still be marked with `@exportd()`
+             export functions must still be marked with `@Export()`
 }
 \examples{
         dfunctions("
         import std.stdio: writeln;
-        @exportd() int squared(int x)
+        @Export() int squared(int x)
         {
           x = x*x;
           writeln(\"x squared: \", x);
           return x;
         }
-        @exportd() double cubed(double x)
+        @Export() double cubed(double x)
         {
           x = x*x*x;
           writeln(\"x cubed: \", x);
