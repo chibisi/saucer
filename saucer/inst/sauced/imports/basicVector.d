@@ -930,31 +930,29 @@ if(SEXPDataTypes!(Type))
             static assert(0, "Operator " ~ op ~ " is not a comparison operator");
         }
     }
+    @property string[] names()
+    {
+        SEXP _names_ = Rf_getAttrib(this.sexp, R_NamesSymbol);
+        return getSlice!(STRSXP)(_names_, 0, LENGTH(this.sexp));
+    }
+    @property auto names(string[] _names_)
+    {
+        assert(_names_.length == LENGTH(this.sexp), 
+            "length of names not equal to length of sexp");
+        Rf_setAttrib(this.sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
+        return;
+    }
+    @property auto names(SEXP _names_)
+    {
+        auto type = TYPEOF(_names_);
+        assert(type == STRSXP, "Error no implementation of names method for type " 
+            ~ type.stringof);
+        assert(LENGTH(_names_) == LENGTH(this.sexp), 
+            "length of names not equal to length of sexp");
+        Rf_setAttrib(this.sexp, R_NamesSymbol, _names_);
+        return;
+    }
 }
-
-
-@property string[] names(SEXP sexp)
-{
-    SEXP _names_ = Rf_getAttrib(sexp, R_NamesSymbol);
-    return getSlice!(STRSXP)(_names_, 0, LENGTH(sexp));
-}
-@property auto names(SEXP sexp, string[] _names_)
-{
-    assert(_names_.length == LENGTH(sexp), "length of names not equal to length of sexp");
-    Rf_setAttrib(sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
-    return;
-}
-@property auto names(SEXP sexp, SEXP _names_)
-{
-    auto type = TYPEOF(_names_);
-    assert(type == STRSXP, "Error no implementation of names method for type " 
-        ~ type.stringof);
-    assert(LENGTH(_names_) == LENGTH(sexp), "length of names not equal to length of sexp");
-    Rf_setAttrib(sexp, R_NamesSymbol, _names_);
-    return;
-}
-
-
 
 enum bool isCmp(string op) = (op == "==") || (op == ">") || (op == "<") || 
                 (op == ">=") || (op == "<=");

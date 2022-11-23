@@ -1,8 +1,6 @@
 pkgOpts = new.env()
 
 
-
-
 #' @title Function sets option for logging
 #' 
 #' @param flag for whether functions should be verbose 

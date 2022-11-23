@@ -474,7 +474,7 @@ if(isBasicArray!(T) && isSEXP!(F))
     auto result = new string[n];
     for(long i = 0; i < n; ++i)
     {
-      result[i] = func(sexp, i);
+      result[i] = getSEXP!(STRSXP)(sexp, i);
     }
     return result;
   }

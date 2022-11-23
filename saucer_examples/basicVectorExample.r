@@ -2,7 +2,6 @@ require(rutilities)
 require(saucer)
 
 
-
 demoBasicVector = "
 @Export(\"dotProduct\") func(NumericVector x, NumericVector y)
 {

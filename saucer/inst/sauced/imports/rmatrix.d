@@ -33,8 +33,8 @@ if(SEXPDataTypes!(Type))
     this.needUnprotect = true;
   }
 
-  this(T)(T[] arr, I n_row, I n_col)
-  if(is(T == SEXPElementType!(Type)))
+  this(T, I)(T[] arr, I n_row, I n_col)
+  if(is(T == SEXPElementType!(Type)) && isIntegral!(I))
   {
     auto n = arr.length;
     assert(n == n_row*n_col, "Length of array is not equal to multiple of nrow x ncol");

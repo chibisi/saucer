@@ -99,3 +99,22 @@ import std.stdio: writeln;
     return List.init(x0, x1, x2, x3, x4);
 }
 
+
+@Export() auto listTest()
+{
+    auto result = List(4);
+    string[] listNames = ["counts", "matrix", 
+                    "strings", "numbers"];
+    result.names = listNames;
+    result[listNames[0]] = IntegerVector(1, 2, 3, 4);
+    result[listNames[1]] = NumericMatrix([1, 2, 3, 4, 5, 6., 7, 8, 9], 3, 3);
+    result[listNames[2]] = ["a", "b", "c", "d"];
+    result[listNames[3]] = NumericVector(1., 2, 3, 4, 5.5);
+    return result;
+}
+
+@Export() auto getFromList(List list, string idx)
+{
+    return list[idx];
+}
+

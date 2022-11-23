@@ -45,16 +45,16 @@
         more details.
 
 4. Update the compilation and add tests
-    - Make another run at using Dub to compile?
+    - Take another run at using Dub to compile?
     - Add compiler and compiler flag options
     - Add tests and debug the post fail-over process
 
 5. Things to implement on the D side:
-    - Environments
-    - Functions - see how to also eval these in D
+    - Environments - Done
+    - Functions - see how to also eval these in D - Done
     - Multidimensional arrays > 2D
 
-6. Multiple OS support  for Windows and Mac
+6. Multiple OS support, Linux, Windows, and Mac
 
 7. Compiling multiple files and modules
 
@@ -68,6 +68,9 @@
     func(...) obviating the need for InternalCall(...) function.
 
 13. Error handling for no return type given in `@Export()` function.
+14. Do not wrap functions where all the parameters and 
+    return types are all SEXPs.
+15. Figure out spawning/parallelisation scheme for R itself using the D interface.
 
 ## Testing
 

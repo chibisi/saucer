@@ -7,6 +7,10 @@ require(dlstats)
 
 dlData = data.table(cran_stats(c("Rcpp", "rextendr", 
             "cpp11", "JuliaCall", "JuliaConnectoR")))
+
+# dlData = data.table(cran_stats(c("nnet", "neuralnet", 
+#       "tensorflow", "torch", "deepnet", "RcppDL", "RSNNS", "h2o")))
+
 maxEnd = dlData[, max(end)]
 dlData = dlData[(end > as.Date("2018-12-31")) & (end < maxEnd), ]
 
