@@ -32,7 +32,7 @@
         - Able to do parallelism in when called in D
     - Lists
         - Basic implementation - Done
-        - Names
+        - Names - Done
         - Numbers - for DataFrame compatibility
         - Indexing for names and numbers, assign and return
     - DataFrames

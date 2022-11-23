@@ -35,3 +35,19 @@ auto isin(A: E[], E)(E element, A arr)
   }
   return false;
 }
+
+/+
+  Function to get the unique elements from an array;
++/
+auto unique(A: E[], E)(A arr)
+{
+    import std.array: array;
+    import std.algorithm.iteration: uniq;
+    return arr.uniq.array;
+}
+
+bool isUnique(A: E[], E)(A arr)
+{
+  return arr.length == (arr.unique).length;
+}
+

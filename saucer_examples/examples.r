@@ -3,6 +3,8 @@ require(saucer)
 require(rutilities)
 require(testthat)
 
+
+
 # Testing plugin style
 funcs1 = '
 @Export() auto funcA(double x)
@@ -161,5 +163,12 @@ test_that("Basic dataframe check",{
   expect_true(all(.df$V1 == 6:10))
   expect_true(all(.df$V2 == 11:15))
 })
+
+
+sauce("example2.d", dropFolder = TRUE)
+
+x = listTest()
+getFromList(x, "matrix")
+
 
 

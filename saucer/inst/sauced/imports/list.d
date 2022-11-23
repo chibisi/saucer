@@ -118,7 +118,7 @@ struct List
         }else static if(is(A == string[]))
         {
             //this._names_.length = this.length;
-            assert(lNames.length == this.length,
+            assert(isUnique(lName) && (lNames.length == this.length),
                 "Length of names submitted is not equal to list length");
             foreach(i; 0..length)
             {
