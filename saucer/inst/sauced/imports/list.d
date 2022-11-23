@@ -130,6 +130,10 @@ struct List
     }
     SEXP opIndex(string _name_)
     {
+        if(!isin(_name_, this._names_.keys))
+        {
+            return R_NilValue;
+        }
         auto i = this._names_[_name_];
         SEXP result = VECTOR_ELT(this.sexp, cast(int)i);
         return result;

@@ -24,3 +24,14 @@ auto attr(R, N)(ref R _robj_, N _name_)
 
 alias attributes = attr;
 
+auto isin(A: E[], E)(E element, A arr)
+{
+  foreach(item; arr)
+  {
+    if(item == element)
+    {
+      return true;
+    }
+  }
+  return false;
+}
