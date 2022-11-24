@@ -2,8 +2,18 @@
     Test VECTOR_PTR() for Accessor function
 +/
 
+pragma(inline, true) auto boundsCheck(I, L)(I i, L len)
+if(isIntegral!I && isIntegral!L)
+{
+    enforce(i < len, "The index i " ~ to!(string)(i) ~ 
+        " is not less than the given length " ~
+        to!(string)(len));
+}
+
+
 struct List
 {
+    import std.stdio: writeln;
     SEXP sexp;
     int[string] _names_;
     alias implicitCast this;
@@ -67,19 +77,37 @@ struct List
     SEXP opIndex(I)(I i)
     if(isIntegral!(I))
     {
-        assert((i < this.length) && (i >= 0), 
-            "Indexing bounds error");
+        
+        {
+            try
+            {
+                boundsCheck(i, this.length);
+            }catch (Exception e)
+            {
+                writeln(e);
+                return R_NilValue;
+            }
+        }
+
         return VECTOR_ELT(this.sexp, cast(int)i);
     }
     auto opIndexAssign(T, I)(T value, I i)
     if(isIntegral!(I))
     {
+        try
+        {
+            boundsCheck(i, this.length);
+        }catch(Exception e)
+        {
+            writeln(e);
+            return;
+        }
         static if(is(T == SEXP) || isRType!T)
         {
             SET_VECTOR_ELT(this.sexp, cast(int)i, value);
-        }else static if(__traits(compiles, cast(SEXP)value))
+        }else static if(__traits(compiles, To!(SEXP)(value)))
         {
-            SEXP _value_ = cast(SEXP)value;
+            SEXP _value_ = To!(SEXP)(value);
             SET_VECTOR_ELT(this.sexp, cast(int)i, _value_);
         }else{
             assert(0, "No assign overload available for type " ~ T.stringof);
@@ -104,10 +132,16 @@ struct List
     {
         static if(is(A == SEXP))
         {
-            assert((LENGTH(lNames) == this.length) &&
+            try
+            {
+                enforce((LENGTH(lNames) == this.length) &&
                     (Rf_isString(lNames)),
-                "Length of names submitted is not equal to list length");
-            //this._names_.length = this.length;
+                    "Length of names submitted is not equal to list length");
+            }catch (Exception e)
+            {
+                writeln(e);
+                return;
+            }
 
             string[] keys = getSlice!(STRSXP)(this.sexp, 0, this.length);
             foreach(i; 0..length)
@@ -117,9 +151,16 @@ struct List
             Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
         }else static if(is(A == string[]))
         {
-            //this._names_.length = this.length;
-            assert(isUnique(lName) && (lNames.length == this.length),
-                "Length of names submitted is not equal to list length");
+            try
+            {
+                enforce(isUnique(lNames) && (lNames.length == this.length),
+                    "Length of names submitted is not equal to list length");
+            }catch (Exception e)
+            {
+                writeln(e);
+                return;
+            }
+            
             foreach(i; 0..length)
             {
                 this._names_[lNames[i]] = i;
@@ -130,27 +171,34 @@ struct List
     }
     SEXP opIndex(string _name_)
     {
-        if(!isin(_name_, this._names_.keys))
+        try
         {
+            enforce(isin(_name_, this._names_.keys),
+                "Index name is not in the list names");
+        }catch (Exception e)
+        {
+            writeln(e);
             return R_NilValue;
         }
+        
         auto i = this._names_[_name_];
         SEXP result = VECTOR_ELT(this.sexp, cast(int)i);
         return result;
     }
     auto opIndexAssign(T)(T value, string _name_)
     {
-        auto i = this._names_[_name_];
-        static if(is(T == SEXP) || isRType!T)
+        try
         {
-            SET_VECTOR_ELT(this.sexp, cast(int)i, value);
-        }else static if(__traits(compiles, To!(SEXP)(value)))
+            enforce(isin(_name_, this._names_.keys),
+                "Index name is not in the list names");
+        }catch (Exception e)
         {
-            SEXP _value_ = To!(SEXP)(value);
-            SET_VECTOR_ELT(this.sexp, cast(int)i, _value_);
-        }else{
-            assert(0, "No assign overload available for type " ~ T.stringof);
+            writeln(e);
+            return;
         }
+
+        auto i = this._names_[_name_];
+        opIndexAssign(value, i);
     }
 }
 

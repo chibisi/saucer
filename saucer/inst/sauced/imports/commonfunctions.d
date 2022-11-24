@@ -46,7 +46,7 @@ auto unique(A: E[], E)(A arr)
     return arr.uniq.array;
 }
 
-bool isUnique(A: E[], E)(A arr)
+bool isUnique(A: E[], E)(auto ref A arr)
 {
   return arr.length == (arr.unique).length;
 }

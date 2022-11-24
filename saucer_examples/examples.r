@@ -1,9 +1,8 @@
 # Run this to update the saucer package
+
 require(saucer)
 require(rutilities)
 require(testthat)
-
-
 
 # Testing plugin style
 funcs1 = '
@@ -168,7 +167,8 @@ test_that("Basic dataframe check",{
 sauce("example2.d", dropFolder = TRUE)
 
 x = listTest()
-getFromList(x, "matrix")
+getByString(x, "matrix")
+getByInteger(x, 3L)
 
 
 

@@ -5,6 +5,7 @@ import std.traits: isIntegral;
 public import sauced.r2d;
 mixin(import("imports/r_aliases.d"));
 import std.string: toStringz, fromStringz;
+import std.exception: enforce;
 
 static bool RSessionInitialized = 0;
 

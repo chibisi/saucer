@@ -113,8 +113,15 @@ import std.stdio: writeln;
     return result;
 }
 
-@Export() auto getFromList(List list, string idx)
+@Export() auto getByString(List list, string idx)
 {
     return list[idx];
 }
+
+
+@Export() auto getByInteger(List list, int idx)
+{
+    return list[idx - 1];
+}
+
 
