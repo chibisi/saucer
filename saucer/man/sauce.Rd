@@ -8,7 +8,7 @@ sauce(fileNames, ...)
 }
 \arguments{
 \item{fileNames}{character vector containing the module names to 
-be compiled and loaded into the R session. Excludes the
+be compiled and loaded into the R session. Includes the
 ".d" extension (for now)
 TODO: this functionality requires more work}
 

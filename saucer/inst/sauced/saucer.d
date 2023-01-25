@@ -206,6 +206,7 @@ mixin(import("imports/rmatrix.d"));
 
 mixin(import("imports/function.d"));
 mixin(import("imports/list.d"));
+mixin(import("imports/dataframe.d"));
 mixin(import("imports/xptr.d"));
 mixin(import("imports/environment.d"));
 

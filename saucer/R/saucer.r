@@ -294,7 +294,7 @@ extractModuleNames = function(fileNames, extn = "d")
 #'        to be exported, other files given are supporting files
 #' 
 #' @param fileNames character vector containing the module names to 
-#'        be compiled and loaded into the R session. Excludes the
+#'        be compiled and loaded into the R session. Includes the
 #'        ".d" extension (for now)
 #'        TODO: this functionality requires more work        
 #' @param folderName  a character containing the name of the

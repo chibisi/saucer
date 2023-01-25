@@ -9,5 +9,5 @@ Description: Package that allows the user to call functions in D scripts from R
 License: Proprietary
 URL: https://www.active-analytics.com
 ByteCompile: TRUE
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Encoding: UTF-8
