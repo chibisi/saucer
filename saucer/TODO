@@ -46,6 +46,7 @@
 
 4. Update the compilation and add tests
     - Take another run at using Dub to compile?
+    - Make sure that compiling multiple files and dependencies works
     - Add compiler and compiler flag options
     - Add tests and debug the post fail-over process
 
