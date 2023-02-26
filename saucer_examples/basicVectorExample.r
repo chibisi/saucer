@@ -1,6 +1,3 @@
-require(rutilities)
-require(saucer)
-
 
 demoBasicVector = "
 @Export(\"dotProduct\") func(NumericVector x, NumericVector y)
@@ -16,13 +13,11 @@ demoBasicVector = "
 }
 "
 
-
-dfunctions(demoBasicVector, dropFolder = TRUE)
+saucer::dfunctions(demoBasicVector, dropFolder = TRUE)
 
 x = runif(100); y = runif(100);
 dotProduct(x, y) == sum(x*y)
-
-approxEqual(dotProduct(x, y), sum(x*y))
+rutilities::approxEqual(dotProduct(x, y), sum(x*y))
 
 
 # dmd script_8w23i01y6vbu.d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=. -fPIC -L-fopenmp -L-lR -L-lRmath
@@ -60,7 +55,7 @@ import std.stdio: writeln;
 }
 "
 
-dfunctions(demoCreateVector, dropFolder = TRUE)
+saucer::dfunctions(demoCreateVector, dropFolder = TRUE)
 makeVector(100L)
 simulateDot(10L)
 
@@ -72,7 +67,7 @@ demoVariadicD = "
 }
 "
 
-dfunctions(demoVariadicD)
+saucer::dfunctions(demoVariadicD)
 variadic()
 
 demoMatrixA = "
@@ -90,7 +85,7 @@ demoMatrixA = "
 }
 "
 
-dfunctions(demoMatrixA)
+saucer::dfunctions(demoMatrixA)
 helloMatrix(5L, 4L)
 
 demoMatrixB = "
@@ -108,7 +103,7 @@ demoMatrixB = "
 }
 "
 
-dfunctions(demoMatrixB)
+saucer::dfunctions(demoMatrixB)
 helloMatrix(10L, 6L)
 
 
@@ -126,7 +121,7 @@ demoGetCol = "
 }
 "
 
-dfunctions(demoGetCol)
+saucer::dfunctions(demoGetCol)
 rmat = matrix(runif(60), ncol = 6)
 all(rmat[,3] == getCol(rmat, 3L))
 
@@ -134,9 +129,6 @@ newCol = runif(10)
 setCol(rmat, 4L, newCol)
 all(rmat[,4] == newCol)
 
-
-require(rutilities)
-require(saucer)
 
 dotDemo = "
 @Export(\"dot\") auto func(NumericVector x, NumericVector y)
@@ -152,19 +144,16 @@ dotDemo = "
 }
 "
 
-dfunctions(dotDemo)
+saucer::dfunctions(dotDemo)
 
 x = runif(10)
 y = runif(10)
-approxEqual(dot(x, y), sum(x*y))
+rutilities::approxEqual(dot(x, y), sum(x*y))
 # TRUE
 
 #################################################################
 
-require(rutilities)
-require(saucer)
-
-sauce("simpleDE.d")
+saucer::sauce("simpleDE.d")
 
 deOptimize(50L, 200L, rep(-100, 5), 
         rep(100, 5), c(0.9, 0.5))
@@ -172,9 +161,6 @@ deOptimize(50L, 200L, rep(-100, 5),
 # dlls  = getLoadedDLLs()
 
 #################################################################
-
-require(rutilities)
-require(saucer)
 
 ptrDemo = "
 
@@ -201,19 +187,15 @@ extern(C) @Export() double timesTwo(double x)
 }
 "
 
-dfunctions(ptrDemo, dropFolder = FALSE, 
+saucer::dfunctions(ptrDemo, dropFolder = TRUE, 
                     moduleName = "script")
 
 x = runif(10)
 vapply(x, timesTwo, 0)
-func = getExternalPtr("timesTwo", "script")
+func = saucer::getExternalPtr("timesTwo", "script")
 applyDFunc(func, x)
 
 #################################################################
-
-require(rutilities)
-require(saucer)
-
 
 envDemoCode = "
 @Export() auto envDemo()
@@ -229,9 +211,10 @@ envDemoCode = "
 }
 "
 
-dfunctions(envDemoCode, dropFolder = TRUE)
+saucer::dfunctions(envDemoCode, dropFolder = TRUE)
 
-
-
-
+myEnv = envDemo()
+myEnv$letters
+myEnv$numbers
+myEnv$bools
 

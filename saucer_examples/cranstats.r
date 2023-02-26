@@ -134,3 +134,9 @@ plot(plotStats(nnData, minDate = "2018-01-01", doLog = TRUE))
 
 #===========================================================================#
 
+langPkgs = c("Rcpp", "rextendr", "cpp11", "JuliaCall", "JuliaConnectoR")
+langData = getData(langPkgs)
+langPlot = plotStats(langData, minDate = "2018-01-01", doLog = TRUE)
+writeChart(langPlot, fileName = "langPackage.png", func = png, 
+        width = 16, height = 8, units = "in", res = 400)
+

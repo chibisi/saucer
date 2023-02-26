@@ -26,7 +26,7 @@ The first file given is the main file containing functions
 \examples{
 
 # require(saucer)
-# sauce("script", dropFolder = TRUE)
+# sauce("script.d", dropFolder = TRUE)
 # 
 # x = seq(1.0, 10.0, by = 0.5); y = seq(1.0, 10.0, by = 0.5)
 # generate_numbers(as.integer(100))

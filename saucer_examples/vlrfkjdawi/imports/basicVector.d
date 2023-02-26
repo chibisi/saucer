@@ -46,7 +46,6 @@ SEXP mkString(string value)
     auto element = Rf_mkCharLen(_ptr_, n);
     SEXP* ps = STRING_PTR(result);
 	ps[0] = element;
-    unprotect(1);
     return result;
 }
 
