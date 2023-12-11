@@ -7,6 +7,7 @@ alias NumericMatrix = RMatrix!(REALSXP);
 alias IntegerMatrix = RMatrix!(INTSXP);
 alias ComplexMatrix = RMatrix!(CPLXSXP);
 alias CharacterMatrix = RMatrix!(STRSXP);
+alias StringMatrix = CharacterMatrix;
 alias LogicalMatrix = RMatrix!(LGLSXP);
 alias RawMatrix = RMatrix!(RAWSXP);
 
@@ -26,14 +27,14 @@ if(SEXPDataTypes!(Type))
 
   alias implicitCast this;
   
-  this(T)(T n_row, T n_col)
+  this(T)(T n_row, T n_col) @trusted
   if(isIntegral!(T))
   {
     this.sexp = protect(allocMatrix(Type, cast(int)n_row, cast(int)n_col));
     this.needUnprotect = true;
   }
 
-  this(T, I)(T[] arr, I n_row, I n_col)
+  this(T, I)(T[] arr, I n_row, I n_col) @trusted
   if(is(T == SEXPElementType!(Type)) && isIntegral!(I))
   {
     auto n = arr.length;
@@ -54,9 +55,9 @@ if(SEXPDataTypes!(Type))
   /*
     Here we assume that sexp is already protected
   */
-  this(SEXP sexp)
+  this(SEXP sexp) @trusted
   {
-    assert(Type == TYPEOF(sexp), 
+    assert((Type == TYPEOF(sexp)) && isMatrix(sexp), 
       "Type of input is not the same of SEXPTYPE type submitted");
     this.sexp = sexp;
   }
@@ -68,7 +69,7 @@ if(SEXPDataTypes!(Type))
     copyMatrix(this.sexp, original.sexp, FALSE);
   }
     
-  ~this()
+  ~this() @trusted
   {
     unprotect;
   }
@@ -88,26 +89,26 @@ if(SEXPDataTypes!(Type))
   }
   
   pragma(inline, true)
-  size_t nrows() const
+  size_t nrows() const @trusted
   {
     /* Cast away the const assume that nrow is okay to run */
     return Rf_nrows(cast(SEXP)sexp);
   }
 
   pragma(inline, true)
-  size_t ncols() const
+  size_t ncols() const @trusted
   {
     /* Cast away the const assume that nrow is okay to run */
     return Rf_ncols(cast(SEXP)sexp);
   }
 
   pragma(inline, true)
-  @property size_t length() const
+  @property size_t length() const @trusted
   {
       return LENGTH(cast(SEXP)this.sexp);
   }
   pragma(inline, true)
-  @property auto length(T)(T n)
+  @property auto length(T)(T n) @trusted
   if(isIntegral!(T))
   {
       SETLENGTH(this.sexp, cast(int)n);
@@ -117,20 +118,19 @@ if(SEXPDataTypes!(Type))
     Unprotect on casting back to SEXP
   */
   pragma(inline, true)
-  SEXP opCast(T: SEXP)()
+  SEXP opCast(T: SEXP)() @trusted
   {
-    //unprotect();
-    return sexp;
+    return this.sexp;
   }
   /*
     Wrapper for alias this
   */
   pragma(inline, true)
-  SEXP implicitCast()
+  SEXP implicitCast() @system
   {
-    return opCast!(SEXP)();
+    return this.sexp;
   }
-  T opCast(T: SEXPElementType!(Type)[])()
+  T opCast(T: SEXPElementType!(Type)[])() @trusted
   {
     auto n = this.length;
     static if(Type != STRSXP)
@@ -145,7 +145,7 @@ if(SEXPDataTypes!(Type))
       return result;
     }
   }
-  T opCast(T: SEXPElementType!(Type))()
+  T opCast(T: SEXPElementType!(Type))() @trusted
   {
     assert(this.length == 1, "Cannot cast to basic type " ~ 
         SEXPElementType!(Type).stringof ~ 
@@ -157,12 +157,20 @@ if(SEXPDataTypes!(Type))
       return getSEXP!(Type)(this.sexp, 0);
     }
   }
+  //T opCast(T: RVector!(Type))() @trusted
+  //{
+  //  return RVector!(Type)(this.sexp);
+  //}
+  auto asVector() @trusted
+  {
+    return RVector!(Type)(this.sexp);
+  }
   pragma(inline, true)
-  size_t getIndex(size_t i, size_t j) const
+  size_t getIndex(size_t i, size_t j) const @trusted
   {
     return i + nrows*j;
   }
-  auto opIndex(I)(I i, I j)
+  auto opIndex(I)(I i, I j) @trusted
   if(isIntegral!(I))
   {
     static if(Type != STRSXP)
@@ -172,7 +180,7 @@ if(SEXPDataTypes!(Type))
       return getSEXP(this.sexp, getIndex(i, j));
     }
   }
-  auto opIndexUnary(string op, I)(I i, I j)
+  auto opIndexUnary(string op, I)(I i, I j) @trusted
   if(isIntegral!(I))
   {
     static if(Type != STRSXP)
@@ -183,7 +191,7 @@ if(SEXPDataTypes!(Type))
       mixin ("return " ~ op ~ "element;");
     }
   }
-  auto opIndexAssign(T, I)(auto ref T value, I i, I j) 
+  auto opIndexAssign(T, I)(auto ref T value, I i, I j) @trusted
   if(isIntegral!(I))
   {
     auto idx = getIndex(i, j);
@@ -202,7 +210,7 @@ if(SEXPDataTypes!(Type))
     }
     return value;
   }
-  auto opIndexOpAssign(string op, T, I)(auto ref T value, I i, I j)
+  auto opIndexOpAssign(string op, T, I)(auto ref T value, I i, I j) @trusted
   if(isIntegral!(I))
   {
     auto idx = getIndex(i, j);
@@ -221,14 +229,14 @@ if(SEXPDataTypes!(Type))
       return this.ptr[idx];
     }
   }
-  auto colIndices(I)(I i)
+  auto colIndices(I)(I i) @system
   if(isIntegral!(I))
   {
     auto from = getIndex(0, i);
     auto to = getIndex(this.nrows - 1, i) + 1;
     return [from, to];
   }
-  RVector!(Type) opIndex(I)(I j)
+  RVector!(Type) opIndex(I)(I j) @trusted
   if(isIntegral!(I))
   {
     auto range = colIndices!(I)(j);
@@ -245,7 +253,7 @@ if(SEXPDataTypes!(Type))
     }
     return result;
   }
-  auto opIndexAssign(J)(RVector!(Type) vec, J j)
+  auto opIndexAssign(J)(RVector!(Type) vec, J j) @trusted
   if(isIntegral!(J))
   {
     auto range = colIndices!(J)(j);
@@ -261,7 +269,7 @@ if(SEXPDataTypes!(Type))
     }
     return;
   }
-  auto colView(J)(J j)
+  auto colView(J)(J j) @trusted
   if(isIntegral!(J))
   {
     auto idx = getIndex(0, j);

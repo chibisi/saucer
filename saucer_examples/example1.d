@@ -14,6 +14,9 @@ import std.algorithm.sorting: sort;
   .Call("vdmul", x, y)
 */
 
+/*
+  While R's C API is available, working with it directly is discouraged
+*/
 @Export() SEXP generate_numbers(SEXP n_ptr)
 {
   assert(LENGTH(n_ptr) == 1, "There should just be 1 items.");
@@ -30,84 +33,94 @@ import std.algorithm.sorting: sort;
   return result;
 }
 
-
-@Export("dot_product") SEXP dot(SEXP x_sexp, SEXP y_sexp)
+@Export() auto dot_sexp(SEXP x_sexp, SEXP y_sexp) @safe
 {
-  size_t n = LENGTH(x_sexp);
-  assert(n == LENGTH(y_sexp), "Lengths of the input arrays are not equal");
+  auto x = NumericVector(x_sexp);
+  auto y = NumericVector(y_sexp);
+
+  auto n = x.length;
+  assert(n == y.length, "Lengths of the input arrays are not equal");
   
-  auto x = RVector!(REALSXP)(x_sexp);
-  auto y = RVector!(REALSXP)(y_sexp);
-  auto result = RVector!(REALSXP)(1);
+  auto result = NumericVector(1);
   
   for(long i = 0; i < n; ++i)
   {
     result[0] += x[i]*y[i];
   }
-  
   return result;
 }
 
 
-@Export() SEXP vdmul(SEXP x_sexp, SEXP y_sexp)
+@Export("dot_product") auto dot(NumericVector x, NumericVector y) @safe
 {
-  size_t n = LENGTH(x_sexp);
-  assert(n == LENGTH(y_sexp), "Lengths of the input arrays are not equal");
-  auto result_vector = RVector!(REALSXP)(n);
-  auto x = RVector!(REALSXP)(x_sexp);
-  auto y = RVector!(REALSXP)(y_sexp);
+  auto n = x.length;
+  assert(n == y.length, "Lengths of the input arrays are not equal");
+  
+  auto result = NumericVector(1);
+  
   for(long i = 0; i < n; ++i)
   {
-    result_vector[i] = x[i]*y[i];
+    result[0] += x[i]*y[i];
   }
-  //implicit cast to SEXP
-  return result_vector;
+  return result;
 }
 
-@Export() SEXP outer_prod_serial(SEXP x, SEXP y)
+
+
+@Export() auto vdmul(NumericVector x, NumericVector y) @safe
 {
-  size_t n_row = LENGTH(x);
-  size_t n_col = LENGTH(y);
-  auto result = RMatrix!(REALSXP)(n_row, n_col);
-  auto x_vec = RVector!(REALSXP)(x);
-  auto y_vec = RVector!(REALSXP)(y);
+  size_t n = x.length;
+  assert(n == y.length, "Lengths of the input arrays are not equal");
+  auto result = NumericVector(n);
+  for(long i = 0; i < n; ++i)
+  {
+    result[i] = x[i]*y[i];
+  }
+  return result;
+}
+
+@Export() auto outer_prod_serial(NumericVector x, NumericVector y) @safe
+{
+  size_t n_row = x.length;
+  size_t n_col = y.length;
+  auto result = NumericMatrix(n_row, n_col);
 
   for(long i = 0; i < n_row; ++i)
   {
     for(long j = 0; j < n_col; ++j)
     {
-      result[i, j] = x_vec[i]*y_vec[j];
+      result[i, j] = x[i] * y[j];
     }
   }
   
   return result;
 }
 
-@Export() SEXP outer_prod_parallel(SEXP x, SEXP y)
+@Export() auto outer_prod_parallel(NumericVector x, NumericVector y)
 {
   import std.parallelism: taskPool, parallel;
   import std.range: iota;
 
-  size_t n_row = LENGTH(x);
-  size_t n_col = LENGTH(y);
-  auto result = RMatrix!(REALSXP)(n_row, n_col);
-  auto x_vec = RVector!(REALSXP)(x);
-  auto y_vec = RVector!(REALSXP)(y);
+  long n_row = x.length;
+  long n_col = y.length;
+  auto result = NumericMatrix(n_row, n_col);
   
-  foreach(long j; iota(0, n_col))
+  auto idxs = iota(0, n_col);
+  //Naked use of parallel is not safe
+  foreach(long j; taskPool.parallel(idxs, 5))
   {
     for(long i = 0; i < n_row; ++i)
     {
-      result[i, j] = x_vec[i]*y_vec[j];
+      result[i, j] = x[i]*y[j];
     }
   }
   return result;
 }
 
-@Export() SEXP sexp_check()
+@Export() auto sexp_check() @safe
 {
-  RVector!(REALSXP) myRVector;
-  RMatrix!(INTSXP) myRMatrix;
+  NumericVector myRVector;
+  IntegerVector myRMatrix;
   
   //import std.conv: to;
   import std.stdio: writeln;
@@ -122,16 +135,14 @@ import std.algorithm.sorting: sort;
   
   writeln("For isRType!(myRVector) (true): ", isRType!(myRVector));
   writeln("For isRType!(myRMatrix) (true): ", isRType!(myRMatrix));
-  auto result = RVector!(INTSXP)(1);
-  result[0] = 42;
-  return cast(SEXP)(result);
+  return;
 }
 
-@Export() SEXP outer_prod_types(RVector!(REALSXP) x, RVector!(REALSXP) y)
+@Export() auto outer_prod_types(NumericVector x, NumericVector y) @safe
 {
   size_t n_row = x.length;
   size_t n_col = y.length;
-  auto result = RMatrix!(REALSXP)(n_row, n_col);
+  auto result = NumericMatrix(n_row, n_col);
 
   for(long i = 0; i < n_row; ++i)
   {
@@ -144,7 +155,7 @@ import std.algorithm.sorting: sort;
   return result;
 }
 
-@Export() double[] multiply_arr(double[] x, double[] y)
+@Export() double[] multiply_arr(double[] x, double[] y) @safe
 {
   auto n = x.length;
   assert(n == y.length, "Lengths of x and y not equal");
@@ -158,7 +169,7 @@ import std.algorithm.sorting: sort;
 }
 
 
-@Export() double dot_type(double[] x, double[] y)
+@Export() double dot_type(double[] x, double[] y) @safe
 {
   assert(x.length == y.length, "Lengths of x and y not equal");
   double result = 0;
@@ -173,17 +184,15 @@ import std.algorithm.sorting: sort;
 /*
   Testing string types
 */
-@Export() auto test_strsxp(RVector!(STRSXP) x)
+@Export() auto test_strsxp(StringVector x) @safe
 {
   for(long i = 0; i < x.length; ++i)
   {
     x[i] = "Hello World";
   }
-  //import std.stdio: writeln;
-  //writeln("x: ", x, "\n");
   return x;
 }
-@Export() auto test_string(string[] x)
+@Export() auto test_string(string[] x) @safe
 {
   for(long i = 0; i < x.length; ++i)
   {
@@ -191,9 +200,9 @@ import std.algorithm.sorting: sort;
   }
   return x;
 }
-@Export() auto create_string_vector(size_t n)
+@Export() auto create_string_vector(size_t n) @safe
 {
-  auto result = RVector!(STRSXP)(n);
+  auto result = StringVector(n);
   for(long i = 0; i < n; ++i)
   {
     result[i] = "New String";
@@ -201,9 +210,9 @@ import std.algorithm.sorting: sort;
   return result;
 }
 
-@Export() auto create_string_matrix(size_t nrow, size_t ncol)
+@Export() auto create_string_matrix(size_t nrow, size_t ncol) @safe
 {
-  auto result = RMatrix!(STRSXP)(nrow, ncol);
+  auto result = StringMatrix(nrow, ncol);
   for(long i = 0; i < nrow; ++i)
   {
     for(long j = 0; j < ncol; ++j)
@@ -214,9 +223,9 @@ import std.algorithm.sorting: sort;
   return result;
 }
 
-@Export() auto create_integer_vector(size_t n)
+@Export() auto create_integer_vector(size_t n) @safe
 {
-  auto result = RVector!(INTSXP)(n);
+  auto result = IntegerVector(n);
   for(long i = 0; i < n; ++i)
   {
     result[i] = i;
@@ -284,7 +293,7 @@ auto which(T)(T[] x, T[] levels)
   return result;
 }
 
-@Export() auto create_d_factor(RVector!(INTSXP) arr)
+@Export() auto create_d_factor(IntegerVector arr)
 {
   int[] _arr_ = To!(int[])(cast(SEXP)arr);
   auto _levels_ = sort_unique(_arr_);
@@ -298,9 +307,9 @@ auto which(T)(T[] x, T[] levels)
 
 
 
-@Export("makeRaw") auto make_raw(int n)
+@Export("makeRaw") auto make_raw(int n) @safe
 {
-  auto result = RVector!(RAWSXP)(n);
+  auto result = RawVector(n);
   foreach(i; 0..n)
   {
     result[i] = cast(ubyte)i;

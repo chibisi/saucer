@@ -1170,7 +1170,7 @@ struct Rboolean
 {
     int _data_;
     alias _data_ this;
-    this(int value)
+    this(int value) @trusted
     {
         if(value == 0)
         {
@@ -1179,7 +1179,7 @@ struct Rboolean
             this._data_ = 1;
         }
     }
-    auto opAssign(bool value)
+    auto opAssign(bool value) @trusted
     {
         if(!value)
         {
@@ -1188,7 +1188,7 @@ struct Rboolean
             _data_ = 1;
         }
     }
-    string toString()
+    string toString() @trusted
     {
         if(_data_ == 0)
         {
@@ -1196,6 +1196,10 @@ struct Rboolean
         }else{
             return "TRUE";
         }
+    }
+    bool opCast(T: bool)() const @trusted
+    {
+        return cast(bool)_data_;
     }
 }
 

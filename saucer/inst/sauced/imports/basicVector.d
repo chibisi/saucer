@@ -8,6 +8,7 @@ alias LogicalVector = RVector!(LGLSXP);
 alias RawVector = RVector!(RAWSXP);
 alias ComplexVector = RVector!(CPLXSXP);
 alias CharacterVector = RVector!(STRSXP);
+alias StringVector = CharacterVector;
 
 /*
     Template for non-string datatypes
@@ -208,11 +209,11 @@ if(SEXPDataTypes!(Type))
             needUnprotect = false;
         }
     }
-    @property size_t length() const
+    @property size_t length() const @trusted
     {
         return LENGTH(cast(SEXP)this.sexp);
     }
-    @property auto length(T)(T n)
+    @property auto length(T)(T n) @trusted
     if(isIntegral!(T))
     {
         SETLENGTH(this.sexp, cast(int)n);
@@ -244,13 +245,13 @@ if(SEXPDataTypes!(Type))
     /*
         Contructors
     */
-    this(T)(T n)
+    this(T)(T n) @trusted
     if(isIntegral!(T))
     {
         this.sexp = protect(allocVector(Type, cast(int)n));
         this.needUnprotect = true;
     }
-    this(T)(T value)
+    this(T)(T value) @trusted
     if(is(T == ElType) && !isIntegral!(T))
     {
         this.sexp = protect(allocVector(Type, 1));
@@ -262,7 +263,7 @@ if(SEXPDataTypes!(Type))
             Accessor!(Type)(this.sexp)[0] = value;
         }
     }
-    this(T)(T[] arr...)
+    this(T)(T[] arr...) @trusted
     if(is(T == ElType))
     {
         auto n = arr.length;
@@ -281,15 +282,16 @@ if(SEXPDataTypes!(Type))
     /*
         Here we assume that SEXP are already protected
     */
-    this(T)(T sexp)
+    this(T)(T sexp) @trusted
     if(is(T == SEXP))
     {
-        assert(Type == TYPEOF(sexp), 
+        assert((Type == TYPEOF(sexp)) && isVector(sexp), 
             "Type of input is not the same as SEXPTYPE Type submitted");
-        this.sexp = sexp;
+        this.sexp = protect(sexp);
+        this.needUnprotect = true;
     }
     /* For logical implicit from bool array */
-    this(T)(T[] arr...)
+    this(T)(T[] arr...) @trusted
     if(is(T == bool))
     {
         static assert(Type == LGLSXP, "Wrong SEXP given :" ~ 
@@ -304,7 +306,7 @@ if(SEXPDataTypes!(Type))
         }
     }
     /* Using R's boolean */
-    this(T)(T[] arr...)
+    this(T)(T[] arr...) @trusted
     if(is(T == Rboolean))
     {
         static assert(Type == LGLSXP, "Wrong SEXP given :" ~ 
@@ -315,7 +317,7 @@ if(SEXPDataTypes!(Type))
         Accessor!(LGLSXP)(this.sexp)[0..n] = (cast(int*)arr.ptr)[0..n];
     }
     /* Copy constructor */
-    this(ref return scope RVector original)
+    this(ref return scope RVector original) @trusted
     {
         int n = cast(int)original.length;
         this.sexp = protect(allocVector(Type, cast(int)n));
@@ -326,12 +328,11 @@ if(SEXPDataTypes!(Type))
     //disable const copy for now
     //@disable this(ref const(typeof(this)));
 
-    ~this()
+    ~this() @trusted
     {
-
         this.unprotect;
     }
-    string toString()
+    string toString() @trusted
     {
         string result = "RVector!(" ~ Type.stringof ~ ")(";
         auto n = this.length;
@@ -353,37 +354,37 @@ if(SEXPDataTypes!(Type))
         return result;
     }
     pragma(inline, true)
-    T opCast(T: SEXP)()
+    T opCast(T: SEXP)() @trusted
     {
         return this.sexp;
     }
-    @property SEXP implicitCast()
+    @property SEXP implicitCast() @system
     {
         return cast(SEXP)this;
     }
-    T opCast(T: ElType)()
+    T opCast(T: ElType)() @trusted
     {
         assert(this.length == 1, "Cannot cast to basic Type " ~ 
             ElType.stringof ~ 
             "length is not equal to 1");
         return this[0];
     }
-    T opCast(T: ElType[])()
+    T opCast(T: ElType[])() @trusted
     {
         auto n = this.length;
         return getSlice!(Type)(this.sexp, 0, n);
     }
-    auto opDollar()
+    auto opDollar() @trusted
     {
         return this.length();
     }
     pragma(inline, true)
-    ElType opIndex(size_t i)
+    ElType opIndex(size_t i) @trusted
     {
         return getSEXP!(Type)(this.sexp, i);
     }
     /* Generates a copy for now */
-    RVector opUnary(string op)()
+    RVector opUnary(string op)() @trusted
     {
         auto n = this.length;
         auto arr = getSlice!(Type)(this.sexp, 0, n);
@@ -392,13 +393,13 @@ if(SEXPDataTypes!(Type))
         mixin("result[] = " ~ op ~ "arr[];");
         return RVector!(Type)(result);
     }
-    auto opIndexUnary(string op)(size_t i) 
+    auto opIndexUnary(string op)(size_t i) @trusted
     {
         auto result = this[i];
         mixin ("result = " ~ op ~ "result;");
         return result;
     }
-    ElType opIndexAssign(T)(auto ref T value, size_t i)
+    ElType opIndexAssign(T)(auto ref T value, size_t i) @trusted
     {
         static if(is(T == ElType))
         {
@@ -413,7 +414,7 @@ if(SEXPDataTypes!(Type))
                 " RVector!(" ~ Type.stringof ~ ").");
         }
     }
-    auto opIndexOpAssign(string op, T)(auto ref T value, size_t i)
+    auto opIndexOpAssign(string op, T)(auto ref T value, size_t i) @trusted
     {
         static if((Type != STRSXP) && is(T == ElType))
         {
@@ -439,7 +440,7 @@ if(SEXPDataTypes!(Type))
                 " RVector!(" ~ Type.stringof ~ ").");
         }
     }
-    auto ref RVector opOpAssign(string op, T)(T value) return
+    auto ref RVector opOpAssign(string op, T)(T value) @trusted return
     {
         static if(is(T == ElType))
         {
@@ -575,11 +576,11 @@ if(SEXPDataTypes!(Type))
         return this;
     }
 
-    RVector opSlice()
+    RVector opSlice() @trusted
     {
         return RVector!(Type)(this);
     }
-    RVector opSlice(size_t i, size_t j)
+    RVector opSlice(size_t i, size_t j) @trusted
     {
         assert(j >= i, 
             "opSlice error, the second index is not" ~ 
@@ -597,7 +598,7 @@ if(SEXPDataTypes!(Type))
             return result;
         }
     }
-    RVector opBinary(string op, T)(T value)
+    RVector opBinary(string op, T)(T value) @trusted
     {
         auto result = RVector!(Type)(this);
         auto n = result.length;
@@ -721,11 +722,11 @@ if(SEXPDataTypes!(Type))
         }
         return result;
     }
-    auto opBinaryRight(string op, T)(T value)
+    auto opBinaryRight(string op, T)(T value) @trusted
     {
         return opBinary!(op, T)(value);
     }
-    auto opSliceAssign(T)(T value, size_t i, size_t j)
+    auto opSliceAssign(T)(T value, size_t i, size_t j) @trusted
     {
         if(i == j)
         {
@@ -789,11 +790,11 @@ if(SEXPDataTypes!(Type))
             return RVector!(Type)(this.ptr[i..j]);
         }
     }
-    auto opSliceAssign(T)(T value)
+    auto opSliceAssign(T)(T value) @trusted
     {
         return opSliceAssign!(T)(value, 0, this.length);
     }
-    RVector opSliceOpAssign(string op, T)(T value, size_t i, size_t j)
+    RVector opSliceOpAssign(string op, T)(T value, size_t i, size_t j) @trusted
     {
         if(i == j)
         {
@@ -878,7 +879,7 @@ if(SEXPDataTypes!(Type))
         }
         return this[i..j];
     }
-    auto opSliceOpAssign(string op, T)(T value)
+    auto opSliceOpAssign(string op, T)(T value) @trusted
     {
         return opSliceOpAssign!(op, T)(value, 0, this.length);
     }
@@ -900,11 +901,11 @@ if(SEXPDataTypes!(Type))
     {
         return Rf_getAttrib(this.sexp, RVector!(STRSXP)(symbol));
     }
-    bool opEquals(RVector arr)
+    bool opEquals(RVector arr) @trusted
     {
         return this.data == arr.data;
     }
-    auto eq(RVector arr)
+    auto eq(RVector arr) @trusted
     {
         auto n = arr.length;
         assert(this.length == n, "Legnths of vector comparisons differ");
@@ -915,7 +916,7 @@ if(SEXPDataTypes!(Type))
         }
         return result;
     }
-    auto cmp(string op)(RVector arr)
+    auto cmp(string op)(RVector arr) @trusted
     {
         static if(isCmp!op)
         {
@@ -931,19 +932,19 @@ if(SEXPDataTypes!(Type))
             static assert(0, "Operator " ~ op ~ " is not a comparison operator");
         }
     }
-    @property string[] names()
+    @property string[] names() @trusted
     {
         SEXP _names_ = Rf_getAttrib(this.sexp, R_NamesSymbol);
         return getSlice!(STRSXP)(_names_, 0, LENGTH(this.sexp));
     }
-    @property auto names(string[] _names_)
+    @property auto names(string[] _names_) @trusted
     {
         assert(_names_.length == LENGTH(this.sexp), 
             "length of names not equal to length of sexp");
         Rf_setAttrib(this.sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
         return;
     }
-    @property auto names(SEXP _names_)
+    @property auto names(SEXP _names_) @trusted
     {
         auto type = TYPEOF(_names_);
         assert(type == STRSXP, "Error no implementation of names method for type " 
@@ -968,7 +969,7 @@ if(isRType!U)
 }
 
 
-bool all(T)(auto ref T vec)
+bool all(T)(auto ref T vec) @trusted
 if(is(T == LogicalVector))
 {
     int total = 0;
@@ -981,7 +982,7 @@ if(is(T == LogicalVector))
 }
 
 
-auto ref rep(SEXPTYPE Type, T, I)(auto ref T element, auto ref I times)
+auto ref rep(SEXPTYPE Type, T, I)(auto ref T element, auto ref I times) @trusted
 if(is(T == SEXPElementType!(Type)) && isIntegral!(I))
 {
     auto result = RVector!(Type)(times);
@@ -999,7 +1000,7 @@ if(is(T == SEXPElementType!(Type)) && isIntegral!(I))
 }
 
 
-auto seq(SEXPTYPE Type, T)(T from, T to, T by = 1)
+auto seq(SEXPTYPE Type, T)(T from, T to, T by = 1) @trusted
 if(is(T == SEXPElementType!(Type)))
 {
     import std.range: iota;
@@ -1021,7 +1022,7 @@ if(is(T == SEXPElementType!(Type)))
     of the original vector unchanged.
 +/
 auto order(SEXPTYPE Type)(RVector!(Type) arr, 
-            Rboolean decreasing = FALSE)
+            Rboolean decreasing = FALSE) @trusted
 {
     auto n = cast(int)arr.length;
     auto result = seq!(INTSXP)(0, n);

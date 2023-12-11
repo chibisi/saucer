@@ -1,5 +1,5 @@
 # require(rutilities)
-# update_package("saucer")
+# rutilities::updatePackage("saucer")
 
 # Note: When building R use: 
 # sudo ./configure --enable-R-shlib --enable-shared --enable-static --enable-memory-profiling --enable-lto --enable-prebuilt-html # --build
