@@ -1072,7 +1072,7 @@ auto InternalCall0(Args...)(string fName, Args args)
     which are coerable to SEXP with the To!(SEXP)(...) template 
     function
 +/
-auto InternalCall(Args...)(string fName, Args args)
+auto InternalCall(Args...)(string fName, Args args) @system
 {
     enum nargs = Args.length;
     SEXP call, arg;

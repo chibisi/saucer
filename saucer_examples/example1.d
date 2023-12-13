@@ -155,6 +155,13 @@ import std.algorithm.sorting: sort;
   return result;
 }
 
+@Export() auto out_of_bounds(NumericVector x) @safe
+{
+  return x[x.length];
+}
+
+
+
 @Export() double[] multiply_arr(double[] x, double[] y) @safe
 {
   auto n = x.length;

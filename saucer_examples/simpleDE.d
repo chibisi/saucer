@@ -228,7 +228,7 @@ auto func01(NumericVector parameters)
             best = value;
         }
     }
-    auto result = List.init(cast(int)best.index, best.value, 
+    auto result = List(cast(int)best.index, best.value, 
                 population[best.index], population);
     result.names = ["bestIndex", "bestValue", "bestIndividual", 
             "population"];

@@ -76,7 +76,19 @@ struct Export
 mixin(import("imports/cstring.d"));
 mixin(import("imports/isin.d"));
 
-alias print = Rf_PrintValue;
+
+//Prints RTypes & SEXPs
+auto print(T...)(T x)
+if(isSEXPOrRType!(T) && (T.length == 1))
+{
+  static if(isSEXP!(T))
+  {
+    Rf_PrintValue(x);
+  }else{
+    Rf_PrintValue(To!SEXP(x));
+  }
+  return;
+}
 
 
 //SEXPTYPE definitions
@@ -214,6 +226,35 @@ mixin(import("imports/environment.d"));
 mixin(import("imports/commonfunctions.d"));
 
 /*
+  Checks that Type Start can be converted to End.
+*/
+template isConvertibleTo(Start, End, alias Converter)
+{
+  Start start;
+  enum isConvertibleTo = __traits(compiles, Converter!End(start));
+}
+
+/*
+  Extends a Template for a single case to one for multiple cases.
+*/
+template CreateMultipleCase(string TemplateName)
+{
+  enum CreateMultipleCase = "template " ~ TemplateName ~ "(T...)\n" ~
+  "if(T.length > 1)
+  {
+    enum " ~ TemplateName ~ " = " ~ TemplateName ~ "!(T[0]) && " ~ TemplateName ~ "!(T[1..$]);
+  }";
+}
+
+template CreatePathologicalCase(string TemplateName)
+{
+  enum CreatePathologicalCase = "template " ~ TemplateName ~ "()\n" ~
+  "{
+    enum " ~ TemplateName ~ " = false;
+  }";
+}
+
+/*
   Template trait for whether an item is an 
   RVector!(SEXPTYPE) or not
 */
@@ -263,15 +304,26 @@ enum isRType(alias P) = isRType!(typeof(P));
 
 enum isSEXP(T) = is(T == SEXP);
 enum isSEXP(alias T) = isSEXP!(typeof(T));
-//enum isSEXP(string arg) = isSEXP!(mixin(arg));
+mixin(CreateMultipleCase!("isSEXP"));
+mixin(CreatePathologicalCase!("isSEXP"));
 
-//template isSEXP(string arg)
-//{
-//  enum _string_ = "alias T = " ~ arg ~ ";";
-//  pragma(msg, _string_);
-//  mixin(_string_);
-//  enum isSEXP = isSEXP!(T);
-//}
+
+template isSEXPOrRType(T)
+{
+  enum isSEXPOrRType = isSEXP!(T) || isRType!(T);
+}
+enum isSEXPOrRType(alias P) = isSEXPOrRType!(typeof(P));
+
+mixin(CreateMultipleCase!("isSEXPOrRType"));
+mixin(CreatePathologicalCase!("isSEXPOrRType"));
+
+template isConvertibleToSEXP(T)
+{
+  enum isConvertibleToSEXP = isConvertibleTo!(T, SEXP, To);
+}
+mixin(CreateMultipleCase!("isConvertibleToSEXP"));
+mixin(CreatePathologicalCase!("isConvertibleToSEXP"));
+
 
 alias getSubType(V) = V;
 alias getSubType(V: RVector!T, SEXPTYPE T) = T;
@@ -310,6 +362,8 @@ template isBasicArray(T: U[], U)
     enum isBasicArray = false;
   }
 }
+
+enum isBasicTypeOrArray(T) = isBasicType!(T) || isBasicArray!(T);
 
 
 /*
@@ -368,7 +422,6 @@ template GetElementType(T: U[], U)
 }
 
 
-
 /*
   r_type has to be ref (borrowing) or the function 
   will attempt to call the destructor on it on exit from scope
@@ -393,12 +446,21 @@ if(isSEXP!(T) && isRType!(F))
   return cast(SEXP)r_type;
 }
 
+//pragma(inline, true)
+//SEXP To(T: SEXP, F)(auto ref F sexp)
+//if(isSEXP!(T) && isSEXP!(F))
+//{
+//  return sexp;
+//}
+
 pragma(inline, true)
-SEXP To(T: SEXP, F)(auto ref F sexp)
-if(isSEXP!(T) && isSEXP!(F))
+T To(T, F)(auto ref F value)
+if(is(T == F) && !isBasicArray!(T))
 {
-  return sexp;
+  return value;
 }
+
+
 
 /*
   Type conversion from any Basic Array to an SEXP
@@ -502,13 +564,6 @@ if(isBasicArray!(T) && isBasicArray!(F))
   }
 }
 
-pragma(inline, true)
-T To(T, F)(auto ref F arr)
-if(isSEXP!(T) && isSEXP!(F))
-{
-  return arr;
-}
-
 
 /*
   From SEXP to basic type
@@ -517,7 +572,12 @@ pragma(inline, true)
 E To(E, F)(auto ref F sexp)
 if(isBasicType!(E) && isSEXP!(F))
 {
+  import std.exception: enforce;
   import std.stdio: writeln;
+
+  sexp = protect(sexp);
+  scope(exit) unprotect_ptr(sexp);
+  
   long n = LENGTH(sexp);
   if(n != 1)
   {
@@ -525,7 +585,7 @@ if(isBasicType!(E) && isSEXP!(F))
     writeln("Length of SEXP is ", n, 
       " and it should be 1.", " The input SEXP type is ",
       intype, " and the output type is ", E.stringof);
-    assert(0, "Length error.");
+    enforce(0, "Length error.");
   }
   assert(n == 1, "Length of SEXP is not equal to 1");
   static if(!isStringType!E)
@@ -533,9 +593,24 @@ if(isBasicType!(E) && isSEXP!(F))
     alias func = Accessor!(MapToSEXP!(E));
     return cast(E)func(sexp)[0];
   }else{
-    //alias func = Accessor!(STRSXP);
+    auto intype = TYPEOF(sexp);
+    enforce(intype == STRSXP, "Wrong type (" ~ to!string(intype) ~ 
+      " should be 16 for STRSXP) to be cast to string");
     return getSEXP!(STRSXP)(sexp, 0);
   }
+}
+
+/*
+  Converts RType to basic type or array
+*/
+B To(B, R)(ref R r_type)
+if(isBasicTypeOrArray!(B) && isRType!(R))
+{
+  auto sexp = protect(To!(SEXP)(r_type));
+  scope(exit) unprotect_ptr(sexp);
+
+  auto result = To!(B)(sexp);
+  return result;
 }
 
 

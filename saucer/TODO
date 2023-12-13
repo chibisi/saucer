@@ -37,7 +37,11 @@
         - Indexing for names and numbers, assign and return
     - DataFrames
         - Inherit from lists?
-    - Rather than just unprotecting destructors should deallocate resources.
+    - Fix any outstanding bounds checking issues for all data types.
+    - Unqualified conversions? Since `is(const SEXP == SEXP)` is false
+        you should be thinking about qualified inputs to functions
+        which will affect conversions with To. Implicitly such 
+        conversions will have to involve casting away qualifications.
 
 3. "RInside"
     - Implement common `eval` functions for R inside together 

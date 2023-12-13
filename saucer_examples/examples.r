@@ -39,6 +39,72 @@ testthat::test_that("1. Basic tests that the dfunction plugin style is working",
 })
 
 
+testCode = '
+@Export() auto testNamedElement()
+{
+  auto result = isNamedElement!(NamedElement!(int), NamedElement!(double));
+  return result;
+}
+
+@Export() auto sexpToString(StringVector x)
+{
+  auto result = To!string(x);
+  import std.stdio: writeln;
+  writeln("output: ", result);
+  return true;
+}
+
+@Export() auto testConversion()
+{
+  int result1 = is(NumericVector: SEXP);
+  int result2 = is(NumericVector == SEXP);
+  int result3 = is(const SEXP == SEXP);
+  auto result = [result1, result2, result3];
+  return(result);
+}
+
+@Export() auto testIsIn()
+{
+  import std.algorithm: canFind;
+  auto x = ["a", "b", "c", "d", "e"];
+  auto y = [1, 2, 3, 4, 5];
+  int result1 = x.canFind("a");
+  int result2 = y.canFind(3);
+  int result3 = y.canFind(7);
+  int result4 = x.canFind("z");
+  auto result = [result1, result2, result3, result4];
+  return result;
+}
+'
+saucer::dfunctions(testCode, TRUE)
+testNamedElement()
+sexpToString("Hello World!")
+testConversion()
+testIsIn()
+
+
+listTests = '
+@Export() auto initList()
+{
+  auto result = List(NumericVector(1., 2, 3, 4), StringVector("Mat", "Mark", "Luke", "John"));
+  return result;
+}
+
+@Export() auto namedList() @safe //currently segfaults
+{
+  auto result = List(
+    namedElement("Places", ["New York", "Paris", "London", "Tokyo"]),
+    namedElement("Population", [8.5, 2.2, 9.0, 14.0])
+  );
+  //Attempting appending to list
+  result["Favorite"] = IntegerVector([1, 4, 2, 3]);
+  return result;
+}
+'
+saucer::dfunctions(listTests, TRUE)
+
+
+
 # The rest of the functions are located in a script
 saucer::sauce("example1.d", dropFolder = TRUE)
 

@@ -96,7 +96,7 @@ import std.stdio: writeln;
 +/
 @Export() auto makeList(SEXP x0, SEXP x1, SEXP x2, SEXP x3, SEXP x4)
 {
-    return List.init(x0, x1, x2, x3, x4);
+    return List(x0, x1, x2, x3, x4);
 }
 
 
