@@ -93,10 +93,10 @@ listTests = '
 @Export() auto namedList() @safe //currently segfaults
 {
   auto result = List(
-    namedElement("Places", ["New York", "Paris", "London", "Tokyo"]),
-    namedElement("Population", [8.5, 2.2, 9.0, 14.0])
+    namedElement("Places", StringVector(["New York", "Paris", "London", "Tokyo"])),
+    namedElement("Population", NumericVector([8.5, 2.2, 9.0, 14.0]))
   );
-  //Attempting appending to list
+  //Attempting appending to list, segfaults
   result["Favorite"] = IntegerVector([1, 4, 2, 3]);
   return result;
 }

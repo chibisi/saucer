@@ -23,13 +23,12 @@ if(isIntegral!I && isIntegral!L)
 
 
 //List element
-struct NamedElement(T)
-if(isConvertibleToSEXP!(T))
+struct NamedElement(N, T)
+if(isConvertibleTo!(N, string, To) && isConvertibleToSEXP!(T))
 {
     string name; //maybe a type that is convertible to a string
     T data;
-    this(N)(N name, T data) @trusted
-    if(isConvertibleTo!(N, string, To))
+    this(N name, T data) @trusted
     {
         this.name = To!string(name);
         this.data = data;
@@ -37,9 +36,9 @@ if(isConvertibleToSEXP!(T))
 }
 
 
-auto namedElement(N, T)(N n, T data)
+auto namedElement(N, T)(N name, T data)
 {
-    return NamedElement!(T)(n, data);
+    return NamedElement!(N, T)(name, data);
 }
 
 
@@ -47,7 +46,7 @@ enum isNamedElement() = false;
 template isNamedElement(T)
 {
     alias R = Unqual!(T);
-    static if(is(R == NamedElement!(E), E))
+    static if(is(R == NamedElement!(N, M), N, M))
     {
         enum isNamedElement = true;
     }else{
@@ -65,7 +64,7 @@ struct List
     import std.algorithm: sort;
     SEXP sexp;
     int[string] _names_;
-    alias implicitCast this;
+    //alias implicitCast this;
     bool needUnprotect = false;
     this(I...)(I n) @trusted
     if((I.length == 1) && isIntegral!(I))

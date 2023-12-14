@@ -199,7 +199,7 @@ if(SEXPDataTypes!(Type))
     bool needUnprotect = false;
     //long refCount;
     alias ElType = SEXPElementType!(Type);
-    alias implicitCast this;
+    //alias implicitCast this;
 
     private void unprotect()
     {
@@ -890,7 +890,7 @@ if(SEXPDataTypes!(Type))
     }
     auto setAttrib(string symbol, SEXP attrib)
     {
-        Rf_setAttrib(this.sexp, RVector!(STRSXP)(symbol), attrib);
+        Rf_setAttrib(this.sexp, To!SEXP(symbol), attrib);
         return;
     }
     auto getAttrib(SEXP symbol)
@@ -899,7 +899,7 @@ if(SEXPDataTypes!(Type))
     }
     auto getAttrib(string symbol)
     {
-        return Rf_getAttrib(this.sexp, RVector!(STRSXP)(symbol));
+        return Rf_getAttrib(this.sexp, To!SEXP(symbol));
     }
     bool opEquals(RVector arr) @trusted
     {
@@ -941,7 +941,7 @@ if(SEXPDataTypes!(Type))
     {
         assert(_names_.length == LENGTH(this.sexp), 
             "length of names not equal to length of sexp");
-        Rf_setAttrib(this.sexp, R_NamesSymbol, RVector!(STRSXP)(_names_));
+        Rf_setAttrib(this.sexp, R_NamesSymbol, To!SEXP(_names_));
         return;
     }
     @property auto names(SEXP _names_) @trusted
