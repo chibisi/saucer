@@ -216,8 +216,13 @@ if(SEXPDataTypes!(Type))
     @property auto length(T)(T n) @trusted
     if(isIntegral!(T))
     {
-        SETLENGTH(this.sexp, cast(int)n);
-        return this.length;
+        static if(Type != STRSXP)
+        {
+            SETLENGTH(this.sexp, cast(int)n);
+            return this.length;
+        }else{
+            static assert(0, "No implementation of length change for STRSXP yet");
+        }
     }
     @property auto data()
     {

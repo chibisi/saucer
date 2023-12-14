@@ -42,7 +42,7 @@ testthat::test_that("1. Basic tests that the dfunction plugin style is working",
 testCode = '
 @Export() auto testNamedElement()
 {
-  auto result = isNamedElement!(NamedElement!(int), NamedElement!(double));
+  auto result = isNamedElement!(NamedElement!(string, int), NamedElement!(string, double));
   return result;
 }
 
@@ -76,11 +76,38 @@ testCode = '
   return result;
 }
 '
+
 saucer::dfunctions(testCode, TRUE)
 testNamedElement()
 sexpToString("Hello World!")
 testConversion()
 testIsIn()
+
+
+extendList = '
+@Export() auto testListLength()
+{
+  auto listVect = protect(allocVector(VECSXP, 3));
+  scope(exit) unprotect_ptr(listVect);
+  SETLENGTH(listVect, 2);
+
+  auto realVect = protect(allocVector(REALSXP, 3));
+  scope(exit) unprotect_ptr(realVect);
+  SETLENGTH(realVect, 300);
+
+  auto intVect = protect(allocVector(INTSXP, 3));
+  scope(exit) unprotect_ptr(intVect);
+  SETLENGTH(intVect, 300);
+
+  auto stringVect = protect(allocVector(STRSXP, 3));
+  scope(exit) unprotect_ptr(stringVect);
+  SETLENGTH(stringVect, 300);
+
+  return stringVect;
+}
+'
+saucer::dfunctions(extendList, TRUE)
+
 
 
 listTests = '

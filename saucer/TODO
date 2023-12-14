@@ -76,6 +76,7 @@
 14. Do not wrap functions where all the parameters and 
     return types are all SEXPs.
 15. Figure out spawning/parallelisation scheme for R itself using the D interface.
+16. R has option for using external memory allocator with `SEXP Rf_allocVector3 (SEXPTYPE, R_xlen_t, R_allocator_t*)` function, this opens up the possibility of using D's garage collected memory allocator as well as other memory allocators available in D that would probably improve the stability integration of R's backend with D.
 
 ## Testing
 

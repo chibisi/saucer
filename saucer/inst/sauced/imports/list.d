@@ -1,7 +1,6 @@
 /*
     TODO:
-    1. Fix segfault in opIndexAssign for appending to the list
-    2. Discard associative array _names_ and use struct ... {string name, index long}
+    1. Discard associative array _names_ and use struct ... {string name, index long}
        and rewrite with this. Or re-sort after changing with this:
             sort!"a[0]<b[0]"(zip(basedOnThis, alsoSortThis));
 */
@@ -185,6 +184,42 @@ struct List
     {
         return LENGTH(this.sexp);
     }
+    auto length(I)(I newLength) @trusted
+    if(isIntegral!I)
+    {
+        auto currLength = this.length;
+        if(newLength <= currLength)
+        {
+            SETLENGTH(this.sexp, cast(int)newLength);
+            return newLength;
+        }else{
+            /*
+                SETLENGTH can not be used to increase 
+                list (VECSXP) length because it segfaults.
+                Instead, a new list is created and the items from the old list are trasfered across
+            */
+            auto newList = protect(allocVector(VECSXP, cast(int)newLength));
+            // ... move items from old list to new list
+            foreach(int i; 0..currLength)
+            {
+                auto element = VECTOR_ELT(this.sexp, cast(int)i);
+                SET_VECTOR_ELT(newList, i, element);
+            }
+            // ... move the names from old list to new list
+            auto lNames = Rf_getAttrib(this.sexp, R_NamesSymbol);
+            if(LENGTH(lNames) > 0)
+            {
+                Rf_setAttrib(newList, R_NamesSymbol, lNames);
+            }
+            //... Do something about the local names
+
+            // reassign list
+            auto oldList = this.sexp;
+            this.sexp = newList;
+            unprotect_ptr(oldList);
+        }
+        return newLength;
+    }
     /*
         Gets the names
     */
@@ -279,12 +314,8 @@ struct List
 
         if(this.length == this._names_.length)
         {
-            auto newLength = cast(int)(this.length) + 1;
-            writeln("New length: ", newLength);
-            SETLENGTH(this.sexp, newLength); //segfaults
-            //SET_TRUELENGTH(this.sexp, newLength);
-            int i = cast(int)(this.length) - 1;
-            writeln("Assignment point (i): ", i);
+            this.length(this.length + 1);
+            opIndexAssign(value, cast(int)this.length - 1);
             //this._names_[_name_] = i;
             //auto lNames = To!SEXP(this._names_.keys);
             //Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
