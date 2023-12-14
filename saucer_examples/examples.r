@@ -117,14 +117,14 @@ listTests = '
   return result;
 }
 
-@Export() auto namedList() @safe //currently segfaults
+@Export() auto namedList() @safe
 {
   auto result = List(
     namedElement("Places", StringVector(["New York", "Paris", "London", "Tokyo"])),
     namedElement("Population", NumericVector([8.5, 2.2, 9.0, 14.0]))
   );
-  //Attempting appending to list, segfaults
   result["Favorite"] = IntegerVector([1, 4, 2, 3]);
+  result ~= namedElement("SomeLetters", ["A", "B", "C", "D"]);
   return result;
 }
 '

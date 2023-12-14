@@ -1,3 +1,8 @@
+/*
+    TODO:
+    1. To!() conversion: bool[] -> SEXP && SEXP -> bool[]
+*/
+
 import std.conv: to;
 //import std.stdio: writeln;
 

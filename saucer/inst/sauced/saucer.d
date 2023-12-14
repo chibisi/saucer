@@ -457,7 +457,6 @@ pragma(inline, true)
 T To(T, F)(auto ref F value)
 if(is(T == F) && !isBasicArray!(T))
 {
-  writeln("From == To converter called!");
   return value;
 }
 

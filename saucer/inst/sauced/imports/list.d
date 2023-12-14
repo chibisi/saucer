@@ -1,15 +1,11 @@
 /*
     TODO:
-    1. Discard associative array _names_ and use struct ... {string name, index long}
-       and rewrite with this. Or re-sort after changing with this:
-            sort!"a[0]<b[0]"(zip(basedOnThis, alsoSortThis));
+    1. opBinary(op = "~") for List binding two lists, and a list 
+        and a named element or convertible to SEXP
 */
 
-/+
-    Test VECTOR_PTR() for Accessor function
-+/
-
 import std.traits: Unqual;
+import std.exception: enforce;
 
 pragma(inline, true) auto boundsCheck(I, L)(I i, L len)
 if(isIntegral!I && isIntegral!L)
@@ -17,6 +13,7 @@ if(isIntegral!I && isIntegral!L)
     assert(i < len, "The index i " ~ to!(string)(i) ~ 
         " is not less than the given length " ~
         to!(string)(len));
+    return;
 }
 
 
@@ -57,13 +54,117 @@ mixin(CreateMultipleCase!("isNamedElement"));
 enum isNamedElement(alias Arg) = isNamedElement!(typeof(Arg));
 
 
+struct NamedIndex
+{
+    string[] data;
+    this(string[] data...)
+    {
+        enforce(isUnique(data), "string array submitted into NamedIndex must be unique");
+        this.data = data;
+    }
+    this(SEXP sexp)
+    {
+        auto rtype = TYPEOF(sexp);
+        enforce(rtype == STRSXP, "Wrong sexp data " ~ to!(string)(rtype) ~ "type for names.");
+        auto data = To!(string[])(sexp);
+        enforce(isUnique(data), "string array submitted into NamedIndex must be unique");
+        this.data = data;
+    }
+    auto length()
+    {
+        return data.length;
+    }
+    bool isin(string index)
+    {
+        foreach(i; 0..this.length)
+        {
+            if(data[i] == index)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    auto names()
+    {
+        return this.data;
+    }
+    auto asSEXP()
+    {
+        return To!(SEXP)(this.data);
+    }
+    auto opIndex(T)(T index)
+    if(isIntegral!(T) || is(T == string))
+    {
+        static if(isIntegral!(T))
+        {
+            return this.data[index];
+        }else{
+            foreach(i; 0..this.length)
+            {
+                if(this.data[i] == index)
+                {
+                    return i;
+                }
+            }
+        }
+        assert(0, "Item " ~ index ~ " not found!");
+    }
+    auto opDollar()
+    {
+        return this.length;
+    }
+    auto opIndexAssign(T)(auto ref string value, T index)
+    if(isIntegral!(T))
+    {
+        enforce(!this.isin(value), "Can not assign string already in index");
+        this.data[index] = value;
+        return;
+    }
+    auto opBinary(string op, R)(auto ref R rhs)
+    if((op == "~") && (is(R == string) || is(R == string[]) || is(R == typeof(this))))
+    {
+        static if(is(R == string))
+        {
+            enforce(!this.isin(rhs), "Attempting to append item (" ~ rhs ~ ") already in the index.");
+            return NamedIndex(this.data ~ rhs);
+        }else static if(is(R == string[])){
+            auto newIndex = this(this.data.dup);
+            nNewElements = newIndex.length;
+            foreach(i; 0..nNewElements)
+            {
+                element = newIndex.data[i];
+                enforce(!newIndex.isin(element), "Can not assign string (" ~ element ~ ") already in index");
+                newIndex.data ~= element;
+            }
+            return newIndex;
+        }else static if(is(R == typeof(this)))
+        {
+            return opBinary!"~"(rhs.data);
+        }
+    }
+    auto opOpAssign(string op, R)(R rhs)
+    if((op == "~") && (is(R == string) || is(R == string[]) || is(R == typeof(this))))
+    {
+        this = this ~ rhs;
+        return;
+    }
+    auto opSlice(I)(I start, I end)
+    if(isIntegral!(I))
+    {
+        return NamedIndex(this.data[start..end]);
+    }
+}
+
+
+
+
 struct List
 {
     import std.stdio: writeln;
     import std.algorithm: sort;
     SEXP sexp;
-    int[string] _names_;
-    //alias implicitCast this;
+    NamedIndex nameIndex;
     bool needUnprotect = false;
     this(I...)(I n) @trusted
     if((I.length == 1) && isIntegral!(I))
@@ -83,22 +184,19 @@ struct List
                 SEXP lNames = Rf_getAttrib(this.sexp, R_NamesSymbol);
                 if(LENGTH(lNames) > 0)
                 {
-                    string[] keys = getSlice!(STRSXP)(lNames, 0, this.length);
-                    foreach(i; 0..length)
-                    {
-                        this._names_[keys[i]] = i;
-                    }
+                    auto keys = To!string(this.sexp);
+                    this.nameIndex = NamedIndex(lNames);
                 }
                 return;
             }else{
-                this.sexp = protect(allocVector(VECSXP, cast(int)1));
+                this.sexp = protect(allocVector(VECSXP, 1));
                 needUnprotect = true;
                 this[0] = value;
                 return;
             }
         }else{
-            SEXP element = To!(SEXP)(value);
-            this.sexp = protect(allocVector(VECSXP, cast(int)1));
+            auto element = To!(SEXP)(value);
+            this.sexp = protect(allocVector(VECSXP, 1));
             needUnprotect = true;
             this[0] = element;
             return;
@@ -123,7 +221,6 @@ struct List
     if(isNamedElement!(Args))
     {
         import std.algorithm: canFind;
-        import std.exception: enforce;
         int n = Args.length;
         this.sexp = protect(allocVector(VECSXP, cast(int)n));
         needUnprotect = true;
@@ -131,17 +228,15 @@ struct List
         string name;
         static foreach(i, arg; args)
         {
-            name = To!string(arg.name);
-            enforce(!names.canFind(name), "name " ~ 
-                name ~ " is not unique in list names.");
-            this._names_[name] = i;
+            name = arg.name;
+            this.nameIndex ~= name;
             element = protect(To!(SEXP)(arg.data));
             this[i] = element;
-            unprotect(1);
+            unprotect_ptr(element);
         }
-        SEXP lNames = protect(To!(SEXP)(this._names_.keys));
+        auto lNames = protect(this.nameIndex.asSEXP);
         Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
-        unprotect(1);
+        unprotect_ptr(lNames);
     }
     ~this() @trusted
     {
@@ -158,26 +253,11 @@ struct List
     {
         return this.sexp;
     }
-    pragma(inline, true)
-    SEXP implicitCast() @system
-    {
-        return this.sexp;
-    }
     SEXP opIndex(I)(I i) @trusted
     if(isIntegral!(I))
     {
         
-        {
-            try
-            {
-                boundsCheck(i, this.length);
-            }catch (Exception e)
-            {
-                writeln(e);
-                return R_NilValue;
-            }
-        }
-
+        boundsCheck(i, this.length);
         return VECTOR_ELT(this.sexp, cast(int)i);
     }
     auto length() @trusted
@@ -191,6 +271,7 @@ struct List
         if(newLength <= currLength)
         {
             SETLENGTH(this.sexp, cast(int)newLength);
+            this.nameIndex = this.nameIndex[0..newLength];
             return newLength;
         }else{
             /*
@@ -211,11 +292,10 @@ struct List
             {
                 Rf_setAttrib(newList, R_NamesSymbol, lNames);
             }
-            //... Do something about the local names
-
             // reassign list
             auto oldList = this.sexp;
             this.sexp = newList;
+            //unprotects from constructor
             unprotect_ptr(oldList);
         }
         return newLength;
@@ -225,7 +305,7 @@ struct List
     */
     @property string[] names() @trusted
     {
-        return _names_.keys;
+        return this.nameIndex.names;
     }
     /*
         Set names
@@ -235,97 +315,94 @@ struct List
     {
         static if(is(A == SEXP))
         {
-            try
-            {
-                auto stringArray = To!string(lNames);
-                enforce((LENGTH(lNames) == this.length) &&
-                    (Rf_isString(lNames)) && isUnique(stringArray),
-                    "Length of names submitted is not equal to list length");
-            }catch (Exception e)
-            {
-                writeln(e);
-                return;
-            }
-
-            string[] keys = getSlice!(STRSXP)(this.sexp, 0, this.length);
-            foreach(i; 0..length)
-            {
-                this._names_[keys[i]] = i;
-            }
+            auto nNames = LENGTH(lNames);
+            enforce(nNames == this.length, "Length of submitted names " ~ 
+                to!string(nNames) ~ " is not equal to length of the list");
+            this.nameIndex = NamedIndex(lNames);
             Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
         }else static if(is(A == string[]))
         {
-            try
-            {
-                enforce(isUnique(lNames) && (lNames.length == this.length),
-                    "Length of names submitted is not equal to list length");
-            }catch (Exception e)
-            {
-                writeln(e);
-                return;
-            }
+            enforce(lNames.length == this.length,
+                "Length of names submitted " ~ to!string(lNames.length) ~ 
+                "is not equal to list length");
             
-            foreach(i; 0..length)
-            {
-                this._names_[lNames[i]] = i;
-            }
-            SEXP _lNames_ = To!(SEXP)(lNames);
-            Rf_setAttrib(this.sexp, R_NamesSymbol, _lNames_);
+            this.nameIndex = NamedIndex(lNames);
+            Rf_setAttrib(this.sexp, R_NamesSymbol, this.nameIndex.asSEXP);
         }
+        return;
     }
-    SEXP opIndex(string _name_) @trusted
+    auto opIndex(string name) @trusted
     {
-        try
-        {
-            enforce(isin(_name_, this._names_.keys),
-                "Index name is not in the list names");
-        }catch (Exception e)
-        {
-            writeln(e);
-            return R_NilValue;
-        }
-        
-        auto i = this._names_[_name_];
-        SEXP result = VECTOR_ELT(this.sexp, cast(int)i);
+        auto i = this.nameIndex[name];
+        boundsCheck(i, this.length);
+        auto result = VECTOR_ELT(this.sexp, cast(int)i);
         return result;
     }
     auto opIndexAssign(T, I)(auto ref T value, I i) @trusted
     if(isIntegral!(I) && isConvertibleTo!(T, SEXP, To))
     {
-        try
-        {
-            boundsCheck(i, this.length);
-        }catch(Exception e)
-        {
-            writeln(e);
-            return;
-        }
-        SEXP _value_ = To!(SEXP)(value);
-        SET_VECTOR_ELT(this.sexp, cast(int)i, _value_);
+        boundsCheck(i, this.length);
+        SET_VECTOR_ELT(this.sexp, cast(int)i, To!(SEXP)(value));
+        return;
     }
-    auto opIndexAssign(T)(auto ref T value, string _name_) @trusted
+    auto append(T)(auto ref T value) @trusted
+    if(isConvertibleTo!(T, SEXP, To))
     {
-        if(isin(_name_, this._names_.keys))
+        this.length(this.length + 1);
+        opIndexAssign(value, cast(int)this.length - 1);
+        return;
+    }
+    auto append(T)(auto ref T value, string name) @trusted
+    if(isConvertibleTo!(T, SEXP, To))
+    {
+        this.nameIndex ~= name;
+        this.length(this.length + 1);
+        opIndexAssign(value, cast(int)this.length - 1);
+        Rf_setAttrib(this.sexp, R_NamesSymbol, To!(SEXP)(this.nameIndex.data));
+        return;
+    }
+    auto append(E)(E element)
+    if(isNamedElement!E)
+    {
+        this.append(element.data, element.name);
+        return;
+    }
+    auto opIndexAssign(T)(auto ref T value, string name) @trusted
+    {
+        if(isin(name, this.nameIndex.data))
         {
-            auto i = this._names_[_name_];
+            auto i = this.nameIndex[name];
             opIndexAssign(value, i);
             return;
         }
 
-        if(this.length == this._names_.length)
+        if(this.length == this.nameIndex.length)
         {
-            this.length(this.length + 1);
-            opIndexAssign(value, cast(int)this.length - 1);
-            //this._names_[_name_] = i;
-            //auto lNames = To!SEXP(this._names_.keys);
-            //Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
-            //opIndexAssign(value, i);
+            this.append(value, name);
             return;
         }else{
             string msg = "List was not initialized with names or " ~ 
                     "length of names is not equal to number of items";
             enforce(0, msg);
         }
+    }
+    auto opOpAssign(string op, T)(auto ref T value) @trusted
+    if((op == "~") && isConvertibleTo!(T, SEXP, To))
+    {
+        this.append(value);
+        return;
+    }
+    auto opOpAssign(string op, T)(auto ref T value, string name) @trusted
+    if((op == "~") && isConvertibleTo!(T, SEXP, To))
+    {
+        this.append(value, name);
+        return;
+    }
+    auto opOpAssign(string op, E)(E element) @trusted
+    if((op == "~") && isNamedElement!(E))
+    {
+        this.append(element);
+        return;
     }
 }
 
