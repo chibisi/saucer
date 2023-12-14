@@ -29,14 +29,17 @@
         - Full matrix operator overloads  (with caveats)
     - Functions
         - Implementation for basic functionality - Done
-        - Able to do parallelism in when called in D
+        - Able to do parallelism with R functions in when called in D?
     - Lists
         - Basic implementation - Done
         - Names - Done
         - Numbers - for DataFrame compatibility
         - Indexing for names and numbers, assign and return
+        - Slice the list to return another list
     - DataFrames
         - Inherit from lists?
+    - External Pointers
+    - Environments
     - Fix any outstanding bounds checking issues for all data types.
     - Unqualified conversions? Since `is(const SEXP == SEXP)` is false
         you should be thinking about qualified inputs to functions
