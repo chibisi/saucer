@@ -53,3 +53,55 @@ exampleCode4 = '
 saucer::dfunctions(exampleCode4, TRUE)
 copyList(listCreate())
 
+
+exampleCode5 = '
+@Export() auto binaryConcat1()
+{
+    auto lhs = List(namedElement("Language", ["R", "D", "Julia", "Nim", "Chapel", "C++", "C"]),
+        namedElement("Creator", ["Robert Ihaka & Ross Gentleman", "Walter Bright & Andrei Alexandrescu",
+            "Jeff Bezanson et al", "Andreas Rumpf", "David Callahan et al", "Bjarne Stroustrup",
+                "Dennis Richie"]));
+    auto rhs = List(namedElement("Year", [1993, 2001, 2012, 2008, 2009, 1985, 1970]),
+                    namedElement("Typing", ["Dynamic", "Static", "Dynamic", "Static", "Static", 
+                        "Static", "Static"]));
+    return lhs ~ rhs;
+}
+'
+saucer::dfunctions(exampleCode5, TRUE)
+binaryConcat1()
+
+
+exampleCode6 = '
+@Export() auto binaryConcat2()
+{
+    auto lhs = List(namedElement("Language", ["R", "D", "Julia", "Nim", "Chapel", "C++", "C"]),
+        namedElement("Creator", ["Robert Ihaka & Ross Gentleman", "Walter Bright & Andrei Alexandrescu",
+            "Jeff Bezanson et al", "Andreas Rumpf", "David Callahan et al", "Bjarne Stroustrup",
+                "Dennis Richie"]),
+        namedElement("Year", [1993, 2001, 2012, 2008, 2009, 1985, 1970]));
+    auto rhs = namedElement("Typing", ["Dynamic", "Static", "Dynamic", "Static", "Static", 
+                        "Static", "Static"]);
+    return lhs ~ rhs;
+}
+'
+saucer::dfunctions(exampleCode6, TRUE)
+binaryConcat2()
+
+
+exampleCode7 = '
+@Export() auto binaryConcat3()
+{
+    auto lhs = List(namedElement("Language", ["R", "D", "Julia", "Nim", "Chapel", "C++", "C"]),
+        namedElement("Creator", ["Robert Ihaka & Ross Gentleman", "Walter Bright & Andrei Alexandrescu",
+            "Jeff Bezanson et al", "Andreas Rumpf", "David Callahan et al", "Bjarne Stroustrup",
+                "Dennis Richie"]),
+        namedElement("Year", [1993, 2001, 2012, 2008, 2009, 1985, 1970]));
+    auto rhs = ["Dynamic", "Static", "Dynamic", "Static", "Static", 
+                        "Static", "Static"];
+    return lhs ~ rhs;
+}
+'
+saucer::dfunctions(exampleCode7, TRUE)
+binaryConcat3()
+
+

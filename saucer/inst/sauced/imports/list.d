@@ -64,6 +64,8 @@ struct NamedIndex
     }
     this(SEXP sexp)
     {
+        sexp = protect(sexp);
+        scope(exit)unprotect_ptr(sexp);
         auto rtype = TYPEOF(sexp);
         enforce(rtype == STRSXP, "Wrong sexp data " ~ to!(string)(rtype) ~ "type for names.");
         auto data = To!(string[])(sexp);
@@ -173,7 +175,7 @@ struct List
         this.needUnprotect = true;
     }
     this(T)(T value) @trusted
-    if(isSEXPOrRType!(T) && !is(T == List) /*No copy*/)
+    if(!isIntegral!(T) && isConvertibleTo!(T, SEXP, To) && !is(T == List))
     {
         static if(isSEXP!(T))
         {
@@ -181,7 +183,8 @@ struct List
             {
                 this.sexp = protect(value);
                 this.needUnprotect = true;
-                SEXP lNames = Rf_getAttrib(this.sexp, R_NamesSymbol);
+                auto lNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
+                scope(exit) unprotect_ptr(lNames);
                 if(LENGTH(lNames) > 0)
                 {
                     this.nameIndex = NamedIndex(lNames);
@@ -203,11 +206,12 @@ struct List
     }
     /* Copy constructor */
     this(T)(auto ref T original) @trusted
-    if(isSEXPOrRType!(T) && is(T == List))
+    if(is(T == List))
     {
         this.sexp = protect(copyVector(original.sexp));
         this.needUnprotect = true;
-        auto lNames = Rf_getAttrib(original.sexp, R_NamesSymbol);
+        auto lNames = protect(Rf_getAttrib(original.sexp, R_NamesSymbol));
+        scope(exit) unprotect_ptr(lNames);
         if(LENGTH(lNames) > 0)
         {
             Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
@@ -256,7 +260,6 @@ struct List
             this.needUnprotect = false;
         }
     }
-
     pragma(inline, true)
     SEXP opCast(T)() @trusted
     if(is(T == SEXP))
@@ -290,7 +293,8 @@ struct List
                 SET_VECTOR_ELT(newList, i, element);
             }
             // ... move the names from old list to new list
-            auto lNames = Rf_getAttrib(this.sexp, R_NamesSymbol);
+            auto lNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
+            scope(exit) unprotect_ptr(lNames);
             if(LENGTH(lNames) > 0)
             {
                 Rf_setAttrib(newList, R_NamesSymbol, lNames);
@@ -439,6 +443,35 @@ struct List
         }
         Rf_setAttrib(result.sexp, R_NamesSymbol, To!(SEXP)(lNames));
         return result;
+    }
+    auto opBinary(string op, R)(auto ref R rhs)
+    if((op == "~") && is(R == List))
+    {
+        auto result = List(this.length + rhs.length);
+        foreach(i; 0..this.length)
+        {
+            result[i] = copyVector(this[i]);
+        }
+        foreach(i; 0..rhs.length)
+        {
+            result[i + this.length] = copyVector(rhs[i]);
+        }
+        auto thisNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
+        scope(exit)unprotect_ptr(thisNames);
+        auto rhsNames = protect(Rf_getAttrib(rhs.sexp, R_NamesSymbol));
+        scope(exit)unprotect_ptr(rhsNames);
+        if((LENGTH(thisNames) > 0) && (LENGTH(rhsNames) > 0))
+        {
+            auto newNames = To!(string[])(thisNames) ~ To!(string[])(rhsNames);
+            Rf_setAttrib(result.sexp, R_NamesSymbol, To!(SEXP)(newNames));
+        }
+        return result;
+    }
+    auto opBinary(string op, R)(auto ref R _rhs_)
+    if((op == "~") && ((!is(R == List) && isConvertibleTo!(R, SEXP, To)) || isNamedElement!(R)))
+    {
+        auto rhs = List(_rhs_);
+        return this ~ rhs;
     }
 }
 
