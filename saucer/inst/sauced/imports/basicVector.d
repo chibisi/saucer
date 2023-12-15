@@ -195,6 +195,20 @@ if(isIntegral!(I) /* && NonStringSEXP!(Type) */)
     }
 }
 
+/*
+    Overloads the original R function to copy an SEXP vector
+    by only requiring the original rather than the original
+    vector and the destination vector
+*/
+auto copyVector(SEXP originalVector)
+{
+    auto type = cast(SEXPTYPE)TYPEOF(originalVector);
+    auto newVector = protect(allocVector(type, 
+                        LENGTH(originalVector)));
+    scope(exit) unprotect_ptr(newVector);
+    copyVector(newVector, originalVector);
+    return newVector;
+}
 
 
 struct RVector(SEXPTYPE Type)

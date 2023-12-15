@@ -108,7 +108,7 @@ struct NamedIndex
                 }
             }
         }
-        assert(0, "Item " ~ index ~ " not found!");
+        assert(0, "Item " ~ to!string(index) ~ " not found!");
     }
     auto opDollar()
     {
@@ -166,51 +166,61 @@ struct List
     SEXP sexp;
     NamedIndex nameIndex;
     bool needUnprotect = false;
-    this(I...)(I n) @trusted
-    if((I.length == 1) && isIntegral!(I))
+    this(I)(I n) @trusted
+    if(isIntegral!(I))
     {
         this.sexp = protect(allocVector(VECSXP, cast(int)n));
-        needUnprotect = true;
+        this.needUnprotect = true;
     }
-    this(T...)(T value) @trusted
-    if((T.length == 1) && isSEXPOrRType!(T) && !is(T == List) /*No copy*/)
+    this(T)(T value) @trusted
+    if(isSEXPOrRType!(T) && !is(T == List) /*No copy*/)
     {
         static if(isSEXP!(T))
         {
             if(TYPEOF(value) == VECSXP)
             {
                 this.sexp = protect(value);
-                needUnprotect = true;
+                this.needUnprotect = true;
                 SEXP lNames = Rf_getAttrib(this.sexp, R_NamesSymbol);
                 if(LENGTH(lNames) > 0)
                 {
-                    auto keys = To!string(this.sexp);
                     this.nameIndex = NamedIndex(lNames);
                 }
                 return;
             }else{
                 this.sexp = protect(allocVector(VECSXP, 1));
-                needUnprotect = true;
+                this.needUnprotect = true;
                 this[0] = value;
                 return;
             }
         }else{
             auto element = To!(SEXP)(value);
             this.sexp = protect(allocVector(VECSXP, 1));
-            needUnprotect = true;
+            this.needUnprotect = true;
             this[0] = element;
             return;
         }
     }
-    //disable copy constructor
-    @disable this(this);
+    /* Copy constructor */
+    this(T)(auto ref T original) @trusted
+    if(isSEXPOrRType!(T) && is(T == List))
+    {
+        this.sexp = protect(copyVector(original.sexp));
+        this.needUnprotect = true;
+        auto lNames = Rf_getAttrib(original.sexp, R_NamesSymbol);
+        if(LENGTH(lNames) > 0)
+        {
+            Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
+            this.nameIndex = NamedIndex(lNames);
+        }
+    }
     this(Args...)(Args args) @trusted
     if((Args.length > 1) && isConvertibleToSEXP!(Args))
     {
         SEXP element;
         enum n = Args.length;
         this.sexp = protect(allocVector(VECSXP, cast(int)n));
-        needUnprotect = true;
+        this.needUnprotect = true;
         static foreach(i; 0..n)
         {
             element = To!(SEXP)(args[i]);
@@ -223,7 +233,7 @@ struct List
         import std.algorithm: canFind;
         int n = Args.length;
         this.sexp = protect(allocVector(VECSXP, cast(int)n));
-        needUnprotect = true;
+        this.needUnprotect = true;
         SEXP element;
         string name;
         static foreach(i, arg; args)
@@ -240,10 +250,10 @@ struct List
     }
     ~this() @trusted
     {
-        if(needUnprotect)
+        if(this.needUnprotect)
         {
             unprotect_ptr(sexp);
-            needUnprotect = false;
+            this.needUnprotect = false;
         }
     }
 
@@ -252,13 +262,6 @@ struct List
     if(is(T == SEXP))
     {
         return this.sexp;
-    }
-    SEXP opIndex(I)(I i) @trusted
-    if(isIntegral!(I))
-    {
-        
-        boundsCheck(i, this.length);
-        return VECTOR_ELT(this.sexp, cast(int)i);
     }
     auto length() @trusted
     {
@@ -300,6 +303,24 @@ struct List
         }
         return newLength;
     }
+    auto opDollar()
+    {
+        return this.length;
+    }
+    SEXP opIndex(I)(I i) @trusted
+    if(isIntegral!(I))
+    {
+        
+        boundsCheck(i, this.length);
+        return VECTOR_ELT(this.sexp, cast(int)i);
+    }
+    auto opIndex(string name) @trusted
+    {
+        auto i = this.nameIndex[name];
+        boundsCheck(i, this.length);
+        auto result = VECTOR_ELT(this.sexp, cast(int)i);
+        return result;
+    }
     /*
         Gets the names
     */
@@ -330,13 +351,6 @@ struct List
             Rf_setAttrib(this.sexp, R_NamesSymbol, this.nameIndex.asSEXP);
         }
         return;
-    }
-    auto opIndex(string name) @trusted
-    {
-        auto i = this.nameIndex[name];
-        boundsCheck(i, this.length);
-        auto result = VECTOR_ELT(this.sexp, cast(int)i);
-        return result;
     }
     auto opIndexAssign(T, I)(auto ref T value, I i) @trusted
     if(isIntegral!(I) && isConvertibleTo!(T, SEXP, To))
@@ -403,6 +417,28 @@ struct List
     {
         this.append(element);
         return;
+    }
+    auto opSlice(I)(I start, I end)
+    if(isIntegral!(I))
+    {
+        assert(end > start, 
+            "Starting index is not less than the finishing index.");
+        auto newLength = end - start;
+        auto result = List(newLength);
+        foreach(i; 0..newLength)
+        {
+            result[i] = copyVector(this[i + start]);
+        }
+        string[] lNames;
+        if(this.nameIndex.length == this.length)
+        {
+            foreach(i; 0..newLength)
+            {
+                lNames ~= this.nameIndex[i + start];
+            }
+        }
+        Rf_setAttrib(result.sexp, R_NamesSymbol, To!(SEXP)(lNames));
+        return result;
     }
 }
 
