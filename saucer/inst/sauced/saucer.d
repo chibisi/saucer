@@ -288,6 +288,8 @@ enum isXPtr(alias P) = isXPtr!(typeof(P));
 enum isEnvir(E) = is(E == Environment);
 enum isEnvir(alias E) = isEnvir!(typeof(E));
 
+enum isDataFrame(T) = is(T == DataFrame);
+enum isDataFrame(alias arg) = isDataFrame(typeof(arg));
 
 /*
   Template trait for whether an item is a saucer R 
@@ -295,7 +297,7 @@ enum isEnvir(alias E) = isEnvir!(typeof(E));
 */
 enum isRType(P) = isRVector!(P) || isRMatrix!(P) || 
                       isRFunction!(P) || isRList!(P) ||
-                      isXPtr!(P) || isEnvir!(P);
+                      isDataFrame!(P) || isXPtr!(P) || isEnvir!(P);
 enum isRType(alias P) = isRType!(typeof(P));
 
 

@@ -213,6 +213,53 @@ auto copyVector(SEXP originalVector)
 }
 
 
+/*
+    Fills SEXP R Vector with a submitted value. works with R vectors only
+    but not lists.
+*/
+auto fillSEXPVector(I)(ref SEXP sexp, I finalLength)
+if(isIntegral!(I))
+{
+    auto rtype = cast(SEXPTYPE)TYPEOF(sexp);
+    enforce(!(!isVector(sexp) || (rtype == VECSXP)), 
+        "Submitted SEXP is either not a vector or is a list");
+    SETLENGTH(sexp, cast(int)finalLength);
+    switch (rtype)
+    {
+        default:
+            throw new Exception("SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
+        case REALSXP:
+            auto value = getSEXP!(REALSXP)(sexp, 0);
+            setSlice!(REALSXP)(sexp, 1, finalLength, value);
+            return sexp;
+        case INTSXP:
+            auto value = getSEXP!(INTSXP)(sexp, 0);
+            setSlice!(INTSXP)(sexp, 1, finalLength, value);
+            return sexp;
+        case STRSXP:
+            auto value = getSEXP!(STRSXP)(sexp, 0);
+            setSlice!(STRSXP)(sexp, 1, finalLength, value);
+            return sexp;
+        case LGLSXP:
+            auto value = getSEXP!(LGLSXP)(sexp, 0);
+            setSlice!(LGLSXP)(sexp, 1, finalLength, value);
+            return sexp;
+        case RAWSXP:
+            auto value = getSEXP!(RAWSXP)(sexp, 0);
+            setSlice!(RAWSXP)(sexp, 1, finalLength, value);
+            return sexp;
+        case CPLXSXP:
+            auto value = getSEXP!(CPLXSXP)(sexp, 0);
+            setSlice!(CPLXSXP)(sexp, 1, finalLength, value);
+            return sexp;
+    }
+    assert(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
+}
+
+
+
+
+
 struct RVector(SEXPTYPE Type)
 if(SEXPDataTypes!(Type))
 {

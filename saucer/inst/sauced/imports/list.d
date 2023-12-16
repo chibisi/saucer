@@ -157,8 +157,6 @@ struct NamedIndex
 
 struct List
 {
-    import std.stdio: writeln;
-    import std.algorithm: sort;
     SEXP sexp;
     NamedIndex nameIndex;
     bool needUnprotect = false;
@@ -179,7 +177,7 @@ struct List
                 this.needUnprotect = true;
                 auto lNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
                 scope(exit) unprotect_ptr(lNames);
-                if(LENGTH(lNames) > 0)
+                if((lNames.length > 0) && (lNames.length == this.sexp.length))
                 {
                     this.nameIndex = NamedIndex(lNames);
                 }
@@ -229,7 +227,7 @@ struct List
     if(isNamedElement!(Args))
     {
         import std.algorithm: canFind;
-        int n = Args.length;
+        auto n = Args.length;
         this.sexp = protect(allocVector(VECSXP, cast(int)n));
         this.needUnprotect = true;
         SEXP element;
@@ -243,8 +241,8 @@ struct List
             unprotect_ptr(element);
         }
         auto lNames = protect(this.nameIndex.asSEXP);
+        scope(exit) unprotect_ptr(lNames);
         Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
-        unprotect_ptr(lNames);
     }
     ~this() @trusted
     {

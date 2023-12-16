@@ -114,6 +114,5 @@ exampleCode8 = '
 '
 
 saucer::dfunctions(exampleCode8, TRUE)
-getLength(1:10)
 getLength(listCreate())
 
