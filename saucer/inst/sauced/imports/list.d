@@ -1,9 +1,3 @@
-/*
-    TODO:
-    1. opBinary(op = "~") for List binding two lists, and a list 
-        and a named element or convertible to SEXP
-*/
-
 import std.traits: Unqual;
 import std.exception: enforce;
 

@@ -211,11 +211,8 @@ static if(false)
 }
 
 
-mixin(import("imports/basicVector.d"));
-//mixin(import("imports/rvector.d"));
-
+mixin(import("imports/rvector.d"));
 mixin(import("imports/rmatrix.d"));
-
 mixin(import("imports/function.d"));
 mixin(import("imports/list.d"));
 mixin(import("imports/dataframe.d"));
@@ -476,7 +473,16 @@ if(isSEXP!(T) && isBasicArray!(F))
   static if(STYPE != STRSXP)
   {
     auto ptr = Accessor!(STYPE)(result);
-    ptr[0..n] = arr[];
+    static if(!is(E == bool))
+    {
+      ptr[0..n] = arr[];
+    }else{
+      alias R = SEXPElementType!(STYPE);
+      foreach(i, element; arr)
+      {
+        ptr[i] = cast(R)element;
+      }
+    }
   }else{
     for(long i = 0; i < n; ++i)
     {
@@ -527,9 +533,9 @@ if(isBasicArray!(T) && isSEXP!(F))
       return _result_;
     }else{
       auto result = new E[n];
-      foreach(long i, ref el; _result_)
+      foreach(long i, element; _result_)
       {
-        result[i] = cast(E)el;
+        result[i] = cast(E)element;
       }
       return result;
     }

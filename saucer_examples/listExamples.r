@@ -105,3 +105,15 @@ saucer::dfunctions(exampleCode7, TRUE)
 binaryConcat3()
 
 
+exampleCode8 = '
+@Export() auto getLength(SEXP arr)
+{
+    //D\'s UFCS on R\'s length function.
+    return arr.length;
+}
+'
+
+saucer::dfunctions(exampleCode8, TRUE)
+getLength(1:10)
+getLength(listCreate())
+

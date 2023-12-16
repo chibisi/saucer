@@ -20,7 +20,9 @@ The D programming language has an attribute `@safe` tools to dissallow operation
 
 The approach of this package is in line with the philosophy of D, which is not to stop you from doing things, but to make available tools that allow you to do what you want.
 
+
 ### Example of a segfault case (why @safe should be used)
+**No longer relevant because there is no more implicit casting with alias this**
 
 Attempting to call the function below will create a segfault:
 
