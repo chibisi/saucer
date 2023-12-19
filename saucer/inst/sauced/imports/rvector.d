@@ -273,7 +273,7 @@ if(SEXPDataTypes!(Type))
     {
         if(needUnprotect)
         {
-            unprotect_ptr(this.sexp);
+            R_ReleaseObject(this.sexp);
             needUnprotect = false;
         }
     }
@@ -321,13 +321,15 @@ if(SEXPDataTypes!(Type))
     this(T)(T n) @trusted
     if(isIntegral!(T))
     {
-        this.sexp = protect(allocVector(Type, cast(int)n));
+        this.sexp = allocVector(Type, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
     }
     this(T)(T value) @trusted
     if(is(T == ElType) && !isIntegral!(T))
     {
-        this.sexp = protect(allocVector(Type, 1));
+        this.sexp = allocVector(Type, 1);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         static if((Type == STRSXP))
         {
@@ -340,7 +342,8 @@ if(SEXPDataTypes!(Type))
     if(is(T == ElType))
     {
         auto n = arr.length;
-        this.sexp = protect(allocVector(Type, cast(int)n));
+        this.sexp = allocVector(Type, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         static if((Type == STRSXP))
         {
@@ -360,7 +363,8 @@ if(SEXPDataTypes!(Type))
     {
         assert((Type == TYPEOF(sexp)) && isVector(sexp), 
             "Type of input is not the same as SEXPTYPE Type submitted");
-        this.sexp = protect(sexp);
+        this.sexp = sexp;
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
     }
     /* For logical implicit from bool array */
@@ -370,7 +374,8 @@ if(SEXPDataTypes!(Type))
         static assert(Type == LGLSXP, "Wrong SEXP given :" ~ 
                     Type ~ ", LGLSXP expected.");
         auto n = arr.length;
-        this.sexp = protect(allocVector(LGLSXP, cast(int)n));
+        this.sexp = allocVector(LGLSXP, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         int* _data_ = Accessor!(LGLSXP)(this.sexp)[0..n];
         foreach(i; 0..n)
@@ -385,7 +390,8 @@ if(SEXPDataTypes!(Type))
         static assert(Type == LGLSXP, "Wrong SEXP given :" ~ 
                     Type ~ ", LGLSXP expected.");
         auto n = arr.length;
-        this.sexp = protect(allocVector(LGLSXP, cast(int)n));
+        this.sexp = allocVector(LGLSXP, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         Accessor!(LGLSXP)(this.sexp)[0..n] = (cast(int*)arr.ptr)[0..n];
     }
@@ -393,7 +399,8 @@ if(SEXPDataTypes!(Type))
     this(ref return scope RVector original) @trusted
     {
         int n = cast(int)original.length;
-        this.sexp = protect(allocVector(Type, cast(int)n));
+        this.sexp = allocVector(Type, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         copyVector(this.sexp, original.sexp);
     }

@@ -58,8 +58,7 @@ struct NamedIndex
     }
     this(SEXP sexp)
     {
-        sexp = protect(sexp);
-        scope(exit)unprotect_ptr(sexp);
+        sexp = sexp;
         auto rtype = TYPEOF(sexp);
         enforce(rtype == STRSXP, "Wrong sexp data " ~ to!(string)(rtype) ~ "type for names.");
         auto data = To!(string[])(sexp);
@@ -163,7 +162,8 @@ struct List
     this(I)(I n) @trusted
     if(isIntegral!(I))
     {
-        this.sexp = protect(allocVector(VECSXP, cast(int)n));
+        this.sexp = allocVector(VECSXP, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
     }
     this(T)(T value) @trusted
@@ -173,7 +173,8 @@ struct List
         {
             if(TYPEOF(value) == VECSXP)
             {
-                this.sexp = protect(value);
+                this.sexp = value;
+                R_PreserveObject(value);
                 this.needUnprotect = true;
                 auto lNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
                 scope(exit) unprotect_ptr(lNames);
@@ -183,14 +184,16 @@ struct List
                 }
                 return;
             }else{
-                this.sexp = protect(allocVector(VECSXP, 1));
+                this.sexp = allocVector(VECSXP, 1);
+                R_PreserveObject(this.sexp);
                 this.needUnprotect = true;
                 this[0] = value;
                 return;
             }
         }else{
             auto element = To!(SEXP)(value);
-            this.sexp = protect(allocVector(VECSXP, 1));
+            this.sexp = allocVector(VECSXP, 1);
+            R_PreserveObject(this.sexp);
             this.needUnprotect = true;
             this[0] = element;
             return;
@@ -200,7 +203,8 @@ struct List
     this(T)(auto ref T original) @trusted
     if(is(T == List))
     {
-        this.sexp = protect(copyVector(original.sexp));
+        this.sexp = copyVector(original.sexp);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         auto lNames = protect(Rf_getAttrib(original.sexp, R_NamesSymbol));
         scope(exit) unprotect_ptr(lNames);
@@ -215,7 +219,8 @@ struct List
     {
         SEXP element;
         enum n = Args.length;
-        this.sexp = protect(allocVector(VECSXP, cast(int)n));
+        this.sexp = allocVector(VECSXP, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         static foreach(i; 0..n)
         {
@@ -228,7 +233,8 @@ struct List
     {
         import std.algorithm: canFind;
         auto n = Args.length;
-        this.sexp = protect(allocVector(VECSXP, cast(int)n));
+        this.sexp = allocVector(VECSXP, cast(int)n);
+        R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         SEXP element;
         string name;
@@ -248,7 +254,7 @@ struct List
     {
         if(this.needUnprotect)
         {
-            unprotect_ptr(sexp);
+            R_ReleaseObject(sexp);
             this.needUnprotect = false;
         }
     }
@@ -277,7 +283,8 @@ struct List
                 list (VECSXP) length because it segfaults.
                 Instead, a new list is created and the items from the old list are trasfered across
             */
-            auto newList = protect(allocVector(VECSXP, cast(int)newLength));
+            auto newList = allocVector(VECSXP, cast(int)newLength);
+            R_PreserveObject(newList);
             // ... move items from old list to new list
             foreach(int i; 0..currLength)
             {
@@ -295,7 +302,7 @@ struct List
             auto oldList = this.sexp;
             this.sexp = newList;
             //unprotects from constructor
-            unprotect_ptr(oldList);
+            R_ReleaseObject(oldList);
         }
         return newLength;
     }

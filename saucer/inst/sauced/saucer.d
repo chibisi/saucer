@@ -472,6 +472,7 @@ if(isSEXP!(T) && isBasicArray!(F))
   enum SEXPTYPE STYPE = MapToSEXP!(E);
   auto n = arr.length;
   auto result = protect(allocVector(STYPE, n));
+  scope(exit) unprotect_ptr(result);
   static if(STYPE != STRSXP)
   {
     auto ptr = Accessor!(STYPE)(result);
@@ -491,7 +492,6 @@ if(isSEXP!(T) && isBasicArray!(F))
       setSEXP!(STYPE)(result, i, arr[i]);
     }
   }
-  unprotect(1);
   return result;
 }
 
@@ -505,7 +505,8 @@ if(isSEXP!(T) && isBasicType!(F))
   enum SEXPTYPE STYPE = MapToSEXP!(F);
   static if(STYPE != STRSXP)
   {
-    SEXP result = allocVector(STYPE, 1);
+    SEXP result = protect(allocVector(STYPE, 1));
+    scope(exit) unprotect_ptr(result);
     auto ptr = Accessor!(STYPE)(result);
     ptr[0] = value;
   }else{
