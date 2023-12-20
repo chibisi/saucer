@@ -34,11 +34,6 @@ struct DataFrame
         auto rtype = cast(SEXPTYPE)TYPEOF(arg);
         if(rtype == VECSXP)
         {
-            //enforce(arg.length > 0, "Empty list can not be used to create a DataFrame");
-            //auto rowNames = protect(makeRowNames(this.data[0].length));
-            //scope(exit) unprotect(1);
-            //Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
-            //classgets(this.data.sexp, className);
             auto list = List(arg);
             this(list);
         }else{
@@ -46,19 +41,9 @@ struct DataFrame
             scope(exit) unprotect(1);
             if(name.length == 1)
             {
-                //this.data = List(namedElement(name, arg));
-                //auto rowNames = protect(makeRowNames(arg.length));
-                //scope(exit) unprotect(1);
-                //Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
-                //classgets(this.data.sexp, className);
                 auto list = List(namedElement(name, arg));
                 this(list);
             }else{
-                //this.data = List(namedElement("column_1", arg));
-                //auto rowNames = protect(makeRowNames(arg.length));
-                //scope(exit) unprotect(1);
-                //Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
-                //classgets(this.data.sexp, className);
                 auto list = List(namedElement("column_1", arg));
                 this(list);
             }
@@ -151,10 +136,6 @@ struct DataFrame
             scope(exit) unprotect(1);
             arg.nameIndex = NamedIndex(newSNames);
         }
-        //if(uniqueLengths.length <= 1)
-        //{
-        //    this.data = arg;
-        //}
         if(uniqueLengths.length == 2)
         {
             foreach(i; 0..ncols)
@@ -163,9 +144,7 @@ struct DataFrame
                 {
                     arg[i] = fillSEXPVector(arg[i], uniqueLengths[1]);
                 }
-                //unprotect(1);
             }
-            //this.data = arg;
         }
         this.data = arg;
         auto rowNames = protect(makeRowNames(maxLength));
