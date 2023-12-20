@@ -76,6 +76,15 @@ struct Export
 mixin(import("imports/cstring.d"));
 mixin(import("imports/isin.d"));
 
+/*
+    Makes sure that SEXP is returned 
+    rather than int
+*/
+pragma(inline, true)
+private auto rTypeOf(SEXP x)
+{
+  return cast(SEXPTYPE)TYPEOF(x);
+}
 
 //Prints RTypes & SEXPs
 auto print(T...)(T x)
@@ -243,6 +252,22 @@ template CreateMultipleCase(string TemplateName)
   }";
 }
 
+
+mixin template AlternativeImplementat0()
+{
+  private template CreateMultipleCase(alias Template, T...)
+  {
+    static if(T.length == 0)
+    {
+      enum CreateMultipleCase = true;
+    }else{
+      enum CreateMultipleCase = Template!(T[0]) && CreateMultipleCase!(Template, T[1..$]);
+    }
+  }
+}
+
+
+
 template CreatePathologicalCase(string TemplateName)
 {
   enum CreatePathologicalCase = "template " ~ TemplateName ~ "()\n" ~
@@ -250,6 +275,66 @@ template CreatePathologicalCase(string TemplateName)
     enum " ~ TemplateName ~ " = false;
   }";
 }
+
+
+/*
+    Combines one or more traits (Traits ...) to act on
+    a single type (T) and the result combined with and/or boolean
+*/
+private template CombineTraits(T, string combine, Traits...)
+{
+    static if(combine == "and")
+    {
+        static if(Traits.length == 0)
+        {
+            enum CombineTraits = true;
+        }else{
+            alias Temp = Traits[0];
+            enum CombineTraits = Temp!(T) && CombineTraits!(T, combine, Traits[1..$]);
+        }
+    }else static if(combine == "or")
+    {
+        static if(Traits.length == 0)
+        {
+            enum CombineTraits = false;
+        }else{
+            alias Temp = Traits[0];
+            enum CombineTraits = Temp!(T) || CombineTraits!(T, combine, Traits[1..$]);
+        }
+    }else{
+        static assert(0, "Unknown combine operator: " ~ combine);
+    }
+}
+
+
+/*
+    Allows one or more types (T ...) to be applied to one trait Trait
+    and the result combined with and/or boolean
+*/
+private template ForTypes(alias Trait, string combine, T...)
+{
+    static if(combine == "all")
+    {
+        static if(T.length == 0)
+        {
+            enum ForTypes = true;
+        }else{
+            enum ForTypes = Trait!(T[0]) && ForTypes!(Trait, combine, T[1..$]);
+        }
+    }else static if(combine == "any")
+    {
+        static if(T.length == 0)
+        {
+            enum ForTypes = false;
+        }else{
+            enum ForTypes = Trait!(T[0]) || ForTypes!(Trait, combine, T[1..$]);
+        }
+    }else{
+        static assert(0, "Unknown combine string \"" ~ combine ~ "\", should be either \"any\" or \"all\".");
+    }
+}
+
+
 
 /*
   Template trait for whether an item is an 
@@ -315,6 +400,9 @@ enum isSEXPOrRType(alias P) = isSEXPOrRType!(typeof(P));
 
 mixin(CreateMultipleCase!("isSEXPOrRType"));
 mixin(CreatePathologicalCase!("isSEXPOrRType"));
+
+//Explicit version using template
+private enum AllSEXP(T...) = ForTypes!(isSEXP, "all", T);
 
 template isConvertibleToSEXP(T)
 {
@@ -472,7 +560,7 @@ if(isSEXP!(T) && isBasicArray!(F))
   enum SEXPTYPE STYPE = MapToSEXP!(E);
   auto n = arr.length;
   auto result = protect(allocVector(STYPE, n));
-  scope(exit) unprotect_ptr(result);
+  scope(exit) unprotect(1);
   static if(STYPE != STRSXP)
   {
     auto ptr = Accessor!(STYPE)(result);
@@ -506,7 +594,7 @@ if(isSEXP!(T) && isBasicType!(F))
   static if(STYPE != STRSXP)
   {
     SEXP result = protect(allocVector(STYPE, 1));
-    scope(exit) unprotect_ptr(result);
+    scope(exit) unprotect(1);
     auto ptr = Accessor!(STYPE)(result);
     ptr[0] = value;
   }else{
@@ -585,7 +673,7 @@ if(isBasicType!(E) && isSEXP!(F))
   import std.stdio: writeln;
 
   sexp = protect(sexp);
-  scope(exit) unprotect_ptr(sexp);
+  scope(exit) unprotect(1);
   
   long n = LENGTH(sexp);
   if(n != 1)
@@ -616,7 +704,7 @@ B To(B, R)(ref R r_type)
 if(isBasicTypeOrArray!(B) && isRType!(R))
 {
   auto sexp = protect(To!(SEXP)(r_type));
-  scope(exit) unprotect_ptr(sexp);
+  scope(exit) unprotect(1);
 
   auto result = To!(B)(sexp);
   return result;

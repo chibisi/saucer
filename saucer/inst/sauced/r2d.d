@@ -6,8 +6,6 @@ import core.stdc.stdarg;
 
 extern (C):
 
-//@nogc:
-
 alias _Float128 = void*;
 alias size_t = c_ulong;
 alias wchar_t = int;

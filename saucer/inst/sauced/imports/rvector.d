@@ -50,11 +50,11 @@ SEXP mkString(string value)
 {
     int n = cast(int)value.length;
     auto result = protect(allocVector(STRSXP, 1));
+    scope(exit) unprotect(1);
     const(char*) _ptr_ = cast(const(char*))&value[0];
     auto element = Rf_mkCharLen(_ptr_, n);
     SEXP* ps = STRING_PTR(result);
 	ps[0] = element;
-    unprotect(1);
     return result;
 }
 
@@ -77,17 +77,30 @@ SEXP mkChar(string value)
     vector
 +/
 pragma(inline, true)
-auto setSEXP(SEXPTYPE Type, I)(SEXP sexp, I i, auto ref string value)
+auto setSEXP(SEXPTYPE Type, I)(SEXP sexp, I i, string value)
 if((Type == STRSXP) && isIntegral!(I))
 {
-    int n = cast(int)value.length;
-    if(n > 0)
+    //import std.utf: toUTFz;
+    //writeln("Entered setSEXP for STRSXP value: " ~ value);
+    auto stringLength = cast(int)value.length;
+    if(stringLength > 0)
     {
-        const(char*) _ptr_ = cast(const(char*))&value[0];
-        SEXP element = Rf_mkCharLen(_ptr_, n);
-        SEXP* ps = cast(SEXP*)STDVEC_DATAPTR(sexp);
-	    ps[i] = element;
+        auto _ptr_ = cast(const(char*))&value[0];
+        //auto _ptr_ = toUTFz!(const(char)*)(value);
+        SEXP element = protect(Rf_mkCharLen(_ptr_, stringLength));
+        scope(exit) unprotect(1);
+
+        //writeln("Printing element");
+        //element.print;
+        //writeln("Done print, now attaching to SEXP vector");
+        
+        //SEXP* ps = cast(SEXP*)STDVEC_DATAPTR(sexp);
+	    //ps[i] = element;
+        SET_STRING_ELT(sexp, cast(int)i, element);
+    }else{
+        assert(0, "Can not set items in array of zero length");
     }
+    //writeln("Leaving setSEXP for STRSXP");
     return value;
 }
 
@@ -207,7 +220,7 @@ auto copyVector(SEXP originalVector)
     auto type = cast(SEXPTYPE)TYPEOF(originalVector);
     auto newVector = protect(allocVector(type, 
                         LENGTH(originalVector)));
-    scope(exit) unprotect_ptr(newVector);
+    scope(exit) unprotect(1);
     copyVector(newVector, originalVector);
     return newVector;
 }
@@ -217,41 +230,54 @@ auto copyVector(SEXP originalVector)
     Fills SEXP R Vector with a submitted value. works with R vectors only
     but not lists.
 */
-auto fillSEXPVector(I)(ref SEXP sexp, I finalLength)
+auto fillSEXPVector(I)(SEXP sexp, I finalLength)
 if(isIntegral!(I))
 {
     auto rtype = cast(SEXPTYPE)TYPEOF(sexp);
     enforce(!(!isVector(sexp) || (rtype == VECSXP)), 
         "Submitted SEXP is either not a vector or is a list");
-    SETLENGTH(sexp, cast(int)finalLength);
+    auto _finalLength_ = cast(int)finalLength;
+    SEXP result;
     switch (rtype)
     {
         default:
             throw new Exception("SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
         case REALSXP:
+            result = protect(allocVector(REALSXP, _finalLength_));
             auto value = getSEXP!(REALSXP)(sexp, 0);
-            setSlice!(REALSXP)(sexp, 1, finalLength, value);
-            return sexp;
+            setSlice!(REALSXP)(result, 0, finalLength, value);
+            unprotect(1);
+            return result;
         case INTSXP:
+            result = protect(allocVector(INTSXP, _finalLength_));
             auto value = getSEXP!(INTSXP)(sexp, 0);
-            setSlice!(INTSXP)(sexp, 1, finalLength, value);
-            return sexp;
+            setSlice!(INTSXP)(result, 0, finalLength, value);
+            unprotect(1);
+            return result;
         case STRSXP:
+            result = protect(allocVector(STRSXP, _finalLength_));
             auto value = getSEXP!(STRSXP)(sexp, 0);
-            setSlice!(STRSXP)(sexp, 1, finalLength, value);
-            return sexp;
+            setSlice!(STRSXP)(result, 0, finalLength, value);
+            unprotect(1);
+            return result;
         case LGLSXP:
+            result = protect(allocVector(LGLSXP, _finalLength_));
             auto value = getSEXP!(LGLSXP)(sexp, 0);
-            setSlice!(LGLSXP)(sexp, 1, finalLength, value);
-            return sexp;
+            setSlice!(LGLSXP)(result, 0, finalLength, value);
+            unprotect(1);
+            return result;
         case RAWSXP:
+            result = protect(allocVector(RAWSXP, _finalLength_));
             auto value = getSEXP!(RAWSXP)(sexp, 0);
-            setSlice!(RAWSXP)(sexp, 1, finalLength, value);
-            return sexp;
+            setSlice!(RAWSXP)(result, 0, finalLength, value);
+            unprotect(1);
+            return result;
         case CPLXSXP:
+            result = protect(allocVector(CPLXSXP, _finalLength_));
             auto value = getSEXP!(CPLXSXP)(sexp, 0);
-            setSlice!(CPLXSXP)(sexp, 1, finalLength, value);
-            return sexp;
+            setSlice!(CPLXSXP)(result, 0, finalLength, value);
+            unprotect(1);
+            return result;
     }
     assert(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
 }
@@ -277,9 +303,9 @@ if(SEXPDataTypes!(Type))
             needUnprotect = false;
         }
     }
-    @property size_t length() const @trusted
+    @property size_t length() @trusted
     {
-        return LENGTH(cast(SEXP)this.sexp);
+        return LENGTH(this.sexp);
     }
     @property auto length(T)(T n) @trusted
     if(isIntegral!(T))
@@ -345,7 +371,7 @@ if(SEXPDataTypes!(Type))
         this.sexp = allocVector(Type, cast(int)n);
         R_PreserveObject(this.sexp);
         this.needUnprotect = true;
-        static if((Type == STRSXP))
+        static if(Type == STRSXP)
         {
             for(long i = 0; i < n; ++i)
             {

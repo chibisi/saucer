@@ -46,9 +46,9 @@ template isNamedElement(T)
 
 mixin(CreateMultipleCase!("isNamedElement"));
 enum isNamedElement(alias Arg) = isNamedElement!(typeof(Arg));
+enum isAnyNamedElement(T...) = ForTypes!(isNamedElement, "any", T);
 
-
-struct NamedIndex
+private struct NamedIndex
 {
     string[] data;
     this(string[] data...)
@@ -156,7 +156,7 @@ struct NamedIndex
 
 struct List
 {
-    SEXP sexp;
+    private SEXP sexp;
     NamedIndex nameIndex;
     bool needUnprotect = false;
     this(I)(I n) @trusted
@@ -177,7 +177,7 @@ struct List
                 R_PreserveObject(value);
                 this.needUnprotect = true;
                 auto lNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
-                scope(exit) unprotect_ptr(lNames);
+                scope(exit) unprotect(1);
                 if((lNames.length > 0) && (lNames.length == this.sexp.length))
                 {
                     this.nameIndex = NamedIndex(lNames);
@@ -207,7 +207,7 @@ struct List
         R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         auto lNames = protect(Rf_getAttrib(original.sexp, R_NamesSymbol));
-        scope(exit) unprotect_ptr(lNames);
+        scope(exit) unprotect(1);
         if(LENGTH(lNames) > 0)
         {
             Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
@@ -244,10 +244,10 @@ struct List
             this.nameIndex ~= name;
             element = protect(To!(SEXP)(arg.data));
             this[i] = element;
-            unprotect_ptr(element);
+            unprotect(1);
         }
         auto lNames = protect(this.nameIndex.asSEXP);
-        scope(exit) unprotect_ptr(lNames);
+        scope(exit) unprotect(1);
         Rf_setAttrib(this.sexp, R_NamesSymbol, lNames);
     }
     ~this() @trusted
@@ -293,7 +293,7 @@ struct List
             }
             // ... move the names from old list to new list
             auto lNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
-            scope(exit) unprotect_ptr(lNames);
+            scope(exit) unprotect(1);
             if(LENGTH(lNames) > 0)
             {
                 Rf_setAttrib(newList, R_NamesSymbol, lNames);
@@ -456,9 +456,9 @@ struct List
             result[i + this.length] = copyVector(rhs[i]);
         }
         auto thisNames = protect(Rf_getAttrib(this.sexp, R_NamesSymbol));
-        scope(exit)unprotect_ptr(thisNames);
+        scope(exit)unprotect(1);
         auto rhsNames = protect(Rf_getAttrib(rhs.sexp, R_NamesSymbol));
-        scope(exit)unprotect_ptr(rhsNames);
+        scope(exit)unprotect(1);
         if((LENGTH(thisNames) > 0) && (LENGTH(rhsNames) > 0))
         {
             auto newNames = To!(string[])(thisNames) ~ To!(string[])(rhsNames);

@@ -24,69 +24,84 @@ if(isIntegral!(I))
 
 struct DataFrame
 {
-    List data;
+    import std.stdio: writeln;
+    private List data;
     this(Arg)(Arg arg) @trusted
     if(is(Arg == SEXP))
     {
         auto className = protect(To!(SEXP)("data.frame"));
-        scope(exit) unprotect_ptr(className);
+        scope(exit) unprotect(1);
         auto rtype = cast(SEXPTYPE)TYPEOF(arg);
         if(rtype == VECSXP)
         {
-            this(List(arg));
-            enforce(arg.length > 0, "Empty list can not be used to create a DataFrame");
-            auto rowNames = protect(makeRowNames(this[0].length));
-            scope(exit) unprotect_ptr(rowNames);
+            //enforce(arg.length > 0, "Empty list can not be used to create a DataFrame");
+            //auto rowNames = protect(makeRowNames(this.data[0].length));
+            //scope(exit) unprotect(1);
+            //Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
+            //classgets(this.data.sexp, className);
+            auto list = List(namedElement(name, arg));
+            this(list);
+        }else{
+            auto name = protect(Rf_getAttrib(arg, R_NamesSymbol));
+            scope(exit) unprotect(1);
+            if(name.length == 1)
+            {
+                //this.data = List(namedElement(name, arg));
+                //auto rowNames = protect(makeRowNames(arg.length));
+                //scope(exit) unprotect(1);
+                //Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
+                //classgets(this.data.sexp, className);
+                auto list = List(namedElement(name, arg));
+                this(list);
+            }else{
+                //this.data = List(namedElement("column_1", arg));
+                //auto rowNames = protect(makeRowNames(arg.length));
+                //scope(exit) unprotect(1);
+                //Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
+                //classgets(this.data.sexp, className);
+                auto list = List(namedElement("column_1", arg));
+                this(list);
+            }
+        }
+        return;
+    }
+    //For named element or rtype or basic type or array
+    this(Arg)(Arg arg) @trusted
+    if(!is(Arg == SEXP) && !is(Arg == List) && !is(Arg == DataFrame))
+    {
+        auto className = protect(To!(SEXP)("data.frame"));
+        scope(exit) unprotect(1);
+        static if(isNamedElement!(Arg))
+        {
+            this.data = List(arg);
+            auto rowNames = protect(makeRowNames(arg.data.length));
+            scope(exit) unprotect(1);
             Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
             classgets(this.data.sexp, className);
         }else{
-            auto name = protect(Rf_getAttrib(arg, R_NamesSymbol));
-            scope(exit) unprotect_ptr(name);
-            if(name.length == 1)
+            static if(isBasicType!Arg)
             {
-                this.data = List(namedElement(name, arg));
-                auto rowNames = protect(makeRowNames(arg.length));
-                scope(exit) unprotect_ptr(rowNames);
+                this.data = List(namedElement("column_1", [arg]));
+                auto rowNames = protect(makeRowNames(1));
+                scope(exit) unprotect(1);
                 Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
                 classgets(this.data.sexp, className);
             }else{
                 this.data = List(namedElement("column_1", arg));
                 auto rowNames = protect(makeRowNames(arg.length));
-                scope(exit) unprotect_ptr(rowNames);
+                scope(exit) unprotect(1);
                 Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
                 classgets(this.data.sexp, className);
             }
         }
         return;
     }
-    //For named element or rtype
-    this(Arg)(Arg arg) @trusted
-    if(!is(Arg == SEXP) && !is(Arg == List) && !is(Arg == DataFrame))
-    {
-        auto className = protect(To!(SEXP)("data.frame"));
-        scope(exit) unprotect_ptr(className);
-        static if(isNamedElement!(Arg))
-        {
-            this.data = List(arg);
-            auto rowNames = protect(makeRowNames(arg.data.length));
-            scope(exit) unprotect_ptr(rowNames);
-            Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
-            classgets(this.data.sexp, className);
-        }else{
-            this.data = List(namedElement("column_1", arg));
-            auto rowNames = protect(makeRowNames(arg.length));
-            scope(exit) unprotect_ptr(rowNames);
-            Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
-            classgets(this.data.sexp, className);
-        }
-        return;
-    }
     //For List
     this(Arg)(Arg arg) @trusted
-    if(!is(Arg == SEXP) && is(Arg == List) && !is(Arg == DataFrame))
+    if(is(Arg == List))
     {
         auto className = protect(To!(SEXP)("data.frame"));
-        scope(exit) unprotect_ptr(className);
+        scope(exit) unprotect(1);
         auto ncols = arg.length;
         int maxLength = 0;
         auto lengths = new int[ncols];
@@ -117,50 +132,125 @@ struct DataFrame
                 to!(string)(uniqueLengths));
         }
         auto sNames = protect(Rf_getAttrib(arg.sexp, R_NamesSymbol));
-        scope(exit) unprotect_ptr(sNames);
+        scope(exit) unprotect(1);
         if(sNames.length != ncols)
         {
             auto colNames = new string[ncols];
             foreach(i, ref name; colNames)
             {
-                name = "column_" ~ to!(string)(i);
+                name = "column_" ~ to!(string)(i + 1);
             }
             auto newSNames = protect(To!(SEXP)(colNames));
-            scope(exit) unprotect_ptr(newSNames);
+            scope(exit) unprotect(1);
             Rf_setAttrib(arg.sexp, R_NamesSymbol, newSNames);
             arg.nameIndex = NamedIndex(colNames);
         }
         if(arg.nameIndex.length != ncols)
         {
             auto newSNames = protect(Rf_getAttrib(arg.sexp, R_NamesSymbol));
-            scope(exit) unprotect_ptr(newSNames);
+            scope(exit) unprotect(1);
             arg.nameIndex = NamedIndex(newSNames);
         }
-        if(uniqueLengths.length <= 1)
-        {
-            this.data = arg;
-            classgets(this.data.sexp, className);
-        }
+        //if(uniqueLengths.length <= 1)
+        //{
+        //    this.data = arg;
+        //}
         if(uniqueLengths.length == 2)
         {
             foreach(i; 0..ncols)
             {
-                auto column = protect(arg[i]);
-                if(column.length == 1)
+                if(arg[i].length == 1)
                 {
-                    fillSEXPVector(column, uniqueLengths[1]);
-                    arg[i] = column;
+                    arg[i] = fillSEXPVector(arg[i], uniqueLengths[1]);
                 }
-                unprotect_ptr(column);
+                unprotect(1);
             }
-            this.data = arg;
-            classgets(this.data.sexp, className);
+            //this.data = arg;
         }
         this.data = arg;
         auto rowNames = protect(makeRowNames(maxLength));
-        scope(exit) unprotect_ptr(rowNames);
+        scope(exit) unprotect(1);
         Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
         classgets(this.data.sexp, className);
+        return;
+    }
+    this(Args...)(Args args)
+    if((Args.length > 1) && isSEXP!(Args))
+    {
+        string[] colNames;
+        auto ncols = Args.length;
+        auto slist = protect(allocVector(VECSXP, cast(int)ncols));
+        scope(exit) unprotect(1);
+        foreach(i, sexp; args)
+        {
+            enforce(rTypeOf(sexp) != VECSXP, "Lists are not allowed in multiple argument for DataFrame constructor");
+            auto sName = protect(Rf_getAttrib(sexp, R_NamesSymbol));
+            scope(exit) unprotect(1);
+            string colName = sName.length == 1 ? 
+                                To!(string)(sName) : "column_" ~ to!string(i + 1);
+            auto j = 1;
+            while(colName.isin(colNames))
+            {
+                colName ~= "_" ~ to!string(j);
+                ++j;
+            }
+            colNames ~= colName;
+            SET_VECTOR_ELT(slist, cast(int)i, sexp);
+        }
+        Rf_setAttrib(slist, R_NamesSymbol, To!SEXP(colNames));
+        this(List(slist));
+        return;
+    }
+    this(Args...)(Args args)
+    if((Args.length > 1) && (isConvertibleToSEXP!(Args) || isAnyNamedElement!(Args)) && !isSEXP!(Args))
+    {
+        auto ncols = Args.length;
+        auto slist = protect(allocVector(VECSXP, cast(int)ncols));
+        scope(exit) unprotect(1);
+        string[] colNames;
+        static foreach(i, Arg; Args)
+        {{
+            SEXP sexp;
+            string colName;
+            static if(is(Arg == SEXP))
+            {
+                sexp = protect(args[i]);
+                scope(exit) unprotect(1);
+                enforce(rTypeOf(sexp) != VECSXP, "Lists are not allowed in " ~ 
+                    "multiple argument for DataFrame constructor");
+                auto sName = protect(Rf_getAttrib(sexp, R_NamesSymbol));
+                scope(exit) unprotect(1);
+                colName = sName.length == 1 ? 
+                                To!(string)(sName) : "column_" ~ to!string(i + 1);
+            }else static if(isNamedElement!(Arg))
+            {
+                auto tmp = args[i].data;
+                static if(is(typeof(tmp) == SEXP))
+                {
+                    sexp = protect(tmp);
+                    scope(exit) unprotect(1);
+                }else{
+                    sexp = protect(To!SEXP(tmp));
+                    scope(exit) unprotect(1);
+                }
+                colName = args[i].name;
+            }else
+            {
+                sexp = protect(To!SEXP(args[i]));
+                scope(exit) unprotect(1);
+                colName = "column_" ~ to!string(i + 1);
+            }
+            auto j = 1;
+            while(colName.isin(colNames))
+            {
+                colName ~= "_" ~ to!string(j);
+                ++j;
+            }
+            colNames ~= colName;
+            SET_VECTOR_ELT(slist, cast(int)i, sexp);
+        }}
+        Rf_setAttrib(slist, R_NamesSymbol, To!SEXP(colNames));
+        this(List(slist));
         return;
     }
     SEXP opCast(T)() @trusted
