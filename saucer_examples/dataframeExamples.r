@@ -132,21 +132,8 @@ makeDFFromMultiplyTypes(category)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-#----------------------------------------------------------------------------------------#
-segfaultCode = '
-@Export() auto makeDFFromMultiplyTypes(SEXP category)
+dfExampleCode9 = '
+@Export() auto makeDFMoreSingleItems(SEXP category)
 {
     auto vec = CharacterVector("One", "Two", "Three", "Four", "Five", "Six");
     return DataFrame(
@@ -158,3 +145,22 @@ segfaultCode = '
     );
 }
 '
+
+saucer::dfunctions(dfExampleCode9)
+
+category = c("A")
+names(category) = "Category"
+makeDFMoreSingleItems(category)
+
+
+
+
+
+
+
+
+
+
+
+
+

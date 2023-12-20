@@ -39,7 +39,7 @@ struct DataFrame
             //scope(exit) unprotect(1);
             //Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
             //classgets(this.data.sexp, className);
-            auto list = List(namedElement(name, arg));
+            auto list = List(arg);
             this(list);
         }else{
             auto name = protect(Rf_getAttrib(arg, R_NamesSymbol));
@@ -163,7 +163,7 @@ struct DataFrame
                 {
                     arg[i] = fillSEXPVector(arg[i], uniqueLengths[1]);
                 }
-                unprotect(1);
+                //unprotect(1);
             }
             //this.data = arg;
         }
