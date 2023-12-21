@@ -153,7 +153,7 @@ struct DataFrame
         classgets(this.data.sexp, className);
         return;
     }
-    this(Args...)(Args args)
+    this(Args...)(Args args) @trusted
     if((Args.length > 1) && isSEXP!(Args))
     {
         string[] colNames;
@@ -180,7 +180,7 @@ struct DataFrame
         this(List(slist));
         return;
     }
-    this(Args...)(Args args)
+    this(Args...)(Args args) @trusted
     if((Args.length > 1) && (isConvertibleToSEXP!(Args) || isAnyNamedElement!(Args)) && !isSEXP!(Args))
     {
         auto ncols = Args.length;
@@ -236,6 +236,110 @@ struct DataFrame
     if(is(T == SEXP))
     {
         return this.data.sexp;
+    }
+    auto length()
+    {
+        return this.data.length;
+    }
+    auto ncol()
+    {
+        return cast(size_t)this.length;
+    }
+    auto nrow()
+    {
+        if(this.ncol == 0)
+        {
+            return cast(size_t)0;
+        }else
+        {
+            return cast(size_t)this.data[0].length;
+        }
+    }
+    auto dim()
+    {
+        return [this.nrow, this.ncol];
+    }
+    auto names()
+    {
+        return this.data.names;
+    }
+    pragma(inline, true)
+    auto colnames()
+    {
+        return this.names();
+    }
+    auto names(A)(A lNames)
+    if(is(A == SEXP) || is(A == string[]) || is(A == CharacterVector))
+    {
+        this.data.names(lNames);
+        return;
+    }
+    pragma(inline, true)
+    auto colnames(A)(A lNames)
+    if(is(A == SEXP) || is(A == string[]) || is(A == CharacterVector))
+    {
+        return this.names(lNames);
+    }
+    auto opIndex(I)(I i) @trusted
+    if(isIntegral!I || is(I == string))
+    {
+        return DataFrame(namedElement(this.data.nameIndex[i], this.data[i]));
+    }
+    auto opSlice(I)(I start, I end) @trusted
+    if(isIntegral!(I) || is(I == string))
+    {
+        return DataFrame(this.data[start..end]);
+    }
+    auto rbind(DataFrame df)
+    {
+        enforce(this.names == df.names, "Column names of the DataFrame to be appended " ~ 
+            "differs from the DataFrame being appended to. Current names: \n" ~ to!string(this.names) ~
+            "\nCandidate names: \n" ~ to!string(df.names));
+        auto sameColNames = true;
+        auto ncols = this.ncol;
+        //Check column types
+        foreach(i; 0..ncols)
+        {
+            sameColNames = sameColNames && (TYPEOF(this.data[i]) == TYPEOF(df.data[i]));
+        }
+        enforce(sameColNames, "Columns in candidate entry does not have the same types as the DataFrame");
+        //Join columns
+        auto newList = List(ncols);
+        size_t nrows;
+        foreach(i; 0..ncols)
+        {
+            auto column = protect(join(this.data[i], df.data[i]));
+            scope(exit) unprotect(1);
+            if(i == 0)
+            {
+                nrows = column.length;
+            }
+            newList[i] = column;
+        }
+        auto sNames = protect(Rf_getAttrib(this.data.sexp, R_NamesSymbol));
+        scope(exit) unprotect(1);
+        Rf_setAttrib(newList.sexp, R_NamesSymbol, sNames);
+        auto rowNames = protect(makeRowNames(nrows));
+        scope(exit) unprotect(1);
+        Rf_setAttrib(newList.sexp, R_RowNamesSymbol, rowNames);
+        auto className = protect(To!(SEXP)("data.frame"));
+        scope(exit) unprotect(1);
+        classgets(newList.sexp, className);
+        this.data = newList;
+        return;
+    }
+    auto rbind(List list)
+    {
+        this.rbind(DataFrame(list));
+        return;
+    }
+    auto rbind(SEXP list)
+    {
+        auto rtype = rTypeOf(list);
+        enforce(rtype == VECSXP, "Types such as this " ~ to!string(rtype) ~ 
+            "that are not lists (VECSXP) or DataFrame can not be row-bound to dataframes");
+        this.rbind(DataFrame(list));
+        return;
     }
 }
 

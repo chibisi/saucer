@@ -89,10 +89,6 @@ if((Type == STRSXP) && isIntegral!(I))
         //auto _ptr_ = toUTFz!(const(char)*)(value);
         SEXP element = protect(Rf_mkCharLen(_ptr_, stringLength));
         scope(exit) unprotect(1);
-
-        //writeln("Printing element");
-        //element.print;
-        //writeln("Done print, now attaching to SEXP vector");
         
         //SEXP* ps = cast(SEXP*)STDVEC_DATAPTR(sexp);
 	    //ps[i] = element;
@@ -282,6 +278,36 @@ if(isIntegral!(I))
     assert(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
 }
 
+
+/*
+    Joins two SEXP R vectors
+*/
+auto join(SEXP lhs, SEXP rhs)
+{
+    auto rtype = rTypeOf(lhs);
+    enforce(rtype == rTypeOf(rhs), "Vector types do not match.");
+    auto lhsLength = lhs.length;
+    auto rhsLength = rhs.length;
+    auto finalLength = cast(int)(lhs.length + rhs.length);
+    auto result = protect(allocVector(rtype, finalLength));
+    scope(exit) unprotect(1);
+    switch(rtype)
+    {
+        default:
+            throw new Exception("SEXP (" ~ to!(string)(rtype) ~ 
+                ") is not applicable or has not been implemented.");
+        static foreach(TYPE; [REALSXP, INTSXP, LGLSXP, RAWSXP, CPLXSXP, STRSXP])
+        {
+            case TYPE:
+                alias FUNC = Accessor!(TYPE);
+                auto ptr = FUNC(result);
+                ptr[0..lhsLength] = FUNC(lhs)[0..lhsLength];
+                ptr[lhsLength..finalLength] = FUNC(rhs)[0..rhsLength];
+                return result;
+        }
+    }
+    assert(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
+}
 
 
 

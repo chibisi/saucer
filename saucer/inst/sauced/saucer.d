@@ -203,8 +203,7 @@ if(Type == RAWSXP)
 template Accessor(SEXPTYPE Type)
 if(Type == STRSXP)
 {
-  //returns SEXP*
-  alias Accessor = STRING_PTR;
+  alias Accessor = STRING_PTR; //returns SEXP*
 }
 
 //Deprecated remove soon
@@ -564,11 +563,11 @@ if(isSEXP!(T) && isBasicArray!(F))
   static if(STYPE != STRSXP)
   {
     auto ptr = Accessor!(STYPE)(result);
-    static if(!is(E == bool))
+    alias R = SEXPElementType!(STYPE);
+    static if(is(E == R))
     {
       ptr[0..n] = arr[];
     }else{
-      alias R = SEXPElementType!(STYPE);
       foreach(i, element; arr)
       {
         ptr[i] = cast(R)element;
@@ -596,7 +595,8 @@ if(isSEXP!(T) && isBasicType!(F))
     SEXP result = protect(allocVector(STYPE, 1));
     scope(exit) unprotect(1);
     auto ptr = Accessor!(STYPE)(result);
-    ptr[0] = value;
+    alias R = SEXPElementType!(STYPE);
+    ptr[0] = cast(R)value;
   }else{
     SEXP result = mkString(value);
   }

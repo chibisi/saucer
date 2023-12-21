@@ -335,7 +335,7 @@ struct List
         Set names
     */
     @property auto names(A)(A lNames) @trusted
-    if(is(A == SEXP) || is(A == string[]))
+    if(is(A == SEXP) || is(A == string[]) || is(A == CharacterVector))
     {
         static if(is(A == SEXP))
         {
@@ -352,7 +352,26 @@ struct List
             
             this.nameIndex = NamedIndex(lNames);
             Rf_setAttrib(this.sexp, R_NamesSymbol, this.nameIndex.asSEXP);
+        }else static if(is(A == CharacterVector))
+        {
+            this.names(lNames.sexp);
         }
+        return;
+    }
+    auto opAssign(T)(T newList)
+    if(isSEXP!(T))
+    {
+        enforce(rTypeOf(newList) == VECSXP, "Can not assign non list to a list object");
+        auto oldList = this.sexp;
+        R_ReleaseObject(oldList);
+        R_PreserveObject(newList);
+        this.sexp = newList;
+        return;
+    }
+    auto opAssign(T)(T newList)
+    if(is(T == List))
+    {
+        this.opAssign(newList.sexp);
         return;
     }
     auto opIndexAssign(T, I)(auto ref T value, I i) @trusted
@@ -442,6 +461,13 @@ struct List
         }
         Rf_setAttrib(result.sexp, R_NamesSymbol, To!(SEXP)(lNames));
         return result;
+    }
+    auto opSlice(S)(S start, S end)
+    if(is(S == string))
+    {
+        int _start_ = cast(int)this.nameIndex[start];
+        int _end_ = cast(int)this.nameIndex[end] + 1;
+        return this[_start_.._end_];
     }
     auto opBinary(string op, R)(auto ref R rhs)
     if((op == "~") && is(R == List))
