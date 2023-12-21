@@ -245,7 +245,7 @@ struct DataFrame
     {
         return cast(size_t)this.length;
     }
-    auto nrow()
+    auto nrow() @trusted
     {
         if(this.ncol == 0)
         {
@@ -255,27 +255,27 @@ struct DataFrame
             return cast(size_t)this.data[0].length;
         }
     }
-    auto dim()
+    auto dim() @trusted
     {
         return [this.nrow, this.ncol];
     }
-    auto names()
+    auto names() @trusted
     {
         return this.data.names;
     }
     pragma(inline, true)
-    auto colnames()
+    auto colnames() @trusted
     {
         return this.names();
     }
-    auto names(A)(A lNames)
+    auto names(A)(A lNames) @trusted
     if(is(A == SEXP) || is(A == string[]) || is(A == CharacterVector))
     {
         this.data.names(lNames);
         return;
     }
     pragma(inline, true)
-    auto colnames(A)(A lNames)
+    auto colnames(A)(A lNames) @trusted
     if(is(A == SEXP) || is(A == string[]) || is(A == CharacterVector))
     {
         return this.names(lNames);
@@ -290,7 +290,7 @@ struct DataFrame
     {
         return DataFrame(this.data[start..end]);
     }
-    auto rbind(DataFrame df)
+    auto rbind(DataFrame df) @trusted
     {
         enforce(this.names == df.names, "Column names of the DataFrame to be appended " ~ 
             "differs from the DataFrame being appended to. Current names: \n" ~ to!string(this.names) ~
@@ -323,17 +323,51 @@ struct DataFrame
         classgets(this.data.sexp, className);
         return;
     }
-    auto rbind(List list)
+    auto rbind(List list) @trusted
     {
         this.rbind(DataFrame(list));
         return;
     }
-    auto rbind(SEXP list)
+    auto rbind(SEXP list) @trusted
     {
         auto rtype = rTypeOf(list);
         enforce(rtype == VECSXP, "Types such as this " ~ to!string(rtype) ~ 
             "that are not lists (VECSXP) or DataFrame can not be row-bound to dataframes");
         this.rbind(DataFrame(list));
+        return;
+    }
+    auto cbind(DataFrame rhs)
+    {
+        enforce(this.nrow == rhs.nrow, "Number of rows in the dataframe do not match");
+        auto lhsLength = this.length;
+        auto rhsLength = rhs.length;
+        auto ncols = lhsLength + rhsLength;
+        auto colNames = protect(join(Rf_getAttrib(this.data.sexp, R_NamesSymbol),
+                                Rf_getAttrib(rhs.data.sexp, R_NamesSymbol)));
+        scope(exit) unprotect(1);
+        auto newList = List(ncols);
+        foreach(i; 0..ncols)
+        {
+            if(i < lhsLength)
+            {
+                newList[i] = this.data[i];
+            }else{
+                newList[i] = rhs.data[i - lhsLength];
+            }
+        }
+        Rf_setAttrib(newList.sexp, R_NamesSymbol, colNames);
+        auto rowNames = protect(Rf_getAttrib(this.data.sexp, R_RowNamesSymbol));
+        scope(exit) unprotect(1);
+        Rf_setAttrib(newList.sexp, R_RowNamesSymbol, rowNames);
+        auto className = protect(To!(SEXP)("data.frame"));
+        scope(exit) unprotect(1);
+        classgets(newList.sexp, className);
+        this.data = newList;
+        return;
+    }
+    auto cbind(List rhs)
+    {
+        this.cbind(DataFrame(rhs));
         return;
     }
 }

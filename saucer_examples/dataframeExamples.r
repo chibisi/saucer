@@ -272,3 +272,60 @@ rbindDFSEXP(testList)
 rbindDFSEXP(testDF)
 
 
+
+dfExampleCode17 = '
+@Export() auto cbindDF(DataFrame df0)
+{
+    auto df = DataFrame(
+        namedElement("Category", "A"),
+        "Stuff",
+        CharacterVector("One", "Two", "Three", "Four", "Five", "Six"),
+        namedElement("SomeIntegers", [1, 2, 3, 4, 5, 6]),
+        namedElement("SomeNumbers", NumericVector(7., 8., 9, 10, 11, 42)),
+        CharacterVector("Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"),
+        NumericVector(13., 14., 15, 16, 17, 18),
+        CharacterVector("Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen"),
+    );
+    df.cbind(df0);
+    return df;
+}
+'
+saucer::dfunctions(dfExampleCode17)
+
+oneCol = data.frame(column_9 = rnorm(6))
+multipleCols = data.frame(column_9 = rnorm(6), 
+                    column_10 = runif(6), CategoryB = "D")
+
+
+cbindDF(oneCol)
+cbindDF(multipleCols)
+
+
+
+dfExampleCode18 = '
+@Export() auto cbindList(List list)
+{
+    auto df = DataFrame(
+        namedElement("Category", "A"),
+        "Stuff",
+        CharacterVector("One", "Two", "Three", "Four", "Five", "Six"),
+        namedElement("SomeIntegers", [1, 2, 3, 4, 5, 6]),
+        namedElement("SomeNumbers", NumericVector(7., 8., 9, 10, 11, 42)),
+        CharacterVector("Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"),
+        NumericVector(13., 14., 15, 16, 17, 18),
+        CharacterVector("Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen"),
+    );
+    df.cbind(list);
+    return df;
+}
+'
+saucer::dfunctions(dfExampleCode18)
+
+
+oneColList = list(column_9 = rnorm(6))
+multipleColsList = list(column_9 = rnorm(6), 
+                    column_10 = runif(6), CategoryB = "D")
+
+cbindList(oneColList)
+cbindList(multipleColsList)
+
