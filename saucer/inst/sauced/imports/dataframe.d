@@ -304,7 +304,6 @@ struct DataFrame
         }
         enforce(sameColNames, "Columns in candidate entry does not have the same types as the DataFrame");
         //Join columns
-        auto newList = List(ncols);
         size_t nrows;
         foreach(i; 0..ncols)
         {
@@ -314,18 +313,14 @@ struct DataFrame
             {
                 nrows = column.length;
             }
-            newList[i] = column;
+            this.data[i] = column;
         }
-        auto sNames = protect(Rf_getAttrib(this.data.sexp, R_NamesSymbol));
-        scope(exit) unprotect(1);
-        Rf_setAttrib(newList.sexp, R_NamesSymbol, sNames);
         auto rowNames = protect(makeRowNames(nrows));
         scope(exit) unprotect(1);
-        Rf_setAttrib(newList.sexp, R_RowNamesSymbol, rowNames);
+        Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
         auto className = protect(To!(SEXP)("data.frame"));
         scope(exit) unprotect(1);
-        classgets(newList.sexp, className);
-        this.data = newList;
+        classgets(this.data.sexp, className);
         return;
     }
     auto rbind(List list)
