@@ -1,6 +1,5 @@
 # TODO
 
-
 ## Implementation
 
 1. Do a proper re-write of RVector, RMatrix types to account for protect/unprotect errors. Also re-address the way that you deal with
@@ -37,48 +36,45 @@
         - Indexing for names and numbers, assign and return
         - Slice the list to return another list
     - DataFrames
-        - Inherit from lists?
+        - Construct from lists, arrays, rvectors, named elements, basic types, sexp. Done
+        - cbind, rbind, slices (columns). Done.
     - External Pointers
     - Environments
     - Fix any outstanding bounds checking issues for all data types.
-    - Unqualified conversions? Since `is(const SEXP == SEXP)` is false
-        you should be thinking about qualified inputs to functions
-        which will affect conversions with To. Implicitly such 
-        conversions will have to involve casting away qualifications.
+    - Un/qualified types? Since `is(const SEXP == SEXP)` how should this
+      be dealt with in the implementation.
 
 3. "RInside"
-    - Implement common `eval` functions for R inside together 
-        with examples and documentation, see Rcpp's version of this for
-        more details.
+    - Flesh out the implementation or provide examples of how to use the current basic API.
 
 4. Update the compilation and add tests
-    - Take another run at using Dub to compile?
+    - Dub integration.
     - Make sure that compiling multiple files and dependencies works
-    - Add compiler and compiler flag options
+    - Add compiler and compiler flag options - Done.
     - Add tests and debug the post fail-over process
 
 5. Things to implement on the D side:
-    - Environments - Done
-    - Functions - see how to also eval these in D - Done
+    - Environments
+    - Functions - see how to also eval these in D
     - Multidimensional arrays > 2D
 
-6. Multiple OS support, Linux, Windows, and Mac
+6. Multiple OS support, Linux, Windows, and Mac?
 
-7. Compiling multiple files and modules
+7. Compiling
+    - Multiple files/modules
+    - Generate code only option (don't compile anything)
+    - Capture compilation errors more gracefully, and 
+        deal with `enforce` and `assert` errors gracefully.
 
-8. Adding debug mode compilation option.
-
-9. Cleanup wrapped R function argument names should not start with "_" - should
-10. Should be able to export function overloads with different @Export() names and
+8. Cleanup wrapped R function argument names should not start with "_" - should
+9. Should be able to export function overloads with different @Export() names and
     have it all work.
 11. Numerics be auto-converted to integer when approriate from R, which is the expected behaviour?
 12. Formally export all the `.Internal` functions so that they can be called with
     func(...) obviating the need for InternalCall(...) function.
 
-13. Error handling for no return type given in `@Export()` function.
-14. Do not wrap functions where all the parameters and 
-    return types are all SEXPs.
-15. Figure out spawning/parallelisation scheme for R itself using the D interface.
+13. Error handling for no return type given in `@Export()` function. Done - use R_NilValue
+15. Spawning R insances using D with RInside.
 16. R has option for using external memory allocator with `SEXP Rf_allocVector3 (SEXPTYPE, R_xlen_t, R_allocator_t*)` function, this opens up the possibility of using D's garage collected memory allocator as well as other memory allocators available in D that would probably improve the stability integration of R's backend with D.
 
 ## Testing

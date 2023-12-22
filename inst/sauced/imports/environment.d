@@ -45,7 +45,7 @@ auto assertFunction(string symbol)()
     Copying environments doesn't make sense
     so definitely use reference counting here.
 */
-struct Environment
+private struct Environment
 {
     SEXP envir;
     alias envir this;

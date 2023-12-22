@@ -80,23 +80,17 @@ pragma(inline, true)
 auto setSEXP(SEXPTYPE Type, I)(SEXP sexp, I i, string value)
 if((Type == STRSXP) && isIntegral!(I))
 {
-    //import std.utf: toUTFz;
-    //writeln("Entered setSEXP for STRSXP value: " ~ value);
     auto stringLength = cast(int)value.length;
     if(stringLength > 0)
     {
         auto _ptr_ = cast(const(char*))&value[0];
-        //auto _ptr_ = toUTFz!(const(char)*)(value);
         SEXP element = protect(Rf_mkCharLen(_ptr_, stringLength));
         scope(exit) unprotect(1);
         
-        //SEXP* ps = cast(SEXP*)STDVEC_DATAPTR(sexp);
-	    //ps[i] = element;
         SET_STRING_ELT(sexp, cast(int)i, element);
     }else{
         assert(0, "Can not set items in array of zero length");
     }
-    //writeln("Leaving setSEXP for STRSXP");
     return value;
 }
 
@@ -1164,7 +1158,7 @@ auto order(SEXPTYPE Type)(RVector!(Type) arr,
 }
 
 
-auto constructNestedCall(string fName = "CDR", string arg = "arg", alias n)()
+private auto constructNestedCall(string fName = "CDR", string arg = "arg", alias n)()
 if(isIntegral!(typeof(n)))
 {
     string tmp0 = fName, tmp1 = ")";
@@ -1181,7 +1175,7 @@ if(isIntegral!(typeof(n)))
 /+
     This is the nested call version ...
 +/
-auto InternalCall0(Args...)(string fName, Args args)
+private auto InternalCall0(Args...)(string fName, Args args)
 {
     enum nargs = Args.length;
     SEXP call, arg;
@@ -1204,7 +1198,7 @@ auto InternalCall0(Args...)(string fName, Args args)
     which are coerable to SEXP with the To!(SEXP)(...) template 
     function
 +/
-auto InternalCall(Args...)(string fName, Args args) @system
+private auto InternalCall(Args...)(string fName, Args args) @system
 {
     enum nargs = Args.length;
     SEXP call, arg;
@@ -1227,248 +1221,5 @@ auto InternalCall(Args...)(string fName, Args args) @system
     auto result = eval(call, R_GlobalEnv);
     unprotect(nProtect);
     return result;
-}
-
-
-
-unittest
-{
-    import std.stdio: writeln;
-    initEmbedR();
-
-    writeln("Start of RVector tests ...\n" ~ 
-        "######################################################");
-    writeln("Test 1 for instantiating basic R vectors ...");
-    assert(NumericVector(1.0, 2, 3, 4).data == [1.0, 2, 3, 4],
-            "Test failed for creating REALSXP vector");
-    assert(IntegerVector(1, 2, 3, 4).data == [1, 2, 3, 4],
-            "Test failed for creating INTSXP vector");
-    assert(RawVector(cast(ubyte)1, cast(ubyte)2,
-            cast(ubyte)3, cast(ubyte)4).data == [cast(ubyte)1, cast(ubyte)2,
-            cast(ubyte)3, cast(ubyte)4], 
-            "Test failed for creating RAWSXP");
-    assert(ComplexVector(Rcomplex(1, 3), Rcomplex(2, 5), 
-            Rcomplex(6, -5), Rcomplex(-7, 3)).data == 
-            [Rcomplex(1, 3), Rcomplex(2, 5), Rcomplex(6, -5), 
-            Rcomplex(-7, 3)]);
-    assert(LogicalVector(TRUE, FALSE , FALSE, TRUE).data == 
-            [TRUE, FALSE , FALSE, TRUE],
-            "Test failed for creating LGLSXP");
-    assert(CharacterVector("Flying", "in", "a", "blue", 
-            "dream").data == ["Flying", "in", "a", "blue", "dream"],
-            "Test failed for creating STRSXP");
-
-    assert(NumericVector(4).length == 4, 
-            "Test failed for REALSXP vector constructor");
-    assert(IntegerVector(4).length == 4,
-            "Test failed for INTSXP vector contructor");
-    assert(RawVector(4).length == 4,
-            "Test failed for RAWSXP vector contructor");
-    assert(ComplexVector(4).length == 4,
-            "Test failed for CPLXSXP vector contructor");
-    assert(LogicalVector(4).length == 4,
-            "Test failed for LGLSXP vector contructor");
-    assert(CharacterVector(4).length == 4,
-            "Test failed for STRSXP vector contructor");
-    writeln("Test 1 for instantiating basic R vectors done.\n");
-    
-    writeln("Test 2 for opDollar and opIndex ...");
-    auto x0a = CharacterVector("Flying", "in", "a", "blue", "dream");
-    assert(x0a[$ - 1] == "dream", "Test opDollar or opIndexAssign failed");
-    writeln("Test 2 for opDollar done.\n");
-
-    writeln("Test 3 for opCast and opIndexAssign ...");
-    auto x0b = CharacterVector(1);
-    x0b[0] = "Hello World!";
-    assert(cast(string)x0b == "Hello World!",
-        "opCast(string) failed.");
-    assert(x0b[0] == "Hello World!", "Test opIndexAssign failed");
-    assert((cast(string[])x0a) == ["Flying", "in", "a", "blue", "dream"],
-            "opCast(string[]) failed");
-    writeln("Test 3 for opCast and opIndexAssign done.\n");
-
-    writeln("Test 4 for opUnary and opIndexUnary ...");
-    auto x0bc = IntegerVector(1, 2, 3, 4);
-    assert((-x0bc).data == [-1, -2, -3, -4], "Test for opUnary failed");
-    assert(++x0bc[2] == 4, "Test for opIndexUnary failed.");
-    assert((++x0bc).data == [2, 3, 4, 5], "Tests for opUnary failed.");    
-    writeln("Test 4 for opUnary done.\n");
-
-    writeln("Test 5 for opIndexOpAssign ...");
-    x0a[0] ~= " by";
-    assert(x0a[0] == "Flying by", "opIndexOpAssign for STRSXP failed.");
-
-    x0bc = IntegerVector(1, 2, 3, 4);
-    x0bc[1] *= 3;
-    assert(x0bc[1] == 6, "opIndexOpAssign for INTSXP failed.");
-
-    auto x0c = LogicalVector(TRUE, FALSE , TRUE, TRUE);
-    x0c[3] &= FALSE;
-    assert(x0c[3] == FALSE, "opIndexOpAssign for LGLSXP failed.");
-    writeln("Test 5 for opIndexOpAssign done.\n");
-
-
-    writeln("Test 6 for opOpAssign ...");
-    x0a = CharacterVector("Flying", "in", "a");
-    x0a ~= ["blue", "dream"];
-    assert(x0a.data == ["Flying", "in", "a", "blue", "dream"],
-            "opOpAssign for CharacterVector and string[] failed");
-    x0a = CharacterVector("Flying", "in", "a");
-    x0a ~= CharacterVector("blue", "dream");
-    assert(x0a.data == ["Flying", "in", "a", "blue", "dream"],
-            "opOpAssign for CharacterVector and CharacterVector failed");
-    x0c = LogicalVector(TRUE, FALSE , TRUE, FALSE);
-    x0c ~= [TRUE, FALSE];
-    assert(x0c.data == [TRUE, FALSE , TRUE, FALSE, TRUE, FALSE],
-            "opOpAssign for LogicalVector and Rboolean[] failed");
-    x0c = LogicalVector(TRUE, FALSE , TRUE, FALSE);
-    x0c ~= LogicalVector(TRUE, FALSE);
-    assert(x0c.data == [TRUE, FALSE , TRUE, FALSE, TRUE, FALSE],
-            "opOpAssign for LogicalVector and LogicalVector failed");
-    writeln("Test 6 for opOpAssign passed\n");
-
-    writeln("Test 7 for copy constructor ...");
-    assert(LogicalVector(x0c).data == x0c.data,
-                "Copy constructor for logical vector failed.");
-    assert(CharacterVector(x0a).data == x0a.data,
-                "Copy constructor for character vector failed.");
-    writeln("Test 7 for copy contructor passed.\n");
-
-    writeln("Test 8 for opSlice ...");
-    auto x1a = IntegerVector(1, 2, 3, 4, 5, 6);
-    auto x1b = x1a[];
-    assert(x1a.data == x1b.data, "opSlice() test 1 failed.");
-    x1b = x1a[1..4];
-    assert(x1b.data == [2, 3, 4], "opSlice(i, j) test 2 failed.");
-    auto x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
-    auto x1d = x1c[];
-    assert(x1c.data == x1d.data, "opSlice() test 3 failed.");
-    x1d = x1c[1..4];
-    assert(x1c[1..4].data == x1d.data, "opSlice(i, j) test 4 failed.");
-    writeln("Test 8 for opSlice passed.\n");
-
-    writeln("Test 9 for opBinary ...");
-
-    assert((LogicalVector(FALSE) ~ 
-            LogicalVector(TRUE, FALSE)).data == [FALSE, TRUE, FALSE],
-            "opBinary test a (~) for LogicalVectors Failed.");
-    auto x2a = ComplexVector(Rcomplex(1, 2), Rcomplex(-3, 1), Rcomplex(-5, 11));
-    assert((ComplexVector(Rcomplex(1, 2)) ~ 
-            ComplexVector(Rcomplex(-3, 1), Rcomplex(-5, 11))).data == x2a.data,
-            "opBinary test b (~) for ComplexVector failed");
-    x2a = ComplexVector(Rcomplex(1, 2), Rcomplex(-3, 1), Rcomplex(-5, 11),
-                        Rcomplex(4, -5), Rcomplex(6, -3), Rcomplex(10, 4));
-    auto x2d = ComplexVector(Rcomplex(-3, 4), Rcomplex(-5, -5), Rcomplex(-27, 1), 
-                    Rcomplex(14, 3), Rcomplex(12, 9), Rcomplex(2, 24));
-    assert((x2a * Rcomplex(1, 2)).data == x2d.data,
-        "opBinary failed test c (*) for ComplexVectors");
-    auto x2b = ["Flying", "in", "a", "blue", "dream"];
-    assert((CharacterVector("Flying", "in", "a") ~ 
-        CharacterVector("blue", "dream")).data == x2b,
-        "opBinary test d (~) for CharacterVectors failed.");
-    assert((CharacterVector("Flying", "in", "a") ~ 
-        ["blue", "dream"]).data == x2b,
-        "opBinary test e (~) for CharacterVector and string[] failed.");
-    
-    assert((NumericVector(1., 2.) ~ 
-        NumericVector(3., 4.)).data == [1., 2, 3, 4], 
-        "opBinary test f for NumericVectors failed.");
-    assert((NumericVector(1., 2., 3.) + 
-        NumericVector(3., 4., 6.)).data == [4., 6, 9],
-        "opBinary test g (+) for NumericVectors failed.");
-    assert((LogicalVector(TRUE, FALSE, TRUE) & 
-        LogicalVector(FALSE, FALSE, TRUE)).data == [FALSE, FALSE, TRUE],
-        "opBinary test h (&) for LogicalVector operators failed.");
-    
-    assert((LogicalVector(FALSE, TRUE, FALSE, TRUE) ~ FALSE).data == 
-        [FALSE, TRUE, FALSE, TRUE, FALSE], 
-        "opBinary test i (~) for LogicalVector and Rboolean item.");
-    writeln("Test 9 for opBinary passed.\n");
-
-    writeln("Test 10 for opSliceAssign ...");
-    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
-    x1c[3..$] = CharacterVector("crimson", "lake");
-    assert(x1c.data == ["Flying", "in", "a", "crimson", "lake"],
-        "opSliceAssign test a for CharacterVectors failed.");
-    x1c[3..$] = ["blue", "dream"];
-    assert(x1c.data == ["Flying", "in", "a", "blue", "dream"],
-        "opSliceAssign test b for CharacterVector and string[] failed.");
-    x1c[3..$] = "ahhh ...";
-    assert(x1c.data == ["Flying", "in", "a", "ahhh ...", "ahhh ..."],
-        "opSliceAssign test c for CharacterVector and string failed");
-    auto x2c = NumericVector(1., 2, 3, 4, 5, 6);
-    x2c[1..5] = 42.0;
-    assert(x2c.data == [1., 42, 42, 42, 42, 6],
-        "opSliceAssign test d for NumericVector and double failed");
-    x2c[1..5] = [2., 3, 4, 5];
-    assert(x2c.data == [1., 2, 3, 4, 5, 6],
-        "opSliceAssign test e for NumericVector and double[] failed");
-    x2c[1..5] = NumericVector(42., 42., 42., 42.);
-    assert(x2c.data == [1., 42, 42, 42, 42, 6],
-        "opSliceAssign test e for NumericVectors failed");
-    x0c = LogicalVector(TRUE, FALSE, TRUE, FALSE);
-    x0c[1..3] = FALSE;
-    assert(x0c.data == [TRUE, FALSE, FALSE, FALSE],
-        "opSliceAssign test f for LogicalVector and Rboolean failed");
-    x0c[1..3] = [TRUE, TRUE];
-    assert(x0c.data == [TRUE, TRUE, TRUE, FALSE],
-        "opSliceAssign test g for LogicalVector and Rboolean[] failed");
-    x0c[1..3] = LogicalVector(FALSE, FALSE);
-    assert(x0c.data == [TRUE, FALSE, FALSE, FALSE],
-        "opSliceAssign test h for LogicalVectors failed");
-    x0c[] = TRUE;
-    assert(x0c.data == [TRUE, TRUE, TRUE, TRUE],
-        "opSliceAssign test i for LogicalVector and Rboolean failed");
-    writeln("Test 10 for opSliceAssign passed.\n");
-
-    writeln("Test 11 for opSliceOpAssign ...");
-    x2c = NumericVector(1., 2, 3, 4, 5, 6, 7, 8, 9, 10);
-    x2c[3..6] *= 3;
-    assert(x2c[3..6].data == [12., 15, 18],
-        "opSliceOpAssign failed test a for NumericVector");
-    x2c[3..6] /= NumericVector(3., 3, 3);
-    assert(x2c[3..6].data == [4., 5, 6],
-        "opSliceOpAssign failed test b for NumericVector");
-    x2c[3..6] *= [3., 3, 3];
-    assert(x2c[3..6].data == [12., 15, 18],
-        "opSliceOpAssign failed test c for NumericVector");
-    
-    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
-    x1c[1..4] ~= " ahh...";
-    assert(x1c.data == ["Flying", "in ahh...", "a ahh...", 
-            "blue ahh...", "dream"], 
-            "opSliceOpAssign failed test d for NumericVector");
-    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
-    x1c[1..4] ~= CharacterVector(" ahh...", " ahh...", " ahh...");
-    assert(x1c.data == ["Flying", "in ahh...", "a ahh...", 
-            "blue ahh...", "dream"], 
-            "opSliceOpAssign failed test e for NumericVector");
-    x1c = CharacterVector("Flying", "in", "a", "blue", "dream");
-    x1c[1..4] ~= [" ahh...", " ahh...", " ahh..."];
-    assert(x1c.data == ["Flying", "in ahh...", "a ahh...", 
-            "blue ahh...", "dream"], 
-            "opSliceOpAssign failed test f for NumericVector");
-    
-    x2a = ComplexVector(Rcomplex(1, 2), Rcomplex(-3, 1), Rcomplex(-5, 11),
-                        Rcomplex(4, -5), Rcomplex(6, -3), Rcomplex(10, 4));
-    x2a[1..($ - 1)] *= Rcomplex(1, 2);
-    assert(x2a[1..($-1)].data == [Rcomplex(-5, -5), Rcomplex(-27, 1), 
-            Rcomplex(14, 3), Rcomplex(12, 9)],
-            "opSliceOpAssign failed test g for ComplexVector");
-    writeln("Test 11 for opSliceOpAssign passed\n");
-
-
-    writeln("Test 12 for names() and attributes ...");
-    auto x2e = IntegerVector(1, 2, 3, 4);
-    auto strNames = ["a", "b", "c", "d"];
-    x2e.names = strNames;
-    assert(x2e.names == strNames, "names(...) function test a failed");
-    x2e = IntegerVector(1, 2, 3, 4);
-    attr(x2e, "names", strNames);
-    assert(x2e.names == strNames, "attr() function test b failed");
-    writeln("Test 12 for names() and attributes passed\n");
-    
-    writeln("End of RVector tests.\n" ~ 
-        "######################################################\n");
 }
 

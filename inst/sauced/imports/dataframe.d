@@ -8,9 +8,6 @@
 auto makeRowNames(I)(I n)
 if(isIntegral!(I))
 {
-    //import std.range: iota;
-    //import std.array: array;
-    //To!SEXP(iota!(int)(1, cast(int)nRow + 1).array);
     auto nRow = cast(int)(n);
     int[] _rowNames_;
     foreach(i; 1..(nRow + 1))

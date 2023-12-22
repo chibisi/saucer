@@ -30,7 +30,8 @@ if(SEXPDataTypes!(Type))
   this(T)(T n_row, T n_col) @trusted
   if(isIntegral!(T))
   {
-    this.sexp = protect(allocMatrix(Type, cast(int)n_row, cast(int)n_col));
+    this.sexp = allocMatrix(Type, cast(int)n_row, cast(int)n_col);
+    R_PreserveObject(this.sexp);
     this.needUnprotect = true;
   }
 
@@ -39,7 +40,8 @@ if(SEXPDataTypes!(Type))
   {
     auto n = arr.length;
     assert(n == n_row*n_col, "Length of array is not equal to multiple of nrow x ncol");
-    this.sexp = protect(allocMatrix(Type, cast(int)n_row, cast(int)n_col));
+    this.sexp = allocMatrix(Type, cast(int)n_row, cast(int)n_col);
+    R_PreserveObject(this.sexp);
     this.needUnprotect = true;
     static if(Type != STRSXP)
     {
@@ -57,14 +59,15 @@ if(SEXPDataTypes!(Type))
   */
   this(SEXP sexp) @trusted
   {
-    assert((Type == TYPEOF(sexp)) && isMatrix(sexp), 
+    assert((Type == rTypeOf(sexp)) && isMatrix(sexp), 
       "Type of input is not the same of SEXPTYPE type submitted");
     this.sexp = sexp;
   }
   this(ref return scope RMatrix original)
   {
     int n = cast(int)original.length;
-    this.sexp = protect(allocMatrix(Type, cast(int)original.nrows, cast(int)original.ncols));
+    this.sexp = allocMatrix(Type, cast(int)original.nrows, cast(int)original.ncols);
+    R_PreserveObject(this.sexp);
     this.needUnprotect = true;
     copyMatrix(this.sexp, original.sexp, FALSE);
   }
@@ -78,7 +81,7 @@ if(SEXPDataTypes!(Type))
   {
     if(needUnprotect)
     {
-      unprotect_ptr(sexp);
+      R_ReleaseObject(this.sexp);
       needUnprotect = false;
     }
   }
@@ -279,7 +282,7 @@ if(SEXPDataTypes!(Type))
 
 
 
-struct View(SEXPTYPE Type)
+private struct View(SEXPTYPE Type)
 if(SEXPDataTypes!(Type))
 {
   alias ElType = SEXPElementType!(Type);

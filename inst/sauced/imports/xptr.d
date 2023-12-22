@@ -1,6 +1,6 @@
 //import std.stdio: writeln;
 
-struct XPtr(T)
+private struct XPtr(T)
 {
     import std.traits: isCallable, isPointer;
     SEXP extptr;

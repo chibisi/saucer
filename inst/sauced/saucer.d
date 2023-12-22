@@ -221,7 +221,7 @@ static if(false)
   }
 }
 
-
+mixin(import("imports/commonfunctions.d"));
 mixin(import("imports/rvector.d"));
 mixin(import("imports/rmatrix.d"));
 mixin(import("imports/function.d"));
@@ -229,9 +229,6 @@ mixin(import("imports/list.d"));
 mixin(import("imports/dataframe.d"));
 mixin(import("imports/xptr.d"));
 mixin(import("imports/environment.d"));
-
-//mixin(import("imports/dataframe.d"));
-mixin(import("imports/commonfunctions.d"));
 
 /*
   Checks that Type Start can be converted to End.

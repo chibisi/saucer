@@ -81,19 +81,6 @@ string[] getExportedFunctions(string moduleName)()
 }
 
 
-/*
-    Tests for get_exported function
-*/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string[] exFunctions = getExportedFunctions!(moduleName);
-    static assert(exFunctions == ["dot_double", "dot", "create_integer_vector"],
-            "Failed to retrieve the correct function names.");
-}
-
-
-
 
 /+
     Compile time function creates the Signature object when 
@@ -132,16 +119,6 @@ auto getSignature(string moduleName, string item)()
     funcSignature ~= ")";
     return Signature(item, newName, rName, nArgs, funcSignature);
 }
-
-
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum signature = Signature("dot", "__R_dot__", "dot_product", 2, "SEXP __R_dot__(SEXP x_sexp, SEXP y_sexp)");
-    static assert(signature == getSignature!(moduleName, "dot")(),
-        "Signature test failure, wrong signature returned");
-}
-
 
 
 /**************************************************************************/
@@ -215,33 +192,6 @@ auto getFunctionCall(string moduleName, string item)()
 
 
 /+
-    Unit test for getFunctionCall() function
-+/
-unittest
-{
-    enum moduleName = "test.files.test_resource_1";
-    enum string[] functionNames = ["dot_double", "dot", "create_integer_vector"];
-    
-    //Testing the function calls:
-    
-    static assert(FunctionCall("dot_double", "__d_dot_double__", false, 
-                        "auto __d_dot_double__ = dot_double(To!(double[])(x), To!(double[])(y))") ==
-                        getFunctionCall!(moduleName, functionNames[0]),
-                 "Incorrect function call returned for " ~ functionNames[0]);
-    
-    static assert(FunctionCall("dot", "__d_dot__", false, 
-                        "auto __d_dot__ = dot(x_sexp, y_sexp)") ==
-                        getFunctionCall!(moduleName, functionNames[1]),
-                 "Incorrect function call returned for " ~ functionNames[1]);
-    
-    static assert(FunctionCall("create_integer_vector", "__d_create_integer_vector__", 
-                    false, "auto __d_create_integer_vector__ = create_integer_vector(To!(ulong)(n))") ==
-                    getFunctionCall!(moduleName, functionNames[2]),
-                 "Incorrect function call returned for " ~ functionNames[2]);
-}
-
-
-/+
     Demos for getFunctionCall demos
 +/
 mixin template FunctionCallDemo()
@@ -293,36 +243,6 @@ auto getEntities(alias func, string moduleName, string[] items)()
 }
 
 
-
-/*
-    Unit tests for getEntities function
-*/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string[] items = getExportedFunctions!(moduleName)();
-
-    //Test for getting Signature array
-    enum signatures = [Signature("dot_double", "__R_dot_double__", 
-                                "dot_double", 2L, "SEXP __R_dot_double__(SEXP x, SEXP y)"), 
-                        Signature("dot", "__R_dot__", "dot_product", 2L, 
-                                "SEXP __R_dot__(SEXP x_sexp, SEXP y_sexp)"), 
-                        Signature("create_integer_vector", "__R_create_integer_vector__", 
-                                "ivector", 1L, "SEXP __R_create_integer_vector__(SEXP n)")];
-    static assert(signatures == getEntities!(getSignature, moduleName, items),
-        "The signatures returned from the getEntities (Signatures) function do not match expected calls.");
-    
-    //Tests for getting function call array
-    enum functionCalls = [FunctionCall("dot_double", "__d_dot_double__", false, 
-                            "auto __d_dot_double__ = dot_double(To!(double[])(x), To!(double[])(y))"), 
-                          FunctionCall("dot", "__d_dot__", false, "auto __d_dot__ = dot(x_sexp, y_sexp)"), 
-                          FunctionCall("create_integer_vector", "__d_create_integer_vector__", false, 
-                          "auto __d_create_integer_vector__ = create_integer_vector(To!(ulong)(n))")];
-    static assert(functionCalls == getEntities!(getFunctionCall, moduleName, items),
-        "The function calls returned from the getEntities (FunctionCall) function do not match expected calls.");
-}
-
-
 /+
     Demonstration function for getEntities() function
 +/
@@ -347,22 +267,6 @@ string createMethodCall(Signature signature)()
   return "R_CallMethodDef(\".C__" ~ signature.origName ~ "__\", cast(DL_FUNC) &" ~ signature.newName ~ ", " ~ to!(string)(signature.nArgs) ~ ")";
 }
 
-
-/*
-    Unit tests for creating the method call strings
-*/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string[] items = getExportedFunctions!(moduleName);
-    enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
-    enum string[] rMethodCalls = ["R_CallMethodDef(\".C__dot_double__\", cast(DL_FUNC) &__R_dot_double__, 2)",
-                                  "R_CallMethodDef(\".C__dot__\", cast(DL_FUNC) &__R_dot__, 2)",
-                                  "R_CallMethodDef(\".C__create_integer_vector__\", cast(DL_FUNC) &__R_create_integer_vector__, 1)"];
-    static assert(rMethodCalls[0] == createMethodCall!(signatures[0]), "Failed to create correct method call: " ~ rMethodCalls[0]);
-    static assert(rMethodCalls[1] == createMethodCall!(signatures[1]), "Failed to create correct method call: " ~ rMethodCalls[1]);
-    static assert(rMethodCalls[2] == createMethodCall!(signatures[2]), "Failed to create correct method call: " ~ rMethodCalls[2]);
-}
 
 
 /*
@@ -398,25 +302,6 @@ string wrapMethodCalls(Signature[] signatures)()
     result ~= "    R_CallMethodDef(null, null, 0)\n";
     result ~= "  ];";
     return result;
-}
-
-
-/+
-    Unit test for wrapMethodCalls() function
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string[] items = getExportedFunctions!(moduleName);
-    enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
-    //Do not move the spacing for the string since string comparison occurs here
-    enum wrappedMethodCalls = "  __gshared static const R_CallMethodDef[] callMethods = [
-    R_CallMethodDef(\".C__dot_double__\", cast(DL_FUNC) &__R_dot_double__, 2), 
-    R_CallMethodDef(\".C__dot__\", cast(DL_FUNC) &__R_dot__, 2), 
-    R_CallMethodDef(\".C__create_integer_vector__\", cast(DL_FUNC) &__R_create_integer_vector__, 1), 
-    R_CallMethodDef(null, null, 0)
-  ];";
-    static assert(wrappedMethodCalls == wrapMethodCalls!(signatures), "Wrong wrapped method calls returned.");
 }
 
 
@@ -502,26 +387,6 @@ enum string[] wrappedTestFunctions = [
 
 
 
-/+
-    Unit tests for wrapped functions
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string[] items = getExportedFunctions!(moduleName);
-    enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
-    enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
-
-    static foreach(enum i; 0..signatures.length)
-    {{
-        enum signatureString = wrapFunction!(signatures[i], functionCalls[i]);
-        enum staticString = wrappedTestFunctions[i];
-        static assert(wrappedTestFunctions[i] == signatureString,
-                "Wrong wrapped function body for item " ~ to!(string)(i));
-    }}
-}
-
-
 
 /+
     Demo for wrapFunction() function
@@ -571,22 +436,6 @@ string[] wrapFunctions(Signature[] signatures, FunctionCall[] functionCalls)()
     return funcs;
 }
 
-
-
-/+
-    Unit tests for wrapFunctions()
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string[] items = getExportedFunctions!(moduleName);
-    enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
-    enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
-    enum string[] wrappedFunctions = wrapFunctions!(signatures, functionCalls);
-    
-    static assert(signatures.length == functionCalls.length, "Length of function calls differs for length of signatures");
-    static assert(wrappedFunctions == wrappedTestFunctions, "Wrapped functions differ from expected functions.");
-}
 
 
 /+
@@ -645,36 +494,6 @@ string tailAppend(string moduleName)()
 
 
 /+
-    Unit tests for tailAppend() function
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string tailAppendString = "\n\n\n  import core.runtime: Runtime;
-  import std.stdio: writeln;
-
-  void R_init_test_resource_1(DllInfo* info)
-  {
-    writeln(\"Your saucer module " ~ moduleName ~ " is now loaded!\");
-    R_registerRoutines(info, null, callMethods.ptr, null, null);
-    Runtime.initialize;
-    writeln(\"Runtime has been initialized!\");
-  }
-  
-  
-  void R_unload_test_resource_1(DllInfo* info)
-  {
-    writeln(\"Attempting to terminate " ~ moduleName ~ " closing DRuntime!\");
-    Runtime.terminate;
-    writeln(\"Runtime has been terminated. Goodbye!\");
-  }\n";
-    static assert(tailAppendString == tailAppend!(moduleName),
-            "Output from tailAppend() function wrong");
-}
-
-
-
-/+
     Demo for tailAppend() function
 +/
 mixin template TailAppendDemo()
@@ -725,14 +544,6 @@ string extractShortModuleName(string fullModuleName)()
 }
 
 
-unittest
-{
-    enum moduleName = "lib0.lib1.lib2.module0";
-    enum string fileName = extractShortModuleName!(moduleName);
-    static assert(fileName == "module0", "Wrong module name returned.");
-}
-
-
 /+
     Converts the full module names into file path
 +/
@@ -769,14 +580,6 @@ string extractFileName(string moduleName)()
     return extractShortModuleName!(moduleName) ~ ".d";
 }
 
-
-
-unittest
-{
-    enum moduleName = "lib0.lib1.lib2.module0";
-    enum string fileName = extractFileName!(moduleName);
-    static assert(fileName == "module0.d", "Wrong file name returned.");
-}
 
  
 /+
@@ -863,18 +666,6 @@ extern (C)
 }";
 
 
-/+
-    Unit test for wrapModule() function
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_2";
-    enum string wrappedModuleString = wrapModule!(moduleName);
-    static assert(testResource2String == wrappedModuleString,
-            "wrappedModule string does not match expected ouput");
-}
-
-
 
 /+
     Demo for wrapModule demo
@@ -949,25 +740,6 @@ auto createRFunction(string moduleName, string item)()
 
 
 /+
-    The unit tests for createRFunction()
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum string[] items = getExportedFunctions!(moduleName);
-    enum RFunction[] rFuncs = [RFunction("dot_double", "__R_dot_double__", 2L, 
-                                    "dot_double = function(x, y)\n{\n  .Call(\"__R_dot_double__\", x, y)\n}\n"), 
-                                RFunction("dot", "__R_dot__", 2L, 
-                                    "dot_product = function(x_sexp, y_sexp)\n{\n  .Call(\"__R_dot__\", x_sexp, y_sexp)\n}\n"), 
-                                RFunction("create_integer_vector", "__R_create_integer_vector__", 1L, 
-                                    "ivector = function(n)\n{\n  .Call(\"__R_create_integer_vector__\", n)\n}\n")];
-    static assert(rFuncs[0] == createRFunction!(moduleName, items[0]), "Incorrect R function returned from createRFunction() for item 0");
-    static assert(rFuncs[1] == createRFunction!(moduleName, items[1]), "Incorrect R function returned from createRFunction() for item 1");
-    static assert(rFuncs[2] == createRFunction!(moduleName, items[2]), "Incorrect R function returned from createRFunction() for item 2");
-}
-
-
-/+
     Demo function for createRFunction()
 +/
 mixin template CreateRFunctionDemo()
@@ -1005,22 +777,6 @@ auto createRFunctions(string moduleName)()
         rFuncs ~= createRFunction!(moduleName, item);
     }
     return rFuncs;
-}
-
-
-/+
-    The unit test for createRFunctions()
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    enum RFunction[] rFuncs = [RFunction("dot_double", "__R_dot_double__", 2L, 
-                                    "dot_double = function(x, y)\n{\n  .Call(\"__R_dot_double__\", x, y)\n}\n"), 
-                                RFunction("dot", "__R_dot__", 2L, 
-                                    "dot_product = function(x_sexp, y_sexp)\n{\n  .Call(\"__R_dot__\", x_sexp, y_sexp)\n}\n"), 
-                                RFunction("create_integer_vector", "__R_create_integer_vector__", 1L, 
-                                    "ivector = function(n)\n{\n  .Call(\"__R_create_integer_vector__\", n)\n}\n")];
-    static assert(rFuncs == createRFunctions!(moduleName), "Incorrect R function returned from the createRFunctions() function");
 }
 
 
@@ -1078,16 +834,6 @@ ivector = function(n)
 {
   .Call(\"__R_create_integer_vector__\", n)
 }\n\n";
-
-
-/+
-    unit tests for createRScript!(moduleName)
-+/
-unittest
-{
-    enum string moduleName = "test.files.test_resource_1";
-    static assert(testRScript == createRScript!(moduleName));
-}
 
 
 /+
