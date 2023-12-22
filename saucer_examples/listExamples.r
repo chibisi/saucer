@@ -116,3 +116,14 @@ exampleCode8 = '
 saucer::dfunctions(exampleCode8, TRUE)
 getLength(listCreate())
 
+
+exampleCode9 = '
+@Export() auto singleItemList()
+{
+    auto list = List(namedElement("Language", CharacterVector("R", "D", "Julia", "Nim", "Chapel", "C++", "C")));
+    return list;
+}
+'
+saucer::dfunctions(exampleCode9, TRUE)
+singleItemList()
+

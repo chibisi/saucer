@@ -336,7 +336,8 @@ struct DataFrame
         this.rbind(DataFrame(list));
         return;
     }
-    auto cbind(DataFrame rhs)
+    auto cbind(D)(D rhs)
+    if(is(D == DataFrame))
     {
         enforce(this.nrow == rhs.nrow, "Number of rows in the dataframe do not match");
         auto lhsLength = this.length;
@@ -365,7 +366,59 @@ struct DataFrame
         this.data = newList;
         return;
     }
-    auto cbind(List rhs)
+    auto cbind(D)(D rhs)
+    if(is(D == List))
+    {
+        this.cbind(DataFrame(rhs));
+        return;
+    }
+    auto cbind(D)(D rhs)
+    if(isConvertibleToSEXP!(D) && !is(D == DataFrame))
+    {
+        auto n = cast(int)this.nrow;
+        static if(isBasicType!(D))
+        {
+            enum TYPE = MapToSEXP!(D);
+            alias R = SEXPElementType!TYPE;
+            auto rvec = RVector!TYPE(n);
+            rvec[] = cast(R)rhs;
+            this.cbind(rvec);
+        }else static if(isRVector!(D) || isBasicArray!(D))
+        {
+            auto result = List(To!SEXP(rhs));
+            auto colNames = this.names;
+            auto colName = "column_" ~ to!string(n);
+            auto j = n + 1;
+            while(colName.isin(colNames))
+            {
+                colName = "column_" ~ to!string(j);
+                j++;
+            }
+            result.names([colName]);
+            this.cbind(DataFrame(result));
+        }else static if(isSEXP!(D))
+        {
+            if(rTypeOf(rhs) == VECSXP)
+            {
+                this.cbind(DataFrame(rhs));
+            }else{
+                auto result = List(rhs);
+                auto colNames = this.names;
+                auto colName = "column_" ~ to!string(n);
+                auto j = n + 1;
+                while(colName.isin(colNames))
+                {
+                    colName = "column_" ~ to!string(j);
+                    j++;
+                }
+                result.names([colName]);
+                this.cbind(DataFrame(result));
+            }
+        }
+        return;
+    }
+    auto cbind(D)(D rhs)
+    if(isNamedElement!(D))
     {
         this.cbind(DataFrame(rhs));
         return;

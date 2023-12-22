@@ -23,6 +23,33 @@ if(isConvertibleTo!(N, string, To) && isConvertibleToSEXP!(T))
         this.name = To!string(name);
         this.data = data;
     }
+    this(ref return scope NamedElement original) @trusted
+    {
+        this.name = original.name.dup;
+        static if(isSEXP!(T))
+        {
+            int n = cast(int)original.data.length;
+            this.data = allocVector(rTypeOf(original.data), cast(int)n);
+            R_PreserveObject(this.data);
+            copyVector(this.data, original.data);
+        }static if(isBasicType!(T))
+        {
+            this.data = original.data;
+        }static if(isBasicArray!(T))
+        {
+            this.data = original.data.dup;
+        }static if(isRType!(T))
+        {
+            this.data = T(original.data);
+        }
+    }
+    ~this()
+    {
+        static if(is(T == SEXP))
+        {
+            R_ReleaseObject(this.data);
+        }
+    }
 }
 
 
@@ -228,7 +255,7 @@ struct List
             this[i] = element;
         }
     }
-    this(Args...)(Args args) @trusted
+    this(Args...)(auto ref Args args) @trusted
     if(isNamedElement!(Args))
     {
         import std.algorithm: canFind;

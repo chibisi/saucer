@@ -1,7 +1,7 @@
 module sauced.saucer;
 
 import std.conv: to;
-import std.traits: isIntegral;
+import std.traits: isIntegral, Unqual;
 public import sauced.r2d;
 mixin(import("imports/r_aliases.d"));
 import std.string: toStringz, fromStringz;
@@ -128,6 +128,9 @@ alias S4SXP = SEXPTYPE.S4SXP;
 alias NEWSXP = SEXPTYPE.NEWSXP;
 alias FREESXP = SEXPTYPE.FREESXP;
 alias FUNSXP = SEXPTYPE.FUNSXP;
+
+
+alias ElementType(T: U[], U) = Unqual!U;
 
 
 /*
