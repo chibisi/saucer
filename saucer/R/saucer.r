@@ -134,17 +134,17 @@ compileTranslator = function(command, currWd, module)
 }
 
 
-compileScript = function(moduleNames, currWd, flags = c("-O", "-boundscheck=off", 
-                            "-mcpu=native", "-L-fopenmp"))
+compileScript = function(moduleNames, currWd, compiler = "ldmd2", flags = c("-O", "-boundscheck=off", 
+                            "-mcpu=native"))
 {
   dllFile = paste0(moduleNames[1], ".so")
   sllFiles = paste0(moduleNames, ".o", collapse = " ")
   scriptFiles = paste0(moduleNames, ".d", collapse = " ")
   addedFlags = paste(flags, collapse = " ")
-  command = paste0("dmd ", scriptFiles, 
+  command = paste0(compiler, " ", scriptFiles, 
                     " saucer.d r2d.d -c -g -J=\".\" ", addedFlags, " -fPIC -L-lR -L-lRmath && ",
-                    "dmd ", sllFiles, " saucer.o r2d.o -of=", dllFile, " ", addedFlags,
-                    " -L-lR -L-lRmath -shared")
+                    compiler, " ", sllFiles, " saucer.o r2d.o -of=", dllFile, " ", addedFlags,
+                    " -fPIC -L-lR -L-lRmath -shared")
   status = system(command, intern = FALSE)
 
   if(status != 0)
@@ -158,10 +158,8 @@ compileScript = function(moduleNames, currWd, flags = c("-O", "-boundscheck=off"
 }
 
 
-
-# Internal workshorse function for compiling and loading a D module
 .sauce = function(fileNames, dropFolder = NULL, folderName = NULL, 
-                  flags = c("-O", "-boundscheck=off", "-mcpu=native"))
+                  compiler = "ldmd2", flags = c("-O", "-boundscheck=off", "-mcpu=native"))
 {
   currWd = getwd()
   sourceDir = system.file("sauced", package = "saucer")
@@ -194,22 +192,19 @@ compileScript = function(moduleNames, currWd, flags = c("-O", "-boundscheck=off"
   setwd(codeFolder)
 
   moduleNames = extractModuleNames(fileNames, extn = "d")
-
+  
   command = paste0("echo 'enum moduleName = \"", moduleNames[1], "\";'")
-  command = paste0(command, " | dmd translator.d ")
+  command = paste0(command, " | ", compiler, " translator.d ")
   concatNames = paste0(currWd, .Platform$file.sep, fileNames, collapse = " ")
   command = paste0(command, concatNames)
   command = paste0(command, " saucer.d r2d.d -J=\".\" ")
-  command = paste(c(command, flags, "-g", "-L-lR", "-L-lRmath"), collapse = " ")
   command = paste(command, "&& ./translator")
   
   # Run the d compilation script
-  # command = "echo 'enum moduleName = \"${module}\";' | dmd translator.d ${currWd}/${module}.d saucer.d r2d.d -O -boundscheck=off -mcpu=native -g -J=\".\" -L-lR -L-lRmath && ./translator"
-  
-  logger("Translator compilation command: ", command)
+  logger("Translator compilation command to generate script to be compiled: ", command)
   compileTranslator(command, currWd, module)
   logger("Translator compiled, now compiling script")
-  compileScript(moduleNames, currWd)
+  compileScript(moduleNames, currWd, compiler, flags)
   logger("Script compiled!")
   
   # Load the translated functions in a generated R script
@@ -233,6 +228,9 @@ compileScript = function(moduleNames, currWd, flags = c("-O", "-boundscheck=off"
   
   return(invisible())
 }
+
+
+
 
 
 #' @title Function checks file names fileNames for whether 
@@ -300,6 +298,8 @@ extractModuleNames = function(fileNames, extn = "d")
 #' @param folderName  a character containing the name of the
 #'        folder where the code will be created. If missing
 #'         a random name is generated
+#' @param compiler character either "ldmd2" (default - ldc compiler) 
+#'        or "dmd" (DMD compiler)
 #' @param dropFolder whether to delete the folder containing
 #'        the compilation artifacts once the compilation is done.
 #' 
@@ -366,7 +366,8 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 }
 
 
-.dfunction = function(code, dropFolder = NULL, folderName = NULL, moduleName = NULL)
+.dfunction = function(code, dropFolder = NULL, folderName = NULL, compiler = "ldmd2", 
+                flags = c("-O", "-boundscheck=off", "-mcpu=native"), moduleName = NULL)
 {
   if(is.null(moduleName))
   {
@@ -377,7 +378,7 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
   codeFile = paste0(moduleName, ".d")
   cat(code, file = codeFile)
   executionError = FALSE
-  tryCatch(.sauce(codeFile, dropFolder = dropFolder, folderName = folderName), 
+  tryCatch(.sauce(codeFile, dropFolder = dropFolder, folderName = folderName, compiler = compiler, flags = flags), 
     error = function(e){
       cat("Error on .sauce:\n")
       paste(e)
@@ -432,11 +433,12 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 #' 
 #' @export
 #' 
-dfunctions = function(codeArr, dropFolder = TRUE, folderName = NULL, moduleName = NULL)
+dfunctions = function(codeArr, dropFolder = TRUE, folderName = NULL, compiler = "ldmd2", 
+                  flags = c("-O", "-boundscheck=off", "-mcpu=native"), moduleName = NULL)
 {
   result = .dfunction(paste0(codeArr, collapse = "\n"), 
               dropFolder = dropFolder, folderName = folderName, 
-              moduleName = moduleName)
+              compiler = compiler, flags = flags, moduleName = moduleName)
   return(invisible(result))
 }
 
@@ -468,12 +470,14 @@ dir.remove = function(directory, flags = "-rf")
 #' @description Simple function to compile a D script that calls the R API
 #' 
 #' @param fileNames single string item for path to file to be
+#' @param compiler character either "ldmd2" (default - ldc compiler) 
+#'        or "dmd" (DMD compiler)
 #' @param extraFiles single character string containing the extra files 
 #'                   to be included in the compilation
 #' 
 #' @export
 #' 
-compileRInside = function(fileName, flags = c("-O", "-mcpu=native"), cleanup = TRUE)
+compileRInside = function(fileName, compiler = "ldmd2", flags = c("-O", "-mcpu=native"), cleanup = TRUE)
 {
   sourceDir = system.file("sauced", package = "saucer")
   destDir = createFileName(prefix = "tmpFolder", NULL, 6)
@@ -488,7 +492,7 @@ compileRInside = function(fileName, flags = c("-O", "-mcpu=native"), cleanup = T
   files = c(fileName, files)
   jFlag = paste0("-J=", "\"", destDir, "\"")
 
-  command = paste0(c("dmd", files, flags, "-fPIC", "-L-lR", 
+  command = paste0(c(compiler, files, flags, "-fPIC", "-L-lR", 
                   "-L-lRmath", jFlag), collapse = " ")
   system(command)
 
@@ -505,6 +509,8 @@ compileRInside = function(fileName, flags = c("-O", "-mcpu=native"), cleanup = T
 #' @title Runs the internal D unittests for translator.d
 #' 
 #' @param dropFolder whether the generated code folder should be dropped or not
+#' @param compiler character either "ldmd2" (default - ldc compiler) 
+#'        or "dmd" (DMD compiler) if installed
 #' @param folderNamePrefix the prefix name for the folder defaults to "dSaucerTest"
 #'
 #'
@@ -512,7 +518,7 @@ compileRInside = function(fileName, flags = c("-O", "-mcpu=native"), cleanup = T
 #' 
 #' @export 
 #' 
-runDTranslatorTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
+runDTranslatorTests = function(dropFolder = TRUE, compiler = "ldmd2", folderNamePrefix = "dTest")
 {
   currWd = getwd()
   sourceDir = system.file("sauced", package = "saucer")
@@ -522,11 +528,12 @@ runDTranslatorTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
   setwd(codeFolder)
 
   command = "
-  echo -e 'enum moduleName = \"test.files.test_resource_1\";' | dmd translator.d test/files/example_1.d \
+  echo -e 'enum moduleName = \"test.files.test_resource_1\";' | ${compiler} translator.d test/files/example_1.d \
           test/files/test_resource_1.d test/files/test_resource_2.d saucer.d r2d.d -unittest -main -O \
           -mcpu=native -g -J=. -L-lR -L-lRmath
   ./translator
   "
+  command = stringr::str_interp(command, list("compiler" = compiler))
   runCommand(command, codeFolder, currWd, currWd)
   if(dropFolder)
   {
@@ -539,6 +546,8 @@ runDTranslatorTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
 #' @title Runs the internal D tests for saucer.d script
 #' 
 #' @param dropFolder whether the generated code folder should be dropped or not
+#' @param compiler character either "ldmd2" (default - ldc compiler) 
+#'        or "dmd" (DMD compiler) if installed
 #' @param folderNamePrefix the prefix name for the folder defaults to "dSaucerTest"
 #' 
 #' 
@@ -546,7 +555,7 @@ runDTranslatorTests = function(dropFolder = TRUE, folderNamePrefix = "dTest")
 #' 
 #' @export 
 #' 
-runSaucedTests = function(dropFolder = TRUE, folderNamePrefix = "dSaucerTest")
+runSaucedTests = function(dropFolder = TRUE, compiler = "ldmd2", folderNamePrefix = "dSaucerTest")
 {
   currWd = getwd()
   sourceDir = system.file("sauced", package = "saucer")
@@ -555,9 +564,8 @@ runSaucedTests = function(dropFolder = TRUE, folderNamePrefix = "dSaucerTest")
   dir.copy(sourceDir, codeFolder)
   setwd(codeFolder)
 
-  command = "
-  dmd saucer.d r2d.d -unittest -main -O -mcpu=native -g -J=. -L-lR -L-lRmath && ./saucer
-  "
+  command = "\n${compiler} saucer.d r2d.d -unittest -main -O -mcpu=native -g -J=. -L-lR -L-lRmath && ./saucer\n"
+  command = stringr::str_interp(command, list("compiler" = compiler))
   runCommand(command, codeFolder, currWd, currWd)
   if(dropFolder)
   {

@@ -25,7 +25,7 @@ dfExampleCode1 = '
 '
 
 saucer::dfunctions(dfExampleCode1)
-simpleDataFrame()
+simpleDataFrame() |> print()
 
 
 
@@ -40,7 +40,7 @@ dfExampleCode2 = '
 '
 
 saucer::dfunctions(dfExampleCode2)
-oneColumnDataFrame()
+oneColumnDataFrame() |> print()
 
 
 dfExampleCode3 = '
@@ -54,7 +54,7 @@ dfExampleCode3 = '
 '
 
 saucer::dfunctions(dfExampleCode3)
-oneRowDataFrame()
+oneRowDataFrame() |> print()
 
 
 dfExampleCode4 = '
@@ -67,9 +67,9 @@ dfExampleCode4 = '
 saucer::dfunctions(dfExampleCode4)
 
 
-makeDFFromSEXP(runif(10))
-makeDFFromSEXP(letters[1:5])
-makeDFFromSEXP(langList)
+makeDFFromSEXP(runif(10)) |> print()
+makeDFFromSEXP(letters[1:5]) |> print()
+makeDFFromSEXP(langList) |> print()
 
 
 dfExampleCode5 = '
@@ -79,7 +79,7 @@ dfExampleCode5 = '
 }
 '
 saucer::dfunctions(dfExampleCode5)
-makeDFFromRType()
+makeDFFromRType() |> print()
 
 
 
@@ -90,7 +90,7 @@ dfExampleCode6 = '
 }
 '
 saucer::dfunctions(dfExampleCode6)
-makeDFFromSEXPs(langList$Language, langList$Creator, langList$Year)
+makeDFFromSEXPs(langList$Language, langList$Creator, langList$Year) |> print()
 
 
 
@@ -101,7 +101,7 @@ dfExampleCode7 = '
 }
 '
 saucer::dfunctions(dfExampleCode7)
-makeDFFromOneItem()
+makeDFFromOneItem() |> print()
 
 
 dfExampleCode8 = '
@@ -124,7 +124,7 @@ saucer::dfunctions(dfExampleCode8)
 
 category = c("A")
 names(category) = "Category"
-makeDFFromMultiplyTypes(category)
+makeDFFromMultiplyTypes(category) |> print()
 
 
 
@@ -146,7 +146,7 @@ saucer::dfunctions(dfExampleCode9)
 
 category = c("A")
 names(category) = "Category"
-makeDFMoreSingleItems(category)
+makeDFMoreSingleItems(category) |> print()
 
 
 
@@ -182,7 +182,7 @@ dfExampleCode11 = '
 '
 saucer::dfunctions(dfExampleCode11)
 
-subsetColumnIntegerSlice(randomData)
+subsetColumnIntegerSlice(randomData) |> print()
 
 
 dfExampleCode12 = '
@@ -193,7 +193,7 @@ dfExampleCode12 = '
 '
 saucer::dfunctions(dfExampleCode12)
 
-subsetColumnStringSlice(randomData)
+subsetColumnStringSlice(randomData) |> print()
 
 
 dfExampleCode13 = '
@@ -204,7 +204,7 @@ dfExampleCode13 = '
 '
 saucer::dfunctions(dfExampleCode13)
 
-getColumnNames(randomData)
+getColumnNames(randomData) |> print()
 
 
 dfExampleCode14 = '
@@ -214,7 +214,7 @@ dfExampleCode14 = '
 }
 '
 saucer::dfunctions(dfExampleCode14)
-dDim(randomData)
+dDim(randomData) |> print()
 
 
 dfExampleCode15 = '
@@ -225,7 +225,7 @@ dfExampleCode15 = '
 '
 saucer::dfunctions(dfExampleCode15)
 
-dConcat({x = runif(10)}, {y = runif(10)})
+dConcat({x = runif(10)}, {y = runif(10)}) |> print()
 
 
 dfExampleCode16 = '
@@ -268,8 +268,8 @@ testList = list(
     column_8 = c("Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen")
 )
 
-rbindDFSEXP(testList)
-rbindDFSEXP(testDF)
+rbindDFSEXP(testList) |> print()
+rbindDFSEXP(testDF) |> print()
 
 
 
@@ -297,8 +297,8 @@ multipleCols = data.frame(column_9 = rnorm(6),
                     column_10 = runif(6), CategoryB = "D")
 
 
-cbindDF(oneCol)
-cbindDF(multipleCols)
+cbindDF(oneCol) |> print()
+cbindDF(multipleCols) |> print()
 
 
 dfExampleCode18 = '
@@ -325,8 +325,8 @@ oneColList = list(column_9 = rnorm(6))
 multipleColsList = list(column_9 = rnorm(6), 
                     column_10 = runif(6), CategoryB = "D")
 
-cbindList(oneColList)
-cbindList(multipleColsList)
+cbindList(oneColList) |> print()
+cbindList(multipleColsList) |> print()
 
 
 dfExampleCode19 = '
@@ -348,7 +348,7 @@ dfExampleCode19 = '
 }
 '
 saucer::dfunctions(dfExampleCode19)
-cbindRVec1()
+cbindRVec1() |> print()
 
 
 dfExampleCode20 = '
@@ -370,7 +370,7 @@ dfExampleCode20 = '
 }
 '
 saucer::dfunctions(dfExampleCode20)
-cbindRVec2()
+cbindRVec2() |> print()
 
 
 dfExampleCode21 = '
@@ -391,7 +391,7 @@ dfExampleCode21 = '
 }
 '
 saucer::dfunctions(dfExampleCode21)
-cbindRVec3()
+cbindRVec3() |> print()
 
 
 
@@ -412,7 +412,7 @@ dfExampleCode22 = '
 }
 '
 saucer::dfunctions(dfExampleCode22)
-cbindRVec4()
+cbindRVec4() |> print()
 
 
 dfExampleCode23 = '
@@ -432,7 +432,7 @@ dfExampleCode23 = '
 }
 '
 saucer::dfunctions(dfExampleCode23)
-cbindRVec5()
+cbindRVec5() |> print()
 
 
 

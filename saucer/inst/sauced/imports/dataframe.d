@@ -373,7 +373,7 @@ struct DataFrame
         return;
     }
     auto cbind(D)(D rhs)
-    if(isConvertibleToSEXP!(D) && !is(D == DataFrame))
+    if(isConvertibleToSEXP!(D) && !is(D == DataFrame) && !is(D == List))
     {
         auto n = cast(int)this.nrow;
         static if(isBasicType!(D))

@@ -16,6 +16,9 @@ TODO: this functionality requires more work}
 folder where the code will be created. If missing
  a random name is generated}
 
+\item{compiler}{character either "ldmd2" (default - ldc compiler) 
+or "dmd" (DMD compiler)}
+
 \item{dropFolder}{whether to delete the folder containing
 the compilation artifacts once the compilation is done.}
 }

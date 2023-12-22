@@ -4,7 +4,14 @@
 \alias{dfunctions}
 \title{Compile D code from string}
 \usage{
-dfunctions(codeArr, dropFolder = TRUE, folderName = NULL, moduleName = NULL)
+dfunctions(
+  codeArr,
+  dropFolder = TRUE,
+  folderName = NULL,
+  compiler = "ldmd2",
+  flags = c("-O", "-boundscheck=off", "-mcpu=native"),
+  moduleName = NULL
+)
 }
 \arguments{
 \item{code}{character containing the code to be compiled}

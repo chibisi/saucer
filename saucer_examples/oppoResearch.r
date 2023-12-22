@@ -28,11 +28,11 @@ p = ggplot(dlData, aes(end, downloads, group = package, color = package)) +
 
 plot(p)
 
-svg(filename = "oppoDLNumbers.svg", width = 12, height = 8)
+svg(filename = "oppoDLNumbers.svg", width = 14, height = 8)
 plot(p)
 dev.off()
 
-png(filename = "oppoDLNumbers.png", width = 12, height = 8, 
+png(filename = "oppoDLNumbers.png", width = 14, height = 8, 
         units = "in", res = 300)
 plot(p)
 dev.off()

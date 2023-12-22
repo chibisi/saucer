@@ -4,10 +4,17 @@
 \alias{runSaucedTests}
 \title{Runs the internal D tests for saucer.d script}
 \usage{
-runSaucedTests(dropFolder = TRUE, folderNamePrefix = "dSaucerTest")
+runSaucedTests(
+  dropFolder = TRUE,
+  compiler = "ldmd2",
+  folderNamePrefix = "dSaucerTest"
+)
 }
 \arguments{
 \item{dropFolder}{whether the generated code folder should be dropped or not}
+
+\item{compiler}{character either "ldmd2" (default - ldc compiler) 
+or "dmd" (DMD compiler) if installed}
 
 \item{folderNamePrefix}{the prefix name for the folder defaults to "dSaucerTest"}
 }

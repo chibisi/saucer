@@ -4,10 +4,17 @@
 \alias{runDTranslatorTests}
 \title{Runs the internal D unittests for translator.d}
 \usage{
-runDTranslatorTests(dropFolder = TRUE, folderNamePrefix = "dTest")
+runDTranslatorTests(
+  dropFolder = TRUE,
+  compiler = "ldmd2",
+  folderNamePrefix = "dTest"
+)
 }
 \arguments{
 \item{dropFolder}{whether the generated code folder should be dropped or not}
+
+\item{compiler}{character either "ldmd2" (default - ldc compiler) 
+or "dmd" (DMD compiler) if installed}
 
 \item{folderNamePrefix}{the prefix name for the folder defaults to "dSaucerTest"}
 }

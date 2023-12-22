@@ -20,7 +20,7 @@ vectorExampleCode2 = '
 }
 '
 saucer::dfunctions(vectorExampleCode2)
-booleanArrayToLogical()
+booleanArrayToLogical() |> print()
 
 
 vectorExampleCode3 = '
@@ -32,7 +32,7 @@ vectorExampleCode3 = '
 }
 '
 saucer::dfunctions(vectorExampleCode3);
-createStringVector()
+createStringVector() |> print()
 
 
 vectorExampleCode4 = '
@@ -44,6 +44,6 @@ vectorExampleCode4 = '
 }
 '
 saucer::dfunctions(vectorExampleCode4);
-convertStringArrayToSEXP()
+convertStringArrayToSEXP() |> print()
 
 

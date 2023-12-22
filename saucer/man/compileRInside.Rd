@@ -4,9 +4,17 @@
 \alias{compileRInside}
 \title{Compile RInside D code}
 \usage{
-compileRInside(fileName, flags = c("-O", "-mcpu=native"), cleanup = TRUE)
+compileRInside(
+  fileName,
+  compiler = "ldmd2",
+  flags = c("-O", "-mcpu=native"),
+  cleanup = TRUE
+)
 }
 \arguments{
+\item{compiler}{character either "ldmd2" (default - ldc compiler) 
+or "dmd" (DMD compiler)}
+
 \item{fileNames}{single string item for path to file to be}
 
 \item{extraFiles}{single character string containing the extra files 

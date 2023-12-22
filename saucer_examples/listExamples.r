@@ -12,8 +12,8 @@ exampleCode1 = '
     return result;
 }
 '
-saucer::dfunctions(exampleCode1, TRUE)
-listCreate()
+saucer::dfunctions(exampleCode1, compiler = "ldmd2")
+listCreate() |> print()
 
 exampleCode2 = '
 @Export() auto slicing()
@@ -30,7 +30,7 @@ exampleCode2 = '
 }
 '
 saucer::dfunctions(exampleCode2, TRUE)
-slicing()
+slicing() |> print()
 
 
 exampleCode3 = '
@@ -40,7 +40,7 @@ exampleCode3 = '
 }
 '
 saucer::dfunctions(exampleCode3, TRUE)
-passThrough(listCreate())
+passThrough(listCreate()) |> print()
 
 
 exampleCode4 = '
@@ -51,7 +51,7 @@ exampleCode4 = '
 }
 '
 saucer::dfunctions(exampleCode4, TRUE)
-copyList(listCreate())
+copyList(listCreate()) |> print()
 
 
 exampleCode5 = '
@@ -68,7 +68,7 @@ exampleCode5 = '
 }
 '
 saucer::dfunctions(exampleCode5, TRUE)
-binaryConcat1()
+binaryConcat1() |> print()
 
 
 exampleCode6 = '
@@ -85,7 +85,7 @@ exampleCode6 = '
 }
 '
 saucer::dfunctions(exampleCode6, TRUE)
-binaryConcat2()
+binaryConcat2() |> print()
 
 
 exampleCode7 = '
@@ -102,7 +102,7 @@ exampleCode7 = '
 }
 '
 saucer::dfunctions(exampleCode7, TRUE)
-binaryConcat3()
+binaryConcat3() |> print()
 
 
 exampleCode8 = '
@@ -114,7 +114,7 @@ exampleCode8 = '
 '
 
 saucer::dfunctions(exampleCode8, TRUE)
-getLength(listCreate())
+getLength(listCreate()) |> print()
 
 
 exampleCode9 = '
@@ -125,5 +125,5 @@ exampleCode9 = '
 }
 '
 saucer::dfunctions(exampleCode9, TRUE)
-singleItemList()
+singleItemList() |> print()
 
