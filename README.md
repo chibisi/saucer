@@ -1,6 +1,6 @@
 # Saucer Project
 
-The purpose of the saucer project is to create bidirectional interop between the R programming language and D, and to provide a D API to the standalone Rmath library. The aim is that in time, it will a similar functional set to libraries like RCpp library in terms of its features and capability, but with the added advantage that the D programming language is more accessible than C++, but also has very powerful set of programming paradigms influenced by C, C++, Java, and languages in the functional sphere. For more information see the [D programming language website](https://dlang.org/).
+The purpose of the saucer project is to create bidirectional interop between the R programming language and D, and to provide a D API to the standalone Rmath library. The aim is that in time, it will have a similar functional set to libraries like Rcpp in terms of its features and capability, but with the added advantage that the D programming language is more accessible than C++, and has powerful set of programming paradigms influenced by C, C++, Java, and languages in the functional sphere. For more information see the [D programming language website](https://dlang.org/).
 
 ## Implementation approach
 
@@ -25,21 +25,21 @@ For now the implementation of the library is in it's early phase. The library pr
 * List (List)
 * Dataframe (DataFrame)
 
-These objects are written in D structs as supposed to classes, and so do not directly associate with the D garbage collector. Method dispatch relies heavily on D's compile time traits system. And D's strings mixins are heavily used to generate the functions that wrap those that are written, which are then compiled to dll and called by R through an auto generated R function.
+These objects are written in D structs as supposed to classes, and so do not directly associate with the D garbage collector. Method dispatch relies heavily on D's compile time traits system. And D's strings mixins are heavily used to generate the functions that wrap those that are given by the user, which are then compiled to DLLs and called by R through an auto generated R function.
 
-Other objects such as Functions, Environments, and Pointers are already in development and will follow shortly. In addition tools that allow R code to be run from D are already available, in the `rinside` module. This functionality is still fairly raw but will be expandedd upon in due course. Methods in the types provided are marked with `@trusted` to allow them to be called with `@safe` attribute.
+Other objects such as Functions, Environments, and External Pointers are already in development and will follow shortly. In addition tools that allow R code to be run from D are already available, in the `rinside` module. This functionality is still fairly raw but will be expandedd upon in due course. Methods in the types provided are marked with `@trusted` to allow them to be called with `@safe` attribute.
 
 
 ## Compiling D code
 
-The package provides two main functions to compile D code and immadiately include it in an R session:
+The package provides two main functions to compile D code and immediately include it in an R session:
 
 1. `dfunctions(...)` function to compile D code strings containing exported functions to be called in R
 2. `sauce(...)` function to compile D files containing exported function to be called in R
 
 ### D compilers
 
-There are [three D compilers](https://dlang.org/download.html), two of which are supported in this package, namely the LDC (LLVM) compiler (the `ldmd2` interface is supported), and the DMD (Digital Mars D compiler `dmd`), either of which can be selected in the supplied R functions mentioned above. You will notice that the LDC LLVM compiler will take much longer to compile than the DMD reference compiler.
+There are [three D compilers](https://dlang.org/download.html), two of which are supported in this package, namely the LDC (LLVM) compiler (the `ldmd2` interface is supported), and the DMD (Digital Mars D compiler `dmd`), either of which can be selected in the supplied R functions mentioned above. You may notice that the LDC LLVM compiler takes much longer to compile code than the DMD reference compiler.
 
 
 ## Prerequisites
@@ -284,9 +284,9 @@ More examples will follow.
 
 ## Limitations
 
-- Limited type coverage - this will change rapidly.
+- Limited type coverage - as discussed this will change rapidly to include more R types.
 - Documentation - this will also be expanded on in due time.
-- Type qualification support for interfacing types.
-- No (direct) tooling to creating R packages containing D code in an easy a way as in RCpp.
+- Type qualification support for interfacing types, e.g. immutable, const and so forth.
+- No (direct) tooling to creating R packages containing D code in an easy a way as in Rcpp.
 
 
