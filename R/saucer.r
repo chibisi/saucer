@@ -7,7 +7,6 @@ pkgOpts = new.env()
 #'         and print progress information
 #' @return the input flag invisibly
 #'
-#' @export
 #' 
 doLogging = function(flag = FALSE)
 {
@@ -17,6 +16,17 @@ doLogging = function(flag = FALSE)
   return(invisible(flag))
 }
 
+
+setLogFile = function(fileName = NULL)
+{
+  if(is.null(fileName))
+  {
+    pkgOpts$fileName = "saucer.log"
+  }else{
+    pkgOpts$fileName = fileName
+  }
+  return(invisible(fileName))
+}
 
 isLogActive = function()
 {
@@ -31,11 +41,13 @@ logger = function(...)
 {
   if(isLogActive())
   {
-    cat(..., "\n")
+    cat(..., "\n", file = pkgOpts$fileName, append = TRUE)
   }
   return(invisible(NULL))
 }
 
+doLogging(TRUE)
+setLogFile()
 
 
 #' @title Function to return pointer of an exported item from 
@@ -97,7 +109,6 @@ dir.copy = function(from, to, flags = "-r")
 #' 
 #' @return invisibly returns NULL
 #' 
-#' @export 
 #' 
 runCommand = function(command, runDirectory, failDirectory, successDirectory)
 {
@@ -145,6 +156,7 @@ compileScript = function(moduleNames, currWd, compiler = "ldmd2", flags = c("-O"
                     " saucer.d r2d.d -c -g -J=\".\" ", addedFlags, " -fPIC -L-lR -L-lRmath && ",
                     compiler, " ", sllFiles, " saucer.o r2d.o -of=", dllFile, " ", addedFlags,
                     " -fPIC -L-lR -L-lRmath -shared")
+  logger(paste0("Compiling script(s): \n", command))
   status = system(command, intern = FALSE)
 
   if(status != 0)
@@ -158,6 +170,25 @@ compileScript = function(moduleNames, currWd, compiler = "ldmd2", flags = c("-O"
 }
 
 
+#' @title Workhorse function for compiling the D code and creating the R wrapper
+#'
+#' @description The first file given is the main file containing functions
+#'        to be exported, other files given are supporting files
+#' 
+#' @param fileNames character vector containing the module (file) names to 
+#'        be compiled and loaded into the R session. The file name must 
+#'        include the ".d" extension.    
+#' @param code character vector containing the code to be compiled
+#' @param dropFolder logical for whether the folder containing the code
+#'        and compilation artifacts should be dropped after compilation is 
+#'        done. Defaults to TRUE.
+#' @param folderName character for what the folder name the generated code
+#'        should be. Defaults to NULL - random name generated.
+#' @param compiler character either "ldmd2" (default - ldc compiler) 
+#'        or "dmd" (DMD compiler)
+#' @param flags character vector flags to be passed to the chosen D compiler
+#' 
+#' @return NULL
 .sauce = function(fileNames, dropFolder = NULL, folderName = NULL, 
                   compiler = "ldmd2", flags = c("-O", "-boundscheck=off", "-mcpu=native"))
 {
@@ -201,7 +232,7 @@ compileScript = function(moduleNames, currWd, compiler = "ldmd2", flags = c("-O"
   command = paste(command, "&& ./translator")
   
   # Run the d compilation script
-  logger("Translator compilation command to generate script to be compiled: ", command)
+  logger("Translator compilation command to generate script to be compiled: \n", command)
   compileTranslator(command, currWd, module)
   logger("Translator compiled, now compiling script")
   compileScript(moduleNames, currWd, compiler, flags)
@@ -291,35 +322,20 @@ extractModuleNames = function(fileNames, extn = "d")
 #' @description The first file given is the main file containing functions
 #'        to be exported, other files given are supporting files
 #' 
-#' @param fileNames character vector containing the module names to 
-#'        be compiled and loaded into the R session. Includes the
-#'        ".d" extension (for now)
-#'        TODO: this functionality requires more work        
-#' @param folderName  a character containing the name of the
-#'        folder where the code will be created. If missing
-#'         a random name is generated
+#' @param fileNames character vector containing the module (file) names to 
+#'        be compiled and loaded into the R session. The file name must 
+#'        include the ".d" extension.    
+#' @param code character vector containing the code to be compiled
+#' @param dropFolder logical for whether the folder containing the code
+#'        and compilation artifacts should be dropped after compilation is 
+#'        done. Defaults to TRUE.
+#' @param folderName character for what the folder name the generated code
+#'        should be. Defaults to NULL - random name generated.
 #' @param compiler character either "ldmd2" (default - ldc compiler) 
 #'        or "dmd" (DMD compiler)
-#' @param dropFolder whether to delete the folder containing
-#'        the compilation artifacts once the compilation is done.
+#' @param flags character vector flags to be passed to the chosen D compiler
 #' 
 #' @return NULL
-#' 
-#' @export
-#' 
-#' @examples
-#' 
-#' # require(saucer)
-#' # sauce("script.d", dropFolder = TRUE)
-#' # 
-#' # x = seq(1.0, 10.0, by = 0.5); y = seq(1.0, 10.0, by = 0.5)
-#' # generate_numbers(as.integer(100))
-#' # dot(x, y)
-#' # vdmul(x, y)
-#' # ans1 = outer_prod_serial(x, y)
-#' # ans2 = outer_prod_parallel(x, y) # parallel version
-#' # sum(abs(ans1 - ans2)) == 0
-#' # sexp_check()
 #' 
 #' @export
 #' 
@@ -405,9 +421,19 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 
 #' @title Compile D code from string
 #' @description Compiles and loads D code from string array, note that the desired 
-#'              export functions must still be marked with `@Export()`
+#'              export functions mustq be marked with `@Export()`
 #' 
-#' @param code character containing the code to be compiled
+#' @param code character vector containing the code to be compiled
+#' @param dropFolder logical for whether the folder containing the code
+#'        and compilation artifacts should be dropped after compilation is 
+#'        done. Defaults to TRUE.
+#' @param folderName character for what the folder name the generated code
+#'        should be. Defaults to NULL - random name generated.
+#' @param compiler character either "ldmd2" (default - ldc compiler) 
+#'        or "dmd" (DMD compiler)
+#' @param flags character vector flags to be passed to the chosen D compiler
+#' @param moduleName what the module should be called, defaults to NULL - 
+#'        random generated value given
 #' 
 #' @return character array of code submitted into the code array
 #' 
@@ -433,10 +459,10 @@ createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 #' 
 #' @export
 #' 
-dfunctions = function(codeArr, dropFolder = TRUE, folderName = NULL, compiler = "ldmd2", 
+dfunctions = function(code, dropFolder = TRUE, folderName = NULL, compiler = "ldmd2", 
                   flags = c("-O", "-boundscheck=off", "-mcpu=native"), moduleName = NULL)
 {
-  result = .dfunction(paste0(codeArr, collapse = "\n"), 
+  result = .dfunction(paste0(code, collapse = "\n"), 
               dropFolder = dropFolder, folderName = folderName, 
               compiler = compiler, flags = flags, moduleName = moduleName)
   return(invisible(result))
@@ -472,8 +498,8 @@ dir.remove = function(directory, flags = "-rf")
 #' @param fileNames single string item for path to file to be
 #' @param compiler character either "ldmd2" (default - ldc compiler) 
 #'        or "dmd" (DMD compiler)
-#' @param extraFiles single character string containing the extra files 
-#'                   to be included in the compilation
+#' @param flags character vector of d compiler flags to pass
+#' @param cleanup logical whether to remove the generated directories afterwards or not 
 #' 
 #' @export
 #' 
@@ -516,8 +542,6 @@ compileRInside = function(fileName, compiler = "ldmd2", flags = c("-O", "-mcpu=n
 #'
 #' @return NULL invisibly
 #' 
-#' @export 
-#' 
 runDTranslatorTests = function(dropFolder = TRUE, compiler = "ldmd2", folderNamePrefix = "dTest")
 {
   currWd = getwd()
@@ -550,10 +574,7 @@ runDTranslatorTests = function(dropFolder = TRUE, compiler = "ldmd2", folderName
 #'        or "dmd" (DMD compiler) if installed
 #' @param folderNamePrefix the prefix name for the folder defaults to "dSaucerTest"
 #' 
-#' 
-#' @return NULL invisibly
-#' 
-#' @export 
+#' @return NULL (invisibly)
 #' 
 runSaucedTests = function(dropFolder = TRUE, compiler = "ldmd2", folderNamePrefix = "dSaucerTest")
 {

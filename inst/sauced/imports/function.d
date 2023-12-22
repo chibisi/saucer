@@ -1,4 +1,4 @@
-struct Function
+private struct Function
 {
     SEXP func;
     /*

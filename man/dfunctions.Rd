@@ -5,7 +5,7 @@
 \title{Compile D code from string}
 \usage{
 dfunctions(
-  codeArr,
+  code,
   dropFolder = TRUE,
   folderName = NULL,
   compiler = "ldmd2",
@@ -14,14 +14,29 @@ dfunctions(
 )
 }
 \arguments{
-\item{code}{character containing the code to be compiled}
+\item{code}{character vector containing the code to be compiled}
+
+\item{dropFolder}{logical for whether the folder containing the code
+and compilation artifacts should be dropped after compilation is 
+done. Defaults to TRUE.}
+
+\item{folderName}{character for what the folder name the generated code
+should be. Defaults to NULL - random name generated.}
+
+\item{compiler}{character either "ldmd2" (default - ldc compiler) 
+or "dmd" (DMD compiler)}
+
+\item{flags}{character vector flags to be passed to the chosen D compiler}
+
+\item{moduleName}{what the module should be called, defaults to NULL - 
+random generated value given}
 }
 \value{
 character array of code submitted into the code array
 }
 \description{
 Compiles and loads D code from string array, note that the desired 
-             export functions must still be marked with `@Export()`
+             export functions mustq be marked with `@Export()`
 }
 \examples{
         dfunctions("

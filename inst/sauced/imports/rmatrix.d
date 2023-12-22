@@ -66,7 +66,7 @@ if(SEXPDataTypes!(Type))
   this(ref return scope RMatrix original)
   {
     int n = cast(int)original.length;
-    this.sexp = allocMatrix(Type, cast(int)original.nrows, cast(int)original.ncols);
+    this.sexp = allocMatrix(Type, cast(int)original.nrow, cast(int)original.ncol);
     R_PreserveObject(this.sexp);
     this.needUnprotect = true;
     copyMatrix(this.sexp, original.sexp, FALSE);
@@ -92,14 +92,14 @@ if(SEXPDataTypes!(Type))
   }
   
   pragma(inline, true)
-  size_t nrows() const @trusted
+  size_t nrow() const @trusted
   {
     /* Cast away the const assume that nrow is okay to run */
     return Rf_nrows(cast(SEXP)sexp);
   }
 
   pragma(inline, true)
-  size_t ncols() const @trusted
+  size_t ncol() const @trusted
   {
     /* Cast away the const assume that nrow is okay to run */
     return Rf_ncols(cast(SEXP)sexp);
@@ -171,7 +171,7 @@ if(SEXPDataTypes!(Type))
   pragma(inline, true)
   size_t getIndex(size_t i, size_t j) const @trusted
   {
-    return i + nrows*j;
+    return i + nrow*j;
   }
   auto opIndex(I)(I i, I j) @trusted
   if(isIntegral!(I))
@@ -236,14 +236,14 @@ if(SEXPDataTypes!(Type))
   if(isIntegral!(I))
   {
     auto from = getIndex(0, i);
-    auto to = getIndex(this.nrows - 1, i) + 1;
+    auto to = getIndex(this.nrow - 1, i) + 1;
     return [from, to];
   }
   RVector!(Type) opIndex(I)(I j) @trusted
   if(isIntegral!(I))
   {
     auto range = colIndices!(I)(j);
-    auto n = this.nrows;
+    auto n = this.nrow;
     static if(Type != STRSXP)
     {
       auto result = RVector!(Type)(this.ptr[range[0]..range[1]]);
@@ -276,7 +276,7 @@ if(SEXPDataTypes!(Type))
   if(isIntegral!(J))
   {
     auto idx = getIndex(0, j);
-    return View!(Type)(&this.ptr[idx], this.nrows);
+    return View!(Type)(&this.ptr[idx], this.nrow);
   }
 }
 

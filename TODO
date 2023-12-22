@@ -14,20 +14,18 @@
         - Logical - Done
         - Complex - Done
         - Strings - Done
-        - Names attributes - Done
-        - Any attributes - Done
-        - Full vector operator overloads (with caveats) - Done
-        - Finalize destructor to deallocate.
+        - Allow integer R items to be read as NumericVector rather 
+            than just as IntegerVector?
+        - Attributes
     - RMatrices
         - Numeric - Done
         - Integer - Done
         - Logical - Done
         - Complex - Done
         - Strings - Done
-        - Names attributes
-        - Full matrix operator overloads  (with caveats)
+        - Attributes
     - Functions
-        - Implementation for basic functionality - Done
+        - Implementation for basic functionality
         - Able to do parallelism with R functions in when called in D?
     - Lists
         - Basic implementation - Done
@@ -51,6 +49,7 @@
     - Dub integration.
     - Make sure that compiling multiple files and dependencies works
     - Add compiler and compiler flag options - Done.
+    - Log compiler commands during `dfunctions` and `saucer` calls
     - Add tests and debug the post fail-over process
 
 5. Things to implement on the D side:
@@ -65,17 +64,16 @@
     - Generate code only option (don't compile anything)
     - Capture compilation errors more gracefully, and 
         deal with `enforce` and `assert` errors gracefully.
-
-8. Cleanup wrapped R function argument names should not start with "_" - should
+8. Compatibility with @safe, @trusted, @system and so forth
 9. Should be able to export function overloads with different @Export() names and
     have it all work.
-11. Numerics be auto-converted to integer when approriate from R, which is the expected behaviour?
-12. Formally export all the `.Internal` functions so that they can be called with
+10. Numerics be auto-converted to integer when approriate from R, which is the expected behaviour?
+11. Formally export all the `.Internal` functions so that they can be called with
     func(...) obviating the need for InternalCall(...) function.
 
-13. Error handling for no return type given in `@Export()` function. Done - use R_NilValue
-15. Spawning R insances using D with RInside.
-16. R has option for using external memory allocator with `SEXP Rf_allocVector3 (SEXPTYPE, R_xlen_t, R_allocator_t*)` function, this opens up the possibility of using D's garage collected memory allocator as well as other memory allocators available in D that would probably improve the stability integration of R's backend with D.
+12. Error handling for no return type given in `@Export()` function. Done - use R_NilValue
+13. Spawning R insances using D with RInside.
+14. R has option for using external memory allocator with `SEXP Rf_allocVector3 (SEXPTYPE, R_xlen_t, R_allocator_t*)` function, this opens up the possibility of using D's garage collected memory allocator as well as other memory allocators available in D that would probably improve the stability integration of R's backend with D.
 
 ## Testing
 

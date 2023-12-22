@@ -15,10 +15,11 @@ compileRInside(
 \item{compiler}{character either "ldmd2" (default - ldc compiler) 
 or "dmd" (DMD compiler)}
 
-\item{fileNames}{single string item for path to file to be}
+\item{flags}{character vector of d compiler flags to pass}
 
-\item{extraFiles}{single character string containing the extra files 
-to be included in the compilation}
+\item{cleanup}{logical whether to remove the generated directories afterwards or not}
+
+\item{fileNames}{single string item for path to file to be}
 }
 \description{
 Simple function to compile a D script that calls the R API

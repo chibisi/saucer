@@ -19,7 +19,7 @@ or "dmd" (DMD compiler) if installed}
 \item{folderNamePrefix}{the prefix name for the folder defaults to "dSaucerTest"}
 }
 \value{
-NULL invisibly
+NULL (invisibly)
 }
 \description{
 Runs the internal D tests for saucer.d script

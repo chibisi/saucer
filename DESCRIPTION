@@ -1,11 +1,12 @@
 Package: saucer
 Version: 0.3
-Title: Package to call D functions from R
+Title: Package to call D code from R and vice versa
 Authors@R: c(person("Chibisi","Chima-Okereke", role = c("aut","cre"), email = "chibco@gmail.com"))
 Depends: R (>= 4.1.3)
 Imports: stringr
 SystemRequirements: ldc
-Description: Package that allows the user to write D code and call it from R
+Description: Package that allows the user to write D code and call it from R and 
+            to call R code from D
 License: MIT
 URL: https://github.com/chibisi/saucer
 ByteCompile: TRUE
