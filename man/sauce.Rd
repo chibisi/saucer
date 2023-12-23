@@ -9,7 +9,9 @@ sauce(fileNames, ...)
 \arguments{
 \item{fileNames}{character vector containing the module (file) names to 
 be compiled and loaded into the R session. The file name must 
-include the ".d" extension.}
+include the ".d" extension. Only functions in the first
+file can be exported. Subsequent files are for dependencies
+in the first file only.}
 
 \item{code}{character vector containing the code to be compiled}
 

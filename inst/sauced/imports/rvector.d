@@ -89,7 +89,7 @@ if((Type == STRSXP) && isIntegral!(I))
         
         SET_STRING_ELT(sexp, cast(int)i, element);
     }else{
-        assert(0, "Can not set items in array of zero length");
+        enforce(0, "Can not set items in array of zero length");
     }
     return value;
 }
@@ -137,7 +137,7 @@ pragma(inline, true)
 auto setSlice(SEXPTYPE Type, T, I)(SEXP sexp, I i, auto ref T[] value)
 if(isIntegral!(I) && isBasicType!(T) /* && NonStringSEXP!(Type) */)
 {
-    //assert((i >= 0) && (n < LENGTH(sexp)), 
+    //enforce((i >= 0) && (n < LENGTH(sexp)), 
     //        "Requested range not less than or " ~ 
     //            "equal to length of array.");
     static if(Type != STRSXP)
@@ -159,7 +159,7 @@ pragma(inline, true)
 auto setSlice(SEXPTYPE Type, T, I)(SEXP sexp, I i, I j, auto ref T value)
 if(isIntegral!(I) && isBasicType!(T) /* && NonStringSEXP!(Type) */)
 {
-    //assert((i >= 0) && (j < LENGTH(sexp)) , 
+    //enforce((i >= 0) && (j < LENGTH(sexp)) , 
     //    "Issue with range of object requested");
     
     static if(Type != STRSXP)
@@ -184,7 +184,7 @@ auto getSlice(SEXPTYPE Type, I)(SEXP sexp, I i, I j)
 if(isIntegral!(I) /* && NonStringSEXP!(Type) */)
 {
     auto n = j - i;
-    //assert((n <= LENGTH(sexp)) && (n >= 0), 
+    //enforce((n <= LENGTH(sexp)) && (n >= 0), 
     //        "Requested range not less than or " ~ 
     //            "equal to length of array.");
     static if(Type != STRSXP)
@@ -269,7 +269,7 @@ if(isIntegral!(I))
             unprotect(1);
             return result;
     }
-    assert(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
+    enforce(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
 }
 
 
@@ -300,7 +300,7 @@ auto join(SEXP lhs, SEXP rhs)
                 return result;
         }
     }
-    assert(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
+    enforce(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
 }
 
 
@@ -311,9 +311,7 @@ if(SEXPDataTypes!(Type))
 {
     SEXP sexp;
     bool needUnprotect = false;
-    //long refCount;
     alias ElType = SEXPElementType!(Type);
-    //alias implicitCast this;
 
     private void unprotect()
     {
@@ -407,7 +405,7 @@ if(SEXPDataTypes!(Type))
     this(T)(T sexp) @trusted
     if(is(T == SEXP))
     {
-        assert((Type == TYPEOF(sexp)) && isVector(sexp), 
+        enforce((Type == TYPEOF(sexp)) && isVector(sexp), 
             "Type of input is not the same as SEXPTYPE Type submitted");
         this.sexp = sexp;
         R_PreserveObject(this.sexp);
@@ -490,7 +488,7 @@ if(SEXPDataTypes!(Type))
     }
     T opCast(T: ElType)() @trusted
     {
-        assert(this.length == 1, "Cannot cast to basic Type " ~ 
+        enforce(this.length == 1, "Cannot cast to basic Type " ~ 
             ElType.stringof ~ 
             "length is not equal to 1");
         return this[0];
@@ -631,7 +629,7 @@ if(SEXPDataTypes!(Type))
                 }
             }else{
                 auto n = this.length;
-                assert(n == value.length, 
+                enforce(n == value.length, 
                     "length of candidate array differs in opOpAssign.");
                 static if(Type != STRSXP)
                 {
@@ -671,7 +669,7 @@ if(SEXPDataTypes!(Type))
                 }
             }else{
                 auto n = this.length;
-                assert(n == value.length, 
+                enforce(n == value.length, 
                     "length of candidate array differs in opOpAssign.");
                 static if(Type != STRSXP)
                 {
@@ -708,7 +706,7 @@ if(SEXPDataTypes!(Type))
     }
     RVector opSlice(size_t i, size_t j) @trusted
     {
-        assert(j >= i, 
+        enforce(j >= i, 
             "opSlice error, the second index is not" ~ 
             " greater than or equal to the first");
         static if(Type != STRSXP)
@@ -775,7 +773,7 @@ if(SEXPDataTypes!(Type))
                 }
             }else
             {
-                assert(value.length == n, 
+                enforce(value.length == n, 
                     "Length of array not equal to length of RVector");
                 static if(is(T == Rboolean[]))
                 {
@@ -816,7 +814,7 @@ if(SEXPDataTypes!(Type))
                 }
             }else
             {
-                assert(value.length == n, 
+                enforce(value.length == n, 
                     "Length of RVector not equal to length of RVector");
                 static if(Type != STRSXP)
                 {
@@ -859,7 +857,7 @@ if(SEXPDataTypes!(Type))
             return RVector!(Type)(0);
         }
         auto n = j - i;
-        assert(n > 0, 
+        enforce(n > 0, 
             "Number of elements to be replace is not greater than zero.");
         static if(is(T == ElType))
         {
@@ -872,7 +870,7 @@ if(SEXPDataTypes!(Type))
             }
         }else static if(is(T == ElType[]) || is(T == Rboolean[]))
         {
-            assert(value.length == n, 
+            enforce(value.length == n, 
                 "Length of replacement vector not equal " ~ 
                 "to replacement zone length");
             static if(is(T == Rboolean[]))
@@ -887,7 +885,7 @@ if(SEXPDataTypes!(Type))
             }
         }else static if(is(T == RVector))
         {
-            assert(value.length == n, 
+            enforce(value.length == n, 
                 "Length of replacement vector not equal " ~ 
                 "to replacement zone length");
             static if(is(Type == LGLSXP))
@@ -926,7 +924,7 @@ if(SEXPDataTypes!(Type))
         {
             return RVector!(Type)(0);
         }
-        assert(i <= j, 
+        enforce(i <= j, 
             "Index requested is not valid j is not greater than i");
         auto n = j - i;
         static if(is(T == ElType))
@@ -953,7 +951,7 @@ if(SEXPDataTypes!(Type))
             }
         }else static if(is(T == ElType[]) || is(T == Rboolean[]))
         {
-            assert(value.length == n,
+            enforce(value.length == n,
                 "Length of array not equal to replacement length.");
             static if(is(T == Rboolean[]))
             {
@@ -973,7 +971,7 @@ if(SEXPDataTypes!(Type))
             }
         }else static if(is(T == RVector))
         {
-            assert(value.length == n, 
+            enforce(value.length == n, 
                 "Length of candidate vector not equal to replacement length");
             static if(Type == STRSXP)
             {
@@ -1034,7 +1032,7 @@ if(SEXPDataTypes!(Type))
     auto eq(RVector arr) @trusted
     {
         auto n = arr.length;
-        assert(this.length == n, "Legnths of vector comparisons differ");
+        enforce(this.length == n, "Legnths of vector comparisons differ");
         auto result = RVector!(LGLSXP)(n);
         foreach(i; 0..n)
         {
@@ -1047,7 +1045,7 @@ if(SEXPDataTypes!(Type))
         static if(isCmp!op)
         {
             auto n = arr.length;
-            assert(this.length == n, "Legnths of vector comparisons differ");
+            enforce(this.length == n, "Legnths of vector comparisons differ");
             auto result = RVector!(LGLSXP)(n);
             foreach(i; 0..n)
             {
@@ -1065,7 +1063,7 @@ if(SEXPDataTypes!(Type))
     }
     @property auto names(string[] _names_) @trusted
     {
-        assert(_names_.length == LENGTH(this.sexp), 
+        enforce(_names_.length == LENGTH(this.sexp), 
             "length of names not equal to length of sexp");
         Rf_setAttrib(this.sexp, R_NamesSymbol, To!SEXP(_names_));
         return;
@@ -1073,9 +1071,9 @@ if(SEXPDataTypes!(Type))
     @property auto names(SEXP _names_) @trusted
     {
         auto type = TYPEOF(_names_);
-        assert(type == STRSXP, "Error no implementation of names method for type " 
+        enforce(type == STRSXP, "Error no implementation of names method for type " 
             ~ type.stringof);
-        assert(LENGTH(_names_) == LENGTH(this.sexp), 
+        enforce(LENGTH(_names_) == LENGTH(this.sexp), 
             "length of names not equal to length of sexp");
         Rf_setAttrib(this.sexp, R_NamesSymbol, _names_);
         return;
@@ -1131,7 +1129,7 @@ if(is(T == SEXPElementType!(Type)))
 {
     import std.range: iota;
     auto _n_ = (to - from)/by;
-    assert(_n_ >= 0, "Number of elements is negative");
+    enforce(_n_ >= 0, "Number of elements is negative");
     auto n = cast(size_t)(_n_);
     auto result = RVector!(Type)(n);
     size_t i = 0;

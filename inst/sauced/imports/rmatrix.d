@@ -39,7 +39,7 @@ if(SEXPDataTypes!(Type))
   if(is(T == SEXPElementType!(Type)) && isIntegral!(I))
   {
     auto n = arr.length;
-    assert(n == n_row*n_col, "Length of array is not equal to multiple of nrow x ncol");
+    enforce(n == n_row*n_col, "Length of array is not equal to multiple of nrow x ncol");
     this.sexp = allocMatrix(Type, cast(int)n_row, cast(int)n_col);
     R_PreserveObject(this.sexp);
     this.needUnprotect = true;
@@ -59,7 +59,7 @@ if(SEXPDataTypes!(Type))
   */
   this(SEXP sexp) @trusted
   {
-    assert((Type == rTypeOf(sexp)) && isMatrix(sexp), 
+    enforce((Type == rTypeOf(sexp)) && isMatrix(sexp), 
       "Type of input is not the same of SEXPTYPE type submitted");
     this.sexp = sexp;
   }
@@ -150,7 +150,7 @@ if(SEXPDataTypes!(Type))
   }
   T opCast(T: SEXPElementType!(Type))() @trusted
   {
-    assert(this.length == 1, "Cannot cast to basic type " ~ 
+    enforce(this.length == 1, "Cannot cast to basic type " ~ 
         SEXPElementType!(Type).stringof ~ 
         "length is not equal to 1");
     static if(Type != STRSXP)
@@ -299,7 +299,7 @@ if(SEXPDataTypes!(Type))
   }
   ElType opIndex(size_t i)
   {
-    assert((i >= 0) && (i < this.length), 
+    enforce((i >= 0) && (i < this.length), 
       "Invalid index subscript " ~ to!(string)(i) ~ 
       " for data range.");
     return ptr[i];

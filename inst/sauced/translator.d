@@ -7,6 +7,15 @@ import std.algorithm.iteration: map;
 import std.array: array;
 import std.stdio: writeln;
 import std.path: dirSeparator;
+import std.format: format;
+
+/*
+    TODO
+    
+    1. Use format(...) rather than messy string ~= string concats - much easier!
+    2. Probably don't need resultName in FunctionCall object
+*/
+
 
 
 /+
@@ -294,13 +303,13 @@ mixin template CreateMethodCallDemo()
 +/
 string wrapMethodCalls(Signature[] signatures)()
 {
-    string result = "  __gshared static const R_CallMethodDef[] callMethods = [\n";
+    string result = "    __gshared static const R_CallMethodDef[] callMethods = [\n";
     static foreach(i, signature; signatures)
     {
       result ~= "    " ~ createMethodCall!(signature)() ~ ", \n";
     }
     result ~= "    R_CallMethodDef(null, null, 0)\n";
-    result ~= "  ];";
+    result ~= "    ];";
     return result;
 }
 
@@ -332,7 +341,7 @@ mixin template WrapMethodCallsDemo()
     Returns
     string containing the body of the function ready to be written 
 */
-string wrapFunction(Signature signature, FunctionCall functionCall)()
+string wrapFunction0(Signature signature, FunctionCall functionCall)()
 {
     string func = "  \n  {\n";
     func ~= "    " ~ functionCall.call ~ ";\n";
@@ -353,65 +362,57 @@ string wrapFunction(Signature signature, FunctionCall functionCall)()
     return func;
 }
 
-enum string[] wrappedTestFunctions = [
-  "  SEXP __R_dot_double__(SEXP x, SEXP y)  
-  {
-    auto __d_dot_double__ = dot_double(To!(double[])(x), To!(double[])(y));
-    static if(!isSEXP!(__d_dot_double__))
-    {
-      return To!(SEXP)(__d_dot_double__);
-    }else{
-      return __d_dot_double__;
-    }
-  }\n", 
-  "  SEXP __R_dot__(SEXP x_sexp, SEXP y_sexp)  
-  {
-    auto __d_dot__ = dot(x_sexp, y_sexp);
-    static if(!isSEXP!(__d_dot__))
-    {
-      return To!(SEXP)(__d_dot__);
-    }else{
-      return __d_dot__;
-    }
-  }\n",
-  "  SEXP __R_create_integer_vector__(SEXP n)  
-  {
-    auto __d_create_integer_vector__ = create_integer_vector(To!(ulong)(n));
-    static if(!isSEXP!(__d_create_integer_vector__))
-    {
-      return To!(SEXP)(__d_create_integer_vector__);
-    }else{
-      return __d_create_integer_vector__;
-    }
-  }\n"];
 
+/*
+   Note:
 
-
-
-/+
-    Demo for wrapFunction() function
-+/
-mixin template WrapFunctionDemo()
+   1. There is a case for using writeln rather then Rf_error() here.
+       writeln does not require a cast.
+*/
+string wrapFunction(Signature signature, FunctionCall functionCall)()
 {
-    void wrapFunctionDemo()
+    enum functionSignature = signature.signature;
+    enum funcCall = functionCall.call;
+    static if(functionCall.isVoid)
     {
-        enum string moduleName = "test.files.test_resource_1";
-        enum string[] items = getExportedFunctions!(moduleName);
-        enum Signature[] signatures = getEntities!(getSignature, moduleName, items);
-        enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
-
-        static foreach(enum i; 0..signatures.length)
-        {{
-            enum signatureString = wrapFunction!(signatures[i], functionCalls[i]);
-            enum staticString = wrappedTestFunctions[i];
-            pragma(msg, signatureString);
-            static assert(wrappedTestFunctions[i] == signatureString,
-                    "Wrong wrapped function body for item " ~ to!(string)(i));
-        }}
+        return format(`
+    %1$s
+    {
+        try
+        {
+            %2$s;
+        }catch(Exception exception)
+        {
+            const(char*) msg = toUTFz!(const(char)*)(exception.msg);
+            Rf_error(msg);
+        }
+        return R_NilValue;
+    }
+        `,functionSignature, funcCall);
+    }else{
+        enum resultName = functionCall.resultName;
+        return format(`
+    %1$s
+    {
+        try
+        {
+            %2$s;
+            static if(!isSEXP!(%3$s))
+            {
+                return To!(SEXP)(%3$s);
+            }else{
+                return %3$s;
+            }
+        }catch(Exception exception)
+        {
+            const(char*) msg = toUTFz!(const(char)*)(exception.msg);
+            Rf_error(msg);
+            return R_NilValue;
+        }
+    }
+      `,functionSignature, funcCall, resultName);
     }
 }
-
-
 
 
 /+
@@ -472,23 +473,24 @@ mixin template WrapFunctionsDemo()
 +/
 string tailAppend(string moduleName)()
 {
-  string result = "\n\n\n  import core.runtime: Runtime;\n";
-  result ~= "  import std.stdio: writeln;\n\n";
-  result ~= "  void R_init_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
-  result ~= "  {\n";
-  result ~= "    writeln(\"Your saucer module " ~ moduleName ~ " is now loaded!\");\n";
-  result ~= "    R_registerRoutines(info, null, callMethods.ptr, null, null);\n";
-  result ~= "    Runtime.initialize;\n";
-  result ~= "    writeln(\"Runtime has been initialized!\");\n";
-  result ~= "  }\n";
-  result ~= "  \n";
-  result ~= "  \n";
-  result ~= "  void R_unload_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
-  result ~= "  {\n";
-  result ~= "    writeln(\"Attempting to terminate " ~ moduleName ~ " closing DRuntime!\");\n";
-  result ~= "    Runtime.terminate;\n";
-  result ~= "    writeln(\"Runtime has been terminated. Goodbye!\");\n";
-  result ~= "  }\n";
+  string result = "\n\n\n    import core.runtime: Runtime;\n";
+  result ~= "    void R_init_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
+  result ~= "    {\n";
+  result ~= "        import std.stdio: writeln;\n";
+  result ~= "        writeln(\"Your saucer module " ~ moduleName ~ " is now loaded!\");\n";
+  result ~= "        R_registerRoutines(info, null, callMethods.ptr, null, null);\n";
+  result ~= "        Runtime.initialize;\n";
+  result ~= "        writeln(\"Runtime has been initialized!\");\n";
+  result ~= "    }\n";
+  result ~= "    \n";
+  result ~= "    \n";
+  result ~= "    void R_unload_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
+  result ~= "    {\n";
+  result ~= "        import std.stdio: writeln;\n";
+  result ~= "        writeln(\"Attempting to terminate " ~ moduleName ~ " closing DRuntime!\");\n";
+  result ~= "        Runtime.terminate;\n";
+  result ~= "        writeln(\"Runtime has been terminated. Goodbye!\");\n";
+  result ~= "    }\n";
   return result;
 }
 
@@ -602,6 +604,7 @@ string wrapModule(string moduleName, string path = "")()
 
     enum string[] funcs = wrapFunctions!(signatures, functionCalls);
     string result = "\nextern (C)\n{\n";
+    result ~= "    import std.utf: toUTFz;\n";
     static foreach(func; funcs)
     {{
       result ~= func ~ "\n";
@@ -611,60 +614,6 @@ string wrapModule(string moduleName, string path = "")()
 
     return import(path ~ extractFilePath!(moduleName)) ~ result;
 }
-
-
-//For testing purposes
-enum testResource2String = "module test.files.test_resource_2;
-import sauced.saucer;
-
-
-/+
-    Multiplies two numbers by each other
-+/
-@Export() double mult(double x, double y)
-{  
-    return x*y;
-}
-
-extern (C)
-{
-  SEXP __R_mult__(SEXP x, SEXP y)  
-  {
-    auto __d_mult__ = mult(To!(double)(x), To!(double)(y));
-    static if(!isSEXP!(__d_mult__))
-    {
-      return To!(SEXP)(__d_mult__);
-    }else{
-      return __d_mult__;
-    }
-  }
-
-  __gshared static const R_CallMethodDef[] callMethods = [
-    R_CallMethodDef(\".C__mult__\", cast(DL_FUNC) &__R_mult__, 2), 
-    R_CallMethodDef(null, null, 0)
-  ];
-
-
-  import core.runtime: Runtime;
-  import std.stdio: writeln;
-
-  void R_init_test_resource_2(DllInfo* info)
-  {
-    writeln(\"Your saucer module test_resource_2 is now loaded!\");
-    R_registerRoutines(info, null, callMethods.ptr, null, null);
-    Runtime.initialize;
-    writeln(\"Runtime has been initialized!\");
-  }
-  
-  
-  void R_unload_test_resource_2(DllInfo* info)
-  {
-    writeln(\"Attempting to terminate test_resource_2 closing DRuntime!\");
-    Runtime.terminate;
-    writeln(\"Runtime has been terminated. Goodbye!\");
-  }
-}";
-
 
 
 /+
@@ -817,25 +766,6 @@ auto createRScript(string moduleName)()
 }
 
 
-//Variable for the unit test below
-enum string testRScript = "dyn.load(\"test_resource_1.so\")
-
-dot_double = function(x, y)
-{
-  .Call(\"__R_dot_double__\", x, y)
-}
-
-dot_product = function(x_sexp, y_sexp)
-{
-  .Call(\"__R_dot__\", x_sexp, y_sexp)
-}
-
-ivector = function(n)
-{
-  .Call(\"__R_create_integer_vector__\", n)
-}\n\n";
-
-
 /+
     demo for function createRScript!(moduleName)
 +/
@@ -870,29 +800,29 @@ mixin template Saucerize(string moduleName)
         
         return;
     }
-    void saucerize()
-    {
-        import std.stdio: File, writeln;
-        import std.file: copy, mkdir, exists, isDir;
-        import std.process: execute, executeShell;
-
-        enum fileName = extractShortModuleName!(moduleName);
-        File(fileName ~ ".d", "w").writeln(wrapModule!(moduleName)());
-        enum dllFile = fileName ~ ".so";
-        enum commands = "dmd " ~ fileName ~ ".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\".\" -fPIC -L-fopenmp -L-lR -L-lRmath && " ~
-                        "dmd " ~ fileName ~ ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=" ~ dllFile ~ " -L-fopenmp -L-lR -L-lRmath -shared";
-        auto ls = executeShell(commands);
-        if(ls.status != 0)
-        {
-            writeln("Command:\n" ~ commands ~ "\nNot run.");
-        }else
-        {
-            writeln(ls.output);
-        }
-
-        File(fileName ~ ".r", "w").writeln(createRScript!(moduleName));
-        return;
-    }
+    //void saucerize()
+    //{
+    //    import std.stdio: File, writeln;
+    //    import std.file: copy, mkdir, exists, isDir;
+    //    import std.process: execute, executeShell;
+    //
+    //    enum fileName = extractShortModuleName!(moduleName);
+    //    File(fileName ~ ".d", "w").writeln(wrapModule!(moduleName)());
+    //    enum dllFile = fileName ~ ".so";
+    //    enum commands = "dmd " ~ fileName ~ ".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\".\" -fPIC -L-fopenmp -L-lR -L-lRmath && " ~
+    //                    "dmd " ~ fileName ~ ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=" ~ dllFile ~ " -L-fopenmp -L-lR -L-lRmath -shared";
+    //    auto ls = executeShell(commands);
+    //    if(ls.status != 0)
+    //    {
+    //        writeln("Command:\n" ~ commands ~ "\nNot run.");
+    //    }else
+    //    {
+    //        writeln(ls.output);
+    //    }
+    //
+    //    File(fileName ~ ".r", "w").writeln(createRScript!(moduleName));
+    //    return;
+    //}
     
     void main()
     {

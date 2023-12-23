@@ -34,7 +34,7 @@ auto initEmbedR()
     }
     
     int init = Rf_initEmbeddedR(cast(int)rFlags.length, args.ptr);
-    assert(init, "R standalone failed to initialize");
+    enforce(init, "R standalone failed to initialize");
     RSessionInitialized = 1;
   }
   return 0;
@@ -684,7 +684,7 @@ if(isBasicType!(E) && isSEXP!(F))
       intype, " and the output type is ", E.stringof);
     enforce(0, "Length error.");
   }
-  assert(n == 1, "Length of SEXP is not equal to 1");
+  enforce(n == 1, "Length of SEXP is not equal to 1");
   static if(!isStringType!E)
   {
     alias func = Accessor!(MapToSEXP!(E));

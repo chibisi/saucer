@@ -1243,7 +1243,7 @@ struct Rcomplex
         {
             mixin("return Rcomplex(this.r " ~ op ~ " num, this.i " ~ op ~ " num);");
         }else{
-            assert(0, "No opBinary implementation for operator " ~ op);
+            enforce(0, "No opBinary implementation for operator " ~ op);
         }
     }
     Rcomplex opBinary(string op)(Rcomplex num)
@@ -1255,7 +1255,7 @@ struct Rcomplex
         {
             mixin("return Rcomplex((this.r " ~ op ~ " num.r) - (this.i " ~ op ~ " num.i), (this.r " ~ op ~ " num.i) + (this.i " ~ op ~ " num.r));");
         }else{
-            assert(0, "No opBinary implementation for operator " ~ op);
+            enforce(0, "No opBinary implementation for operator " ~ op);
         }
     }
     ref Rcomplex opOpAssign(string op, T)(T num) return
