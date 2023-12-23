@@ -26,18 +26,18 @@ alias BaseEnv = R_BaseEnv;
 
 auto assertSymbol(string symbol)()
 {
-    return "assert(isSymbol(" ~ symbol ~ "), " ~ 
+    return "enforce(isSymbol(" ~ symbol ~ "), " ~ 
                 "\"Type of symbol is not a SYMSXP\");";
 }
 auto assertSymbolOrString(string symbol)()
 {
-    return "assert(isSymbol(" ~ symbol ~ ") || Rf_isString(" ~ symbol ~ "), " ~ 
+    return "enforce(isSymbol(" ~ symbol ~ ") || Rf_isString(" ~ symbol ~ "), " ~ 
                 "\"Type of symbol is not a SYMSXP\");";
 }
 
 auto assertFunction(string symbol)()
 {
-    return "assert(isFunction(" ~ symbol ~ "), " ~ 
+    return "enforce(isFunction(" ~ symbol ~ "), " ~ 
                 "\"Type of symbol is not a SEXP function\");";
 }
 
@@ -58,7 +58,7 @@ private struct Environment
     this(I)(I size)
     if(isIntegral!I)
     {
-        assert(size > 0, "Given size must be greater than zero");
+        enforce(size > 0, "Given size must be greater than zero");
         this.envir = protect(R_NewEnv(R_GlobalEnv, TRUE, cast(int)size));
         needUnprotect = true;
     }

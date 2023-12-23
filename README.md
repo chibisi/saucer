@@ -73,7 +73,7 @@ codeExample2 = '
 @Export("DotArray") auto dot_array(double[] x, double[] y)
 {
     auto n = x.length;
-    assert(n == y.length, "Arrays x, and y lengths are not equal");
+    enforce(n == y.length, "Arrays x, and y lengths are not equal");
     double result = 0;
     foreach(i; 0..n)
     {
@@ -276,7 +276,7 @@ if(isIntegral!I)
 We can compile them both together (only marked functions in `averagerandom.d` will be exported):
 
 ```r
-saucer::sauce(c("averagerandom.d", "randomnumbers.d"), dropFolder = FALSE)
+saucer::sauce(c("averagerandom.d", "randomnumbers.d"))
 calcRandomAverage(100L)
 ```
 

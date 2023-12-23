@@ -4,7 +4,7 @@ import std.exception: enforce;
 pragma(inline, true) auto boundsCheck(I, L)(I i, L len)
 if(isIntegral!I && isIntegral!L)
 {
-    assert(i < len, "The index i " ~ to!(string)(i) ~ 
+    enforce(i < len, "The index i " ~ to!(string)(i) ~ 
         " is not less than the given length " ~
         to!(string)(len));
     return;
@@ -129,8 +129,8 @@ private struct NamedIndex
                     return i;
                 }
             }
+            throw new Exception("Item " ~ to!string(index) ~ " not found!");
         }
-        assert(0, "Item " ~ to!string(index) ~ " not found!");
     }
     auto opDollar()
     {
@@ -470,7 +470,7 @@ struct List
     auto opSlice(I)(I start, I end)
     if(isIntegral!(I))
     {
-        assert(end > start, 
+        enforce(end > start, 
             "Starting index is not less than the finishing index.");
         auto newLength = end - start;
         auto result = List(newLength);

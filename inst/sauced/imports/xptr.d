@@ -7,12 +7,12 @@ private struct XPtr(T)
     alias extptr this;
     this(SEXP extptr)
     {
-        assert(TYPEOF(extptr) == EXTPTRSXP, "Submitted non-EXTPTRSXP type to XPtr constructor");
+        enforce(TYPEOF(extptr) == EXTPTRSXP, "Submitted non-EXTPTRSXP type to XPtr constructor");
         this.extptr = extptr;
     }
     this(SEXP extptr, SEXP tag, SEXP prot)
     {
-        assert(TYPEOF(extptr) == EXTPTRSXP, "Submitted non-EXTPTRSXP type to XPtr constructor");
+        enforce(TYPEOF(extptr) == EXTPTRSXP, "Submitted non-EXTPTRSXP type to XPtr constructor");
         R_SetExternalPtrTag(extptr, tag);
         R_SetExternalPtrProtected(extptr, prot);
         this.extptr = extptr;

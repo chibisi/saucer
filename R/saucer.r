@@ -1,5 +1,12 @@
 pkgOpts = new.env()
 
+#' 
+#' @seealso To use this package see the \code{\link{dfunctions}}
+#'              or the \code{\link{dfunctions}} function
+#' 
+#' @keywords internal 
+"_PACKAGE"
+
 
 #' @title Function sets option for logging
 #' 
@@ -324,7 +331,9 @@ extractModuleNames = function(fileNames, extn = "d")
 #' 
 #' @param fileNames character vector containing the module (file) names to 
 #'        be compiled and loaded into the R session. The file name must 
-#'        include the ".d" extension.    
+#'        include the ".d" extension. Only functions in the first
+#'        file can be exported. Subsequent files are for dependencies
+#'        in the first file only.
 #' @param code character vector containing the code to be compiled
 #' @param dropFolder logical for whether the folder containing the code
 #'        and compilation artifacts should be dropped after compilation is 

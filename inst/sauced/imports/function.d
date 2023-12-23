@@ -16,16 +16,16 @@ private struct Function
     
     this(SEXP func)
     {
-        assert(Rf_isFunction(func), 
+        enforce(Rf_isFunction(func), 
                 "input given is not a function");
         this.func = func;
         this.envir = R_GlobalEnv; //R_GetCurrentEnv();
     }
     this(SEXP func, SEXP envir)
     {
-        assert(Rf_isFunction(func), 
+        enforce(Rf_isFunction(func), 
                 "input given is not a function");
-        assert(Rf_isEnvironment(envir), 
+        enforce(Rf_isEnvironment(envir), 
                 "second item given is not an environment");
         this.func = func;
         this.envir = envir;
