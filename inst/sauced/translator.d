@@ -2,12 +2,12 @@ module sauced.translator;
 
 import sauced.saucer;
 import std.conv: to;
-import std.traits: getUDAs, staticMap;
+import std.traits: getUDAs, ReturnType;
 import std.algorithm.iteration: map;
-import std.array: array;
 import std.stdio: writeln;
 import std.path: dirSeparator;
 import std.format: format;
+import std.algorithm: map;
 
 /*
     TODO
@@ -100,35 +100,26 @@ auto getSignature(string moduleName, string item)()
     import std.traits: ParameterIdentifierTuple;
 
     //Import the function name
-    mixin("import " ~ moduleName ~ ": " ~ item ~ ";");
+    mixin(format(`import %1$s: %2$s;`, moduleName, item));
     //Filters if the attribute is Export
-    mixin("enum attr = getUDAs!(" ~ item ~ ", Export)[0];");
-    
+    mixin(format(`enum attr = getUDAs!(%1$s, Export)[0];`, item));
     
     static if(attr.function_name == "")
     {
-        enum string rName = item;
+        enum rName = item;
     }else{
-        enum string rName = attr.function_name;
+        enum rName = attr.function_name;
     }
     
-    string newName = "__R_" ~ item ~ "__";
-    long nArgs = mixin("ParameterIdentifierTuple!" ~ item).length;
-    string funcSignature = "SEXP " ~ newName ~ "(";
+    enum newName = format("__R_%1$s__", item);
+    alias parameterTuple = mixin(format("ParameterIdentifierTuple!%1$s", item));
+    long nArgs = parameterTuple.length;
+    auto parameters(string name, string[] arr...) => 
+            format("SEXP %s", name) ~ format("(%-(SEXP %s, %))", arr);
+    enum funcSignature = parameters(newName, parameterTuple);
     
-    static foreach(i, param; mixin("ParameterIdentifierTuple!" ~ item))
-    {
-        if(i < (nArgs - 1))
-        {
-            funcSignature ~= "SEXP " ~ param ~ ", ";
-        }else{
-            funcSignature ~= "SEXP " ~ param;
-        }
-    }
-    funcSignature ~= ")";
     return Signature(item, newName, rName, nArgs, funcSignature);
 }
-
 
 /**************************************************************************/
 
@@ -175,27 +166,21 @@ auto getFunctionCall(string moduleName, string item)()
     import std.traits: ReturnType, Parameters, ParameterIdentifierTuple;
     
     FunctionCall functionCall;
-    mixin("import " ~ moduleName ~ ": " ~ item ~ ";");
-    long nArgs = mixin("ParameterIdentifierTuple!" ~ item).length;
-    string func_call = item ~ "(";
-    alias types = mixin("Parameters!" ~ item);
-    bool void_return = mixin("is(ReturnType!" ~ item ~ " == void)");
-    static foreach(i, param; mixin("ParameterIdentifierTuple!" ~ item))
+    mixin(format(`import %1$s: %2$s;`, moduleName, item));
+    alias parameterTuple = mixin(format("ParameterIdentifierTuple!%1$s", item));
+    long nArgs = parameterTuple.length;
+    alias types = mixin(format("Parameters!%1$s", item));
+    enum void_return = mixin(format("is(ReturnType!%1$s == void)", item));
+    string[] toArray(string[] args...) => args.dup;
+    enum resultName = format("__d_%1$s__", item);
+    static if(void_return)
     {
-      if(i < (nArgs - 1))
-      {
-        func_call ~= modifyArg!(types[i])(param) ~ ", ";
-      }else{
-        func_call ~= modifyArg!(types[i])(param);
-      }
+      enum funcCall = format("%1$s(%2$s)", item, ModifyArg!(toArray(parameterTuple), types));
+    }else{
+        enum tmp = format("%1$s(%2$s)", item, ModifyArg!(toArray(parameterTuple), types));
+        enum funcCall = format("auto %1$s = %2$s", resultName, tmp);
     }
-    func_call ~= ")";
-    string resultName = "__d_" ~ item ~ "__";
-    if(!void_return)
-    {
-      func_call = "auto " ~ resultName ~ " = " ~ func_call;
-    }
-    functionCall = FunctionCall(item, resultName, void_return, func_call);
+    functionCall = FunctionCall(item, resultName, void_return, funcCall);
     return functionCall;
 }
 
@@ -270,12 +255,13 @@ mixin template GetEntitiesDemo()
 /+
     Function for creating R_CallMethodDef signatures
 +/
-string createMethodCall(Signature signature)()
+auto createMethodCall(Signature signature)
 {
-  //pragma(msg, "nArgs: ", to!(string)(signature.nArgs));
-  return "R_CallMethodDef(\".C__" ~ signature.origName ~ "__\", cast(DL_FUNC) &" ~ signature.newName ~ ", " ~ to!(string)(signature.nArgs) ~ ")";
+    auto origName = signature.origName;
+    auto newName = signature.newName;
+    auto nArgs = to!(string)(signature.nArgs);
+    return format("R_CallMethodDef(\".C__%1$s__\", cast(DL_FUNC) &%2$s, %3$s)", origName, newName, nArgs);
 }
-
 
 
 /*
@@ -291,27 +277,54 @@ mixin template CreateMethodCallDemo()
         static foreach(enum signature; signatures)
         {
             pragma(msg, "Signature: ", signature);
-            pragma(msg, "Method Call: ", createMethodCall!(signature));
+            pragma(msg, "Method Call: ", createMethodCall(signature));
         }
     }
 }
+
+
+template MapReduce(alias arr, alias MapFun, alias ReduceFun)
+{
+    alias A = typeof(arr);
+    static if(is(A: E[], E))
+    {
+        static if(arr.length == 1)
+        {
+            enum MapReduce = MapFun(arr[0]);
+        }else{
+            enum MapReduce = ReduceFun(MapFun(arr[0]), MapReduce!(arr[1..$], MapFun, ReduceFun));
+        }
+    }
+    else
+    {
+        static assert(0, format("Can not apply map to type: %s", typeof(arr).stringof));
+    }
+}
+
 
 
 
 /+
     Function to wrap all the method calls for the exported functions
 +/
-string wrapMethodCalls(Signature[] signatures)()
+auto wrapMethodCalls(Signature[] signatures)()
 {
-    string result = "    __gshared static const R_CallMethodDef[] callMethods = [\n";
-    static foreach(i, signature; signatures)
+    auto MapFun(Signature signature)
     {
-      result ~= "    " ~ createMethodCall!(signature)() ~ ", \n";
+        return format("%1$s, \n", createMethodCall(signature));
     }
-    result ~= "    R_CallMethodDef(null, null, 0)\n";
-    result ~= "    ];";
-    return result;
+    alias ReduceFun = (x, y) => format("%1$s %2$s", x, y);
+    enum tmp = MapReduce!(signatures,
+                    MapFun,
+                        ReduceFun);
+    enum result = format("__gshared static const R_CallMethodDef[] callMethods = 
+    [
+        %1$s
+        R_CallMethodDef(null, null, 0)
+    ];", tmp);
+   return result;
 }
+
 
 
 /+
@@ -340,34 +353,11 @@ mixin template WrapMethodCallsDemo()
 
     Returns
     string containing the body of the function ready to be written 
-*/
-string wrapFunction0(Signature signature, FunctionCall functionCall)()
-{
-    string func = "  \n  {\n";
-    func ~= "    " ~ functionCall.call ~ ";\n";
-    if(functionCall.isVoid)
-    {
-      func ~= "    return R_NilValue;\n";
-      func ~= "  }\n";
-    }else{
-      string tmp = "    static if(!isSEXP!(" ~ functionCall.resultName ~ "))\n";
-      tmp ~= "    {\n";
-      tmp ~= "      return To!(SEXP)(" ~ functionCall.resultName ~ ");\n";
-      tmp ~= "    }else{\n";
-      tmp ~= "      return " ~ functionCall.resultName ~ ";\n";
-      tmp ~= "    }\n";
-      func ~= tmp ~ "  }\n";
-    }
-    func = "  " ~ signature.signature ~ func;
-    return func;
-}
 
-
-/*
-   Note:
-
-   1. There is a case for using writeln rather then Rf_error() here.
-       writeln does not require a cast.
+    Note:
+    
+    1. There is a case for using writeln rather then Rf_error() here.
+        writeln does not require a cast.
 */
 string wrapFunction(Signature signature, FunctionCall functionCall)()
 {
@@ -473,58 +463,27 @@ mixin template WrapFunctionsDemo()
 +/
 string tailAppend(string moduleName)()
 {
-  string result = "\n\n\n    import core.runtime: Runtime;\n";
-  result ~= "    void R_init_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
-  result ~= "    {\n";
-  result ~= "        import std.stdio: writeln;\n";
-  result ~= "        writeln(\"Your saucer module " ~ moduleName ~ " is now loaded!\");\n";
-  result ~= "        R_registerRoutines(info, null, callMethods.ptr, null, null);\n";
-  result ~= "        Runtime.initialize;\n";
-  result ~= "        writeln(\"Runtime has been initialized!\");\n";
-  result ~= "    }\n";
-  result ~= "    \n";
-  result ~= "    \n";
-  result ~= "    void R_unload_" ~ extractShortModuleName!(moduleName) ~ "(DllInfo* info)\n";
-  result ~= "    {\n";
-  result ~= "        import std.stdio: writeln;\n";
-  result ~= "        writeln(\"Attempting to terminate " ~ moduleName ~ " closing DRuntime!\");\n";
-  result ~= "        Runtime.terminate;\n";
-  result ~= "        writeln(\"Runtime has been terminated. Goodbye!\");\n";
-  result ~= "    }\n";
-  return result;
-}
-
-
-/+
-    Demo for tailAppend() function
-+/
-mixin template TailAppendDemo()
-{
-    void tailAppendDemo()
+    enum tmp = extractShortModuleName!(moduleName);
+    return format(`
+    import core.runtime: Runtime;
+    void R_init_%1$s (DllInfo* info)
     {
-        enum string moduleName = "test.files.test_resource_1";
-        enum string tailAppendString = "\n\n\n  import core.runtime: Runtime;
-      import std.stdio: writeln;
-
-      void R_init_test_resource_1(DllInfo* info)
-      {
-        writeln(\"Your saucer module " ~ moduleName ~ " is now loaded!\");
+        import std.stdio: writeln;
+        writeln("Your saucer module %2$s is now loaded!");
         R_registerRoutines(info, null, callMethods.ptr, null, null);
         Runtime.initialize;
-        writeln(\"Runtime has been initialized!\");
-      }
-    
-    
-      void R_unload_test_resource_1(DllInfo* info)
-      {
-        writeln(\"Attempting to terminate " ~ moduleName ~ " closing DRuntime!\");
-        Runtime.terminate;
-        writeln(\"Runtime has been terminated. Goodbye!\");
-      }\n";
-      pragma(msg, "Output from tailAppend() function: ", tailAppend!(moduleName));
+        writeln("Runtime has been initialized!");
     }
-}
 
+    void R_unload_%1$s(DllInfo* info)
+    {
+        import std.stdio: writeln;
+        writeln("Attempting to terminate %2$s closing DRuntime!");
+        Runtime.terminate;
+        writeln("Runtime has been terminated. Goodbye!");
+    }
+    `, tmp, moduleName);
+}
 
 
 /+
@@ -579,11 +538,11 @@ string extractFilePath(string fullModuleName)()
 +/
 string extractFileName(string moduleName)()
 {
-    return extractShortModuleName!(moduleName) ~ ".d";
+    return format("%1$s.d", extractShortModuleName!(moduleName));
 }
 
 
- 
+
 /+
     wrapModule() takes the module name and path of a D script and returns
     another D script with the exported D function SEXP wrapped so that they can
@@ -603,16 +562,25 @@ string wrapModule(string moduleName, string path = "")()
     enum FunctionCall[] functionCalls = getEntities!(getFunctionCall, moduleName, items);
 
     enum string[] funcs = wrapFunctions!(signatures, functionCalls);
-    string result = "\nextern (C)\n{\n";
-    result ~= "    import std.utf: toUTFz;\n";
-    static foreach(func; funcs)
-    {{
-      result ~= func ~ "\n";
-    }}
-    result ~= wrapMethodCalls!(signatures);
-    result ~= tailAppend!(extractShortModuleName!(moduleName)) ~ "}";
-
-    return import(path ~ extractFilePath!(moduleName)) ~ result;
+    auto mapFun(string element)
+    {
+        return format("%1$s\n", element);
+    }
+    enum signatureString = MapReduce!(funcs, mapFun, (x, y) => format("%1$s %2$s", x, y));
+    enum methodCallString = wrapMethodCalls!(signatures);
+    enum tailString = tailAppend!(extractShortModuleName!(moduleName));
+    enum codeBody = format(
+`
+extern (C)
+{
+    import std.utf: toUTFz;
+    %1$s
+    %2$s
+    %3$s
+}
+`, signatureString, methodCallString, tailString);
+    
+    return import(path ~ extractFilePath!(moduleName)) ~ codeBody;
 }
 
 
@@ -664,26 +632,33 @@ auto createRFunction(string moduleName, string item)()
 {
     import std.traits: Parameters, ParameterIdentifierTuple;
 
-    mixin("import " ~ moduleName ~ ": " ~ item ~ ";");
+    mixin(format("import %1$s: %2$s;", moduleName, item));
     enum Signature signature = getSignature!(moduleName, item);
-
-    string fBody = signature.rName ~ " = function(";
-    string call = "\n  .Call(\"" ~ signature.newName ~ "\"";
-    call ~= ", PACKAGE = \"" ~ extractShortModuleName!(moduleName) ~ "\"";
-    static foreach(i, param; mixin("ParameterIdentifierTuple!" ~ item))
+    alias parameterTuple = mixin(format("ParameterIdentifierTuple!%1$s", item));
+    
+    auto parameters(string name, string[] arr...) => 
+            format("%1$s", name) ~ format(" = function(%-(%s, %))", arr);
+    enum funcSignature = parameters(signature.rName, parameterTuple);
+    static if(signature.nArgs >= 1)
     {
-      if(i < (signature.nArgs - 1))
-      {
-        fBody ~= param ~ ", ";
-        call ~= ", " ~ param;
-      }else{
-        fBody ~= param;
-        call ~= ", " ~ param;
-      }
+        auto call(string newName, string shortName, string[] arr...) => 
+            format(`.Call("%1$s", PACKAGE = "%2$s", `, newName, shortName) ~ format("%-(%s, %))", arr);
     }
-    fBody ~= ")";
-    call ~= ")";
-    fBody ~= "\n{" ~ call ~ "\n" ~ "}\n";
+    else
+    {
+        auto call(string newName, string shortName, string[] arr...) => 
+            format(`.Call("%1$s", PACKAGE = "%2$s")`, newName, shortName);
+    }
+    enum callSignature = call(signature.newName, extractShortModuleName!(moduleName), parameterTuple);
+    
+    enum fBody = format(
+    `
+%1$s
+{
+    %2$s
+}
+    `, funcSignature, callSignature);
+    
     return RFunction(item, signature.newName, signature.nArgs, fBody);
 }
 
@@ -757,11 +732,12 @@ mixin template CreateRFunctionsDemo()
 auto createRScript(string moduleName)()
 {
     enum RFunction[] rFuncs = createRFunctions!(moduleName);
-    string code = "dyn.load(\"" ~ extractShortModuleName!(moduleName) ~ ".so\")\n\n";
-    static foreach(rFunc; rFuncs)
-    {
-        code ~= rFunc.repr ~ "\n";
-    }
+    alias MapFun = (RFunction functionRepresentation) => format("%1$s\n", functionRepresentation.repr);
+    alias ReduceFun = (x, y) => format("%1$s %2$s", x, y);
+    enum code = format("%1$s\n\n%2$s",
+                    format("dyn.load(\"%1$s.so\")", extractShortModuleName!(moduleName)),
+                        MapReduce!(rFuncs, MapFun, ReduceFun));
+    
     return code;
 }
 
@@ -800,29 +776,6 @@ mixin template Saucerize(string moduleName)
         
         return;
     }
-    //void saucerize()
-    //{
-    //    import std.stdio: File, writeln;
-    //    import std.file: copy, mkdir, exists, isDir;
-    //    import std.process: execute, executeShell;
-    //
-    //    enum fileName = extractShortModuleName!(moduleName);
-    //    File(fileName ~ ".d", "w").writeln(wrapModule!(moduleName)());
-    //    enum dllFile = fileName ~ ".so";
-    //    enum commands = "dmd " ~ fileName ~ ".d saucer.d r2d.d -O -boundscheck=off -mcpu=native -c -g -J=\".\" -fPIC -L-fopenmp -L-lR -L-lRmath && " ~
-    //                    "dmd " ~ fileName ~ ".o saucer.o r2d.o -O -boundscheck=off -mcpu=native -of=" ~ dllFile ~ " -L-fopenmp -L-lR -L-lRmath -shared";
-    //    auto ls = executeShell(commands);
-    //    if(ls.status != 0)
-    //    {
-    //        writeln("Command:\n" ~ commands ~ "\nNot run.");
-    //    }else
-    //    {
-    //        writeln(ls.output);
-    //    }
-    //
-    //    File(fileName ~ ".r", "w").writeln(createRScript!(moduleName));
-    //    return;
-    //}
     
     void main()
     {

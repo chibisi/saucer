@@ -6,6 +6,7 @@ public import sauced.r2d;
 mixin(import("imports/r_aliases.d"));
 import std.string: toStringz, fromStringz;
 import std.exception: enforce;
+import std.format: format;
 
 static bool RSessionInitialized = 0;
 
@@ -22,22 +23,22 @@ static bool RSessionInitialized = 0;
 +/
 auto initEmbedR()
 {
-  if(RSessionInitialized == 0)
-  {
-    import rinside.rembedded: Rf_initEmbeddedR;
-    
-    enum rFlags = ["R", "--quiet", "--vanilla"];
-    char*[] args;
-    foreach(arg; rFlags)
+    if(RSessionInitialized == 0)
     {
-        args ~= toCString(arg);
+        import rinside.rembedded: Rf_initEmbeddedR;
+        
+        enum rFlags = ["R", "--quiet", "--vanilla"];
+        char*[] args;
+        foreach(arg; rFlags)
+        {
+            args ~= toCString(arg);
+        }
+        
+        int init = Rf_initEmbeddedR(cast(int)rFlags.length, args.ptr);
+        enforce(init, "R standalone failed to initialize");
+        RSessionInitialized = 1;
     }
-    
-    int init = Rf_initEmbeddedR(cast(int)rFlags.length, args.ptr);
-    enforce(init, "R standalone failed to initialize");
-    RSessionInitialized = 1;
-  }
-  return 0;
+    return 0;
 }
 
 
@@ -47,8 +48,8 @@ auto initEmbedR()
 +/
 auto endEmbedR(int fatal)
 {
-  import rinside.rembedded: Rf_endEmbeddedR;
-  Rf_endEmbeddedR(fatal);
+    import rinside.rembedded: Rf_endEmbeddedR;
+    Rf_endEmbeddedR(fatal);
 }
 
 
@@ -65,11 +66,11 @@ auto endEmbedR(int fatal)
 */
 struct Export
 {
-  immutable(string) function_name;
-  this(immutable(string) function_name)
-  {
-    this.function_name = function_name;
-  }
+    immutable(string) function_name;
+    this(immutable(string) function_name)
+    {
+        this.function_name = function_name;
+    }
 }
 
 
@@ -83,20 +84,20 @@ mixin(import("imports/isin.d"));
 pragma(inline, true)
 private auto rTypeOf(SEXP x)
 {
-  return cast(SEXPTYPE)TYPEOF(x);
+    return cast(SEXPTYPE)TYPEOF(x);
 }
 
 //Prints RTypes & SEXPs
 auto print(T...)(T x)
 if(isSEXPOrRType!(T) && (T.length == 1))
 {
-  static if(isSEXP!(T))
-  {
-    Rf_PrintValue(x);
-  }else{
-    Rf_PrintValue(To!SEXP(x));
-  }
-  return;
+    static if(isSEXP!(T))
+    {
+        Rf_PrintValue(x);
+    }else{
+        Rf_PrintValue(To!SEXP(x));
+    }
+    return;
 }
 
 
@@ -139,38 +140,38 @@ alias ElementType(T: U[], U) = Unqual!U;
 template SEXPElementType(SEXPTYPE Type)
 if(Type == REALSXP)
 {
-  alias SEXPElementType = double;
+    alias SEXPElementType = double;
 }
 template SEXPElementType(SEXPTYPE Type)
 if(Type == CPLXSXP)
 {
-  alias SEXPElementType = Rcomplex;
+    alias SEXPElementType = Rcomplex;
 }
 template SEXPElementType(SEXPTYPE Type)
 if(Type == INTSXP)
 {
-  alias SEXPElementType = int;
+    alias SEXPElementType = int;
 }
 template SEXPElementType(SEXPTYPE Type)
 if(Type == LGLSXP)
 {
-  alias SEXPElementType = int;
+    alias SEXPElementType = int;
 }
 template SEXPElementType(SEXPTYPE Type)
 if(Type == RAWSXP)
 {
-  alias SEXPElementType = ubyte;
+    alias SEXPElementType = ubyte;
 }
 template SEXPElementType(SEXPTYPE Type)
 if(Type == STRSXP)
 {
-  alias SEXPElementType = string;
-  //alias SEXPElementType = const(char)*;
+    alias SEXPElementType = string;
+    //alias SEXPElementType = const(char)*;
 }
 template SEXPElementType(SEXPTYPE Type)
 if(Type == VECSXP)
 {
-  alias SEXPElementType = SEXP;
+    alias SEXPElementType = SEXP;
 }
 
 
@@ -180,45 +181,45 @@ if(Type == VECSXP)
 template Accessor(SEXPTYPE Type)
 if(Type == REALSXP)
 {
-  alias Accessor = REAL;
+    alias Accessor = REAL;
 }
 template Accessor(SEXPTYPE Type)
 if(Type == CPLXSXP)
 {
-  alias Accessor = COMPLEX;
+    alias Accessor = COMPLEX;
 }
 template Accessor(SEXPTYPE Type)
 if(Type == INTSXP)
 {
-  alias Accessor = INTEGER;
+    alias Accessor = INTEGER;
 }
 template Accessor(SEXPTYPE Type)
 if(Type == LGLSXP)
 {
-  alias Accessor = LOGICAL;
+    alias Accessor = LOGICAL;
 }
 template Accessor(SEXPTYPE Type)
 if(Type == RAWSXP)
 {
-  alias Accessor = RAW;
+    alias Accessor = RAW;
 }
 
 template Accessor(SEXPTYPE Type)
 if(Type == STRSXP)
 {
-  alias Accessor = STRING_PTR; //returns SEXP*
+    alias Accessor = STRING_PTR; //returns SEXP*
 }
 
 //Deprecated remove soon
 static if(false)
 {
-  template Accessor(SEXPTYPE Type)
-  if(Type == STRSXP)
-  {
-    import std.string: fromStringz, toStringz;
-    alias Accessor = (SEXP x, R_xlen_t i) =>
-        cast(string)fromStringz(R_CHAR(STRING_ELT(x, i)));
-  }
+    template Accessor(SEXPTYPE Type)
+    if(Type == STRSXP)
+    {
+        import std.string: fromStringz, toStringz;
+        alias Accessor = (SEXP x, R_xlen_t i) =>
+            cast(string)fromStringz(R_CHAR(STRING_ELT(x, i)));
+    }
 }
 
 mixin(import("imports/commonfunctions.d"));
@@ -235,8 +236,8 @@ mixin(import("imports/environment.d"));
 */
 template isConvertibleTo(Start, End, alias Converter)
 {
-  Start start;
-  enum isConvertibleTo = __traits(compiles, Converter!End(start));
+    Start start;
+    enum isConvertibleTo = __traits(compiles, Converter!End(start));
 }
 
 /*
@@ -244,35 +245,35 @@ template isConvertibleTo(Start, End, alias Converter)
 */
 template CreateMultipleCase(string TemplateName)
 {
-  enum CreateMultipleCase = "template " ~ TemplateName ~ "(T...)\n" ~
-  "if(T.length > 1)
-  {
-    enum " ~ TemplateName ~ " = " ~ TemplateName ~ "!(T[0]) && " ~ TemplateName ~ "!(T[1..$]);
-  }";
+    enum CreateMultipleCase = "template " ~ TemplateName ~ "(T...)\n" ~
+    "if(T.length > 1)
+    {
+        enum " ~ TemplateName ~ " = " ~ TemplateName ~ "!(T[0]) && " ~ TemplateName ~ "!(T[1..$]);
+    }";
 }
 
 
 mixin template AlternativeImplementat0()
 {
-  private template CreateMultipleCase(alias Template, T...)
-  {
-    static if(T.length == 0)
+    private template CreateMultipleCase(alias Template, T...)
     {
-      enum CreateMultipleCase = true;
-    }else{
-      enum CreateMultipleCase = Template!(T[0]) && CreateMultipleCase!(Template, T[1..$]);
+        static if(T.length == 0)
+        {
+            enum CreateMultipleCase = true;
+        }else{
+            enum CreateMultipleCase = Template!(T[0]) && CreateMultipleCase!(Template, T[1..$]);
+        }
     }
-  }
 }
 
 
 
 template CreatePathologicalCase(string TemplateName)
 {
-  enum CreatePathologicalCase = "template " ~ TemplateName ~ "()\n" ~
-  "{
-    enum " ~ TemplateName ~ " = false;
-  }";
+    enum CreatePathologicalCase = "template " ~ TemplateName ~ "()\n" ~
+    "{
+        enum " ~ TemplateName ~ " = false;
+    }";
 }
 
 
@@ -393,7 +394,7 @@ mixin(CreatePathologicalCase!("isSEXP"));
 
 template isSEXPOrRType(T)
 {
-  enum isSEXPOrRType = isSEXP!(T) || isRType!(T);
+    enum isSEXPOrRType = isSEXP!(T) || isRType!(T);
 }
 enum isSEXPOrRType(alias P) = isSEXPOrRType!(typeof(P));
 
@@ -405,7 +406,7 @@ private enum AllSEXP(T...) = ForTypes!(isSEXP, "all", T);
 
 template isConvertibleToSEXP(T)
 {
-  enum isConvertibleToSEXP = isConvertibleTo!(T, SEXP, To);
+    enum isConvertibleToSEXP = isConvertibleTo!(T, SEXP, To);
 }
 mixin(CreateMultipleCase!("isConvertibleToSEXP"));
 mixin(CreatePathologicalCase!("isConvertibleToSEXP"));
@@ -435,18 +436,18 @@ enum isStringType(T) = is(T == char*) || is(T == const(char)*) ||
 template isBasicArray(T)
 if(!is(T: U[], U))
 {
-  enum isBasicArray = false;
+    enum isBasicArray = false;
 }
 
 template isBasicArray(T: U[], U)
 {
-  static if(isBasicType!(U))
-  {
-    enum isBasicArray = true;
-  }else
-  {
-    enum isBasicArray = false;
-  }
+    static if(isBasicType!(U))
+    {
+        enum isBasicArray = true;
+    }else
+    {
+        enum isBasicArray = false;
+    }
 }
 
 enum isBasicTypeOrArray(T) = isBasicType!(T) || isBasicArray!(T);
@@ -457,54 +458,54 @@ enum isBasicTypeOrArray(T) = isBasicType!(T) || isBasicArray!(T);
 */
 template MapToSEXP(T)
 {
-  static if(is(T == double))
-  {
-    enum SEXPTYPE MapToSEXP = REALSXP;
-  }else static if(is(T == ubyte))
-  {
-    enum SEXPTYPE MapToSEXP = RAWSXP;
-  }else static if(is(T == Rcomplex))
-  {
-    enum SEXPTYPE MapToSEXP = CPLXSXP;
-  }else static if(is(T == int))
-  {
-    enum SEXPTYPE MapToSEXP = INTSXP;
-  }else static if(is(T == long))
-  {
-    enum SEXPTYPE MapToSEXP = INTSXP;
-  }else static if(is(T == ulong))
-  {
-    enum SEXPTYPE MapToSEXP = INTSXP;
-  }else static if(is(T == uint))
-  {
-    enum SEXPTYPE MapToSEXP = INTSXP;
-  }else static if(is(T == short))
-  {
-    enum SEXPTYPE MapToSEXP = INTSXP;
-  }else static if(is(T == ushort))
-  {
-    enum SEXPTYPE MapToSEXP = INTSXP;
-  }else static if(is(T == bool))
-  {
-    enum SEXPTYPE MapToSEXP = LGLSXP;
-  }else static if(is(T == Rboolean))
-  {
-    enum SEXPTYPE MapToSEXP = LGLSXP;
-  }else static if(is(T == const(char)*))
-  {
-    enum SEXPTYPE MapToSEXP = STRSXP;
-  }else static if(is(T == string))
-  {
-    enum SEXPTYPE MapToSEXP = STRSXP;
-  }else{
-    static assert(0, "Basic Type \"" ~ T.stringof ~ 
-      "\" can not be converted or not yet implemented");
-  }
+    static if(is(T == double))
+    {
+        enum SEXPTYPE MapToSEXP = REALSXP;
+    }else static if(is(T == ubyte))
+    {
+        enum SEXPTYPE MapToSEXP = RAWSXP;
+    }else static if(is(T == Rcomplex))
+    {
+        enum SEXPTYPE MapToSEXP = CPLXSXP;
+    }else static if(is(T == int))
+    {
+        enum SEXPTYPE MapToSEXP = INTSXP;
+    }else static if(is(T == long))
+    {
+        enum SEXPTYPE MapToSEXP = INTSXP;
+    }else static if(is(T == ulong))
+    {
+        enum SEXPTYPE MapToSEXP = INTSXP;
+    }else static if(is(T == uint))
+    {
+        enum SEXPTYPE MapToSEXP = INTSXP;
+    }else static if(is(T == short))
+    {
+        enum SEXPTYPE MapToSEXP = INTSXP;
+    }else static if(is(T == ushort))
+    {
+        enum SEXPTYPE MapToSEXP = INTSXP;
+    }else static if(is(T == bool))
+    {
+        enum SEXPTYPE MapToSEXP = LGLSXP;
+    }else static if(is(T == Rboolean))
+    {
+        enum SEXPTYPE MapToSEXP = LGLSXP;
+    }else static if(is(T == const(char)*))
+    {
+        enum SEXPTYPE MapToSEXP = STRSXP;
+    }else static if(is(T == string))
+    {
+        enum SEXPTYPE MapToSEXP = STRSXP;
+    }else{
+        static assert(0, "Basic Type \"" ~ T.stringof ~ 
+            "\" can not be converted or not yet implemented");
+    }
 }
 
 template GetElementType(T: U[], U)
 {
-  alias GetElementType = U;
+    alias GetElementType = U;
 }
 
 
@@ -529,7 +530,7 @@ pragma(inline, true)
 T To(T, F)(auto ref F r_type)
 if(isSEXP!(T) && isRType!(F))
 {
-  return cast(SEXP)r_type;
+    return cast(SEXP)r_type;
 }
 
 //pragma(inline, true)
@@ -543,7 +544,7 @@ pragma(inline, true)
 T To(T, F)(auto ref F value)
 if(is(T == F) && !isBasicArray!(T))
 {
-  return value;
+    return value;
 }
 
 
@@ -555,31 +556,31 @@ pragma(inline, true)
 T To(T, F)(auto ref F arr)
 if(isSEXP!(T) && isBasicArray!(F))
 {
-  alias E = GetElementType!(F);
-  enum SEXPTYPE STYPE = MapToSEXP!(E);
-  auto n = arr.length;
-  auto result = protect(allocVector(STYPE, n));
-  scope(exit) unprotect(1);
-  static if(STYPE != STRSXP)
-  {
-    auto ptr = Accessor!(STYPE)(result);
-    alias R = SEXPElementType!(STYPE);
-    static if(is(E == R))
+    alias E = GetElementType!(F);
+    enum SEXPTYPE STYPE = MapToSEXP!(E);
+    auto n = arr.length;
+    auto result = protect(allocVector(STYPE, n));
+    scope(exit) unprotect(1);
+    static if(STYPE != STRSXP)
     {
-      ptr[0..n] = arr[];
+        auto ptr = Accessor!(STYPE)(result);
+        alias R = SEXPElementType!(STYPE);
+        static if(is(E == R))
+        {
+            ptr[0..n] = arr[];
+        }else{
+            foreach(i, element; arr)
+            {
+              ptr[i] = cast(R)element;
+            }
+        }
     }else{
-      foreach(i, element; arr)
-      {
-        ptr[i] = cast(R)element;
-      }
+        for(long i = 0; i < n; ++i)
+        {
+            setSEXP!(STYPE)(result, i, arr[i]);
+        }
     }
-  }else{
-    for(long i = 0; i < n; ++i)
-    {
-      setSEXP!(STYPE)(result, i, arr[i]);
-    }
-  }
-  return result;
+    return result;
 }
 
 /*
@@ -589,19 +590,19 @@ pragma(inline, true)
 T To(T, F)(auto ref F value)
 if(isSEXP!(T) && isBasicType!(F))
 {
-  enum SEXPTYPE STYPE = MapToSEXP!(F);
-  static if(STYPE != STRSXP)
-  {
-    SEXP result = protect(allocVector(STYPE, 1));
-    scope(exit) unprotect(1);
-    auto ptr = Accessor!(STYPE)(result);
-    alias R = SEXPElementType!(STYPE);
-    ptr[0] = cast(R)value;
-  }else{
-    SEXP result = mkString(value);
-  }
-  
-  return result;
+    enum SEXPTYPE STYPE = MapToSEXP!(F);
+    static if(STYPE != STRSXP)
+    {
+        SEXP result = protect(allocVector(STYPE, 1));
+        scope(exit) unprotect(1);
+        auto ptr = Accessor!(STYPE)(result);
+        alias R = SEXPElementType!(STYPE);
+        ptr[0] = cast(R)value;
+    }else{
+        SEXP result = mkString(value);
+    }
+    
+    return result;
 }
 
 
@@ -613,52 +614,53 @@ pragma(inline, true)
 T To(T, F)(auto ref F sexp)
 if(isBasicArray!(T) && isSEXP!(F))
 {
-  alias E = GetElementType!(T);
-  long n = LENGTH(sexp);
-  static if(!isStringType!E)
-  {
-    alias func = Accessor!(MapToSEXP!(E));
-    auto _result_ = func(sexp)[0..n];
-    static if(is(typeof(_result_[0]) == E))
+    alias E = GetElementType!(T);
+    long n = LENGTH(sexp);
+    static if(!isStringType!E)
     {
-      return _result_;
+        alias func = Accessor!(MapToSEXP!(E));
+        auto _result_ = func(sexp)[0..n];
+        static if(is(typeof(_result_[0]) == E))
+        {
+            return _result_;
+        }else{
+            auto result = new E[n];
+            foreach(long i, element; _result_)
+            {
+              result[i] = cast(E)element;
+            }
+            return result;
+        }
     }else{
-      auto result = new E[n];
-      foreach(long i, element; _result_)
-      {
-        result[i] = cast(E)element;
-      }
-      return result;
+        alias func = Accessor!(STRSXP);
+        auto result = new string[n];
+        for(long i = 0; i < n; ++i)
+        {
+            result[i] = getSEXP!(STRSXP)(sexp, i);
+        }
+        return result;
     }
-  }else{
-    alias func = Accessor!(STRSXP);
-    auto result = new string[n];
-    for(long i = 0; i < n; ++i)
-    {
-      result[i] = getSEXP!(STRSXP)(sexp, i);
-    }
-    return result;
-  }
 }
+
 
 pragma(inline, true)
 T To(T, F)(auto ref F arr)
 if(isBasicArray!(T) && isBasicArray!(F))
 {
-  alias ET = GetElementType!(T);
-  alias EF = GetElementType!(F);
-  static if(is(ET == EF))
-  {
-    return arr;
-  }else{
-    long n = arr.length;
-    auto result = new ET[n];
-    for(long i = 0; i < n; ++i)
+    alias ET = GetElementType!(T);
+    alias EF = GetElementType!(F);
+    static if(is(ET == EF))
     {
-      result[i] = to!(ET)(arr[i]);
+        return arr;
+    }else{
+        long n = arr.length;
+        auto result = new ET[n];
+        for(long i = 0; i < n; ++i)
+        {
+            result[i] = to!(ET)(arr[i]);
+        }
+        return result;
     }
-    return result;
-  }
 }
 
 
@@ -669,32 +671,32 @@ pragma(inline, true)
 E To(E, F)(auto ref F sexp)
 if(isBasicType!(E) && isSEXP!(F))
 {
-  import std.exception: enforce;
-  import std.stdio: writeln;
-
-  sexp = protect(sexp);
-  scope(exit) unprotect(1);
-  
-  long n = LENGTH(sexp);
-  if(n != 1)
-  {
-    auto intype = to!string(TYPEOF(sexp));
-    writeln("Length of SEXP is ", n, 
-      " and it should be 1.", " The input SEXP type is ",
-      intype, " and the output type is ", E.stringof);
-    enforce(0, "Length error.");
-  }
-  enforce(n == 1, "Length of SEXP is not equal to 1");
-  static if(!isStringType!E)
-  {
-    alias func = Accessor!(MapToSEXP!(E));
-    return cast(E)func(sexp)[0];
-  }else{
-    auto intype = TYPEOF(sexp);
-    enforce(intype == STRSXP, "Wrong type (" ~ to!string(intype) ~ 
-      " should be 16 for STRSXP) to be cast to string");
-    return getSEXP!(STRSXP)(sexp, 0);
-  }
+    import std.exception: enforce;
+    import std.stdio: writeln;
+    
+    sexp = protect(sexp);
+    scope(exit) unprotect(1);
+    
+    long n = LENGTH(sexp);
+    if(n != 1)
+    {
+        auto intype = to!string(TYPEOF(sexp));
+        writeln("Length of SEXP is ", n, 
+            " and it should be 1.", " The input SEXP type is ",
+            intype, " and the output type is ", E.stringof);
+        enforce(0, "Length error.");
+    }
+    enforce(n == 1, "Length of SEXP is not equal to 1");
+    static if(!isStringType!E)
+    {
+        alias func = Accessor!(MapToSEXP!(E));
+        return cast(E)func(sexp)[0];
+    }else{
+        auto intype = TYPEOF(sexp);
+        enforce(intype == STRSXP, "Wrong type (" ~ to!string(intype) ~ 
+            " should be 16 for STRSXP) to be cast to string");
+        return getSEXP!(STRSXP)(sexp, 0);
+    }
 }
 
 /*
@@ -703,11 +705,11 @@ if(isBasicType!(E) && isSEXP!(F))
 B To(B, R)(ref R r_type)
 if(isBasicTypeOrArray!(B) && isRType!(R))
 {
-  auto sexp = protect(To!(SEXP)(r_type));
-  scope(exit) unprotect(1);
-
-  auto result = To!(B)(sexp);
-  return result;
+    auto sexp = protect(To!(SEXP)(r_type));
+    scope(exit) unprotect(1);
+    
+    auto result = To!(B)(sexp);
+    return result;
 }
 
 
@@ -718,7 +720,7 @@ pragma(inline, true)
 T To(T, F)(auto ref F sexp)
 if(isRType!(T) && isSEXP!(F))
 {
-  return T(sexp);
+    return T(sexp);
 }
 
 
@@ -727,91 +729,115 @@ if(isRType!(T) && isSEXP!(F))
 */
 string StringOf(T)()
 {
-  static if(is(T == mixin("RVector!(LGLSXP)")))
-  {
-    return "RVector!(LGLSXP)";
-  }
-  static if(is(T == mixin("RVector!(INTSXP)")))
-  {
-    return "RVector!(INTSXP)";
-  }
-  static if(is(T == mixin("RVector!(REALSXP)")))
-  {
-    return "RVector!(REALSXP)";
-  }
-  static if(is(T == mixin("RVector!(CPLXSXP)")))
-  {
-    return "RVector!(CPLXSXP)";
-  }
-  static if(is(T == mixin("RVector!(RAWSXP)")))
-  {
-    return "RVector!(RAWSXP)";
-  }
-  static if(is(T == RVector!(STRSXP)))
-  {
-    return "RVector!(STRSXP)";
-  }
-  static if(is(T == mixin("RMatrix!(LGLSXP)")))
-  {
-    return "RMatrix!(LGLSXP)";
-  }
-  static if(is(T == mixin("RMatrix!(INTSXP)")))
-  {
-    return "RMatrix!(INTSXP)";
-  }
-  static if(is(T == mixin("RMatrix!(REALSXP)")))
-  {
-    return "RMatrix!(REALSXP)";
-  }
-  static if(is(T == mixin("RMatrix!(RAWSXP)")))
-  {
-    return "RMatrix!(RAWSXP)";
-  }
-  static if(is(T == RMatrix!(STRSXP)))
-  {
-    return "RMatrix!(STRSXP)";
-  }
-  return T.stringof;
+    static if(is(T == mixin("RVector!(LGLSXP)")))
+    {
+        return "RVector!(LGLSXP)";
+    }
+    static if(is(T == mixin("RVector!(INTSXP)")))
+    {
+        return "RVector!(INTSXP)";
+    }
+    static if(is(T == mixin("RVector!(REALSXP)")))
+    {
+        return "RVector!(REALSXP)";
+    }
+    static if(is(T == mixin("RVector!(CPLXSXP)")))
+    {
+        return "RVector!(CPLXSXP)";
+    }
+    static if(is(T == mixin("RVector!(RAWSXP)")))
+    {
+        return "RVector!(RAWSXP)";
+    }
+    static if(is(T == RVector!(STRSXP)))
+    {
+        return "RVector!(STRSXP)";
+    }
+    static if(is(T == mixin("RMatrix!(LGLSXP)")))
+    {
+        return "RMatrix!(LGLSXP)";
+    }
+    static if(is(T == mixin("RMatrix!(INTSXP)")))
+    {
+        return "RMatrix!(INTSXP)";
+    }
+    static if(is(T == mixin("RMatrix!(REALSXP)")))
+    {
+        return "RMatrix!(REALSXP)";
+    }
+    static if(is(T == mixin("RMatrix!(RAWSXP)")))
+    {
+        return "RMatrix!(RAWSXP)";
+    }
+    static if(is(T == RMatrix!(STRSXP)))
+    {
+        return "RMatrix!(STRSXP)";
+    }
+    return T.stringof;
 }
 
-template ModifyArg(T, string arg)
-if(!isSEXP!(T) && !isRType!(T))
+template ModifyArg(string arg, T)
+if(!isSEXP!(T) && !isRType!(T) && 
+   !isBasicArray!(T) && !isBasicType!(T))
 {
-  static assert(0, "argument type unknown.");
+    static assert(0, "argument type unknown.");
 }
 
-template ModifyArg(T, string arg)
-if(isSEXP!(T) || isRType!(T))
+template ModifyArg(string arg, T)
+if(isSEXP!(T) || isRType!(T) || 
+   isBasicArray!(T) || isBasicType!(T))
 {
-  static if(isSEXP!(T))
-  {
-    enum ModifyArg = arg;
-  }
-  static if(isRType!(T))
-  {
-    //enum ModifyArg = "cast(SEXP)" ~ arg;
-    enum ModifyArg = "To!(" ~ StringOf!(T)() ~ ")(" ~ arg ~ ")";
-  }
+    static if(isSEXP!(T))
+    {
+        enum ModifyArg = arg;
+    }
+    else
+    {
+        enum ModifyArg = format("To!(%1$s)(%2$s)", StringOf!(T)(), arg);
+    }
 }
+
+
+template ModifyArg(string[] arg, T...)
+{
+    static assert(arg.length == T.length,
+        format("Arg length (%1$s) is not equal to type length (%2$s)",
+            arg.length, T.length));
+    
+    static if(arg.length == 0)
+    {
+        enum ModifyArg = "";
+    }else static if(arg.length == 1)
+    {
+        enum ModifyArg = format("%1$s", ModifyArg!(arg[0], T[0]));
+    }else{
+        enum ModifyArg = format("%1$s, %2$s", 
+            ModifyArg!(arg[0], T[0]), ModifyArg!(arg[1..$], T[1..$]));
+    }
+}
+
+
 
 auto modifyArg(T)(string arg)
 if(!isSEXP!(T) && !isRType!(T) && 
    !isBasicArray!(T) && !isBasicType!(T))
 {
-  pragma(msg, "Type: " ~ T.stringof, 
-    ", isBasicType!(T)? ", isBasicType!(T));
-  static assert(0, "argument type unknown.");
+    pragma(msg, "Type: " ~ T.stringof, 
+        ", isBasicType!(T)? ", isBasicType!(T));
+    static assert(0, "argument type unknown.");
 }
 
 auto modifyArg(T)(string arg)
 if(isSEXP!(T) || isRType!(T) || 
    isBasicArray!(T) || isBasicType!(T))
 {
-  static if(isSEXP!(T))
-  {
-    return arg;
-  }else
-  {
-    return "To!(" ~ StringOf!(T)() ~ ")(" ~ arg ~ ")";
-  }
+    static if(isSEXP!(T))
+    {
+        return arg;
+    }else
+    {
+        return format("To!(%1$s)(%2$s)", StringOf!(T)(), arg);
+    }
 }
+
+
