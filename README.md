@@ -42,11 +42,13 @@ The package provides two main functions to compile D code and immediately includ
 There are [three D compilers](https://dlang.org/download.html), two of which are supported in this package, namely the LDC (LLVM) compiler (the `ldmd2` interface is supported), and the DMD (Digital Mars D compiler `dmd`), either of which can be selected in the supplied R functions mentioned above. You may notice that the LDC LLVM compiler takes much longer to compile code than the DMD reference compiler.
 
 
-## Prerequisites
+## Prerequisites & Installation
 
 1. D's LDC compiler installed
 2. R-mathlib installed
 3. R's development tools installed - or the development version of R
+
+For now, this library is Linux only. For installation details, see the [wiki](https://github.com/chibisi/saucer/wiki).
 
 
 ## Examples
