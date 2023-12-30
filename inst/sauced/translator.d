@@ -77,7 +77,7 @@ string[] getExportedFunctions(string moduleName)()
                 static foreach(attr; __traits(getAttributes, mixin(item)))
                 {{
                     //Filters for the export attribute
-                    static if(is(typeof(attr) == Export))
+                    static if(is(typeof(attr) == Export) || is(attr == Export))
                     {
                         result ~= item;
                     }
@@ -102,12 +102,18 @@ auto getSignature(string moduleName, string item)()
     //Import the function name
     mixin(format(`import %1$s: %2$s;`, moduleName, item));
     //Filters if the attribute is Export
-    mixin(format(`enum attr = getUDAs!(%1$s, Export)[0];`, item));
+    mixin(format(`alias attr = getUDAs!(%1$s, Export)[0];`, item));
     
-    static if(attr.function_name == "")
+    static if(is(attr == Export))
     {
         enum rName = item;
-    }else{
+    }
+    else static if(attr.function_name == "")
+    {
+        enum rName = item;
+    }
+    else
+    {
         enum rName = attr.function_name;
     }
     

@@ -56,13 +56,6 @@ auto endEmbedR(int fatal)
 /*
   This is uda that marks a function to be exported 
   to R
-
-  TODO:
-  1. Rename to Export
-  2. Add functionality so that the uda name can be exported to R
-  
-  3. Further work needs to be done on this to ensure 
-  that it available at compile time
 */
 struct Export
 {
