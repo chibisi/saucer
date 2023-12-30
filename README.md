@@ -30,6 +30,11 @@ These objects are written in D structs as supposed to classes, and so do not dir
 Other objects such as Functions, Environments, and External Pointers are already in development and will follow shortly. In addition tools that allow R code to be run from D are already available, in the `rinside` module. This functionality is still fairly raw but will be expandedd upon in due course. Methods in the types provided are marked with `@trusted` to allow them to be called with `@safe` attribute.
 
 
+### Other efforts
+
+There is a project called [embedr](https://github.com/bachmeil/embedrv2/tree/main) which is an early effort for R and D interop. However as of writing this (2023-12-20) it requires precompiled code that ships with the library - which has security implications, it is syntactically quite different from popular interfaces like Rcpp, and not as feature rich as saucer.
+
+
 ## Compiling D code
 
 The package provides two main functions to compile D code and immediately include it in an R session:
