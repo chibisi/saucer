@@ -58,7 +58,7 @@ For now, this library is Linux only. For installation details, see the [wiki](ht
 
 ## Examples
 
-Exported function must be marked with `@Export(...)` where `...` is an option export name. For example:
+Exported function must be marked with `@Export(...)` (or `@Export`) where `...` is an option export name. For example:
 
 ```r
 codeExample1 = '
@@ -93,7 +93,7 @@ round(DotArray({x = runif(100)}, {y = runif(100)}), 4) == round(sum(x*y), 4)
 # Could also use # DotArray(runif(10), runif(10))
 ```
 
-In the above example, you can see that the native D array notation and `auto` infer return type can be used directly. To all intents and purposes, the `dot_array(...)` function is regular D code. The `@Export("DotArray")` user defined attribute (UDA) is used to export the function to R as the function `DotArray`, any function being exported to R *must* at least be marked with `@Export()`, and at the moment the compilation will fail if no functions are exported.
+In the above example, you can see that the native D array notation and `auto` infer return type can be used directly. To all intents and purposes, the `dot_array(...)` function is regular D code. The `@Export("DotArray")` user defined attribute (UDA) is used to export the function to R as the function `DotArray`, any function being exported to R *must* at least be marked with `@Export()` (with or without the brackets), and at the moment the compilation will fail if no functions are exported.
 
 
 Simple example with scalar inputs and outputs
@@ -164,7 +164,7 @@ Simple matrix example
 
 ```r
 codeExample6 = '
-@Export() auto rowSumsD(IntegerMatrix x)
+@Export auto rowSumsD(IntegerMatrix x)
 {
     auto nrow = x.nrow, ncol = x.ncol;
     auto result = NumericVector(nrow);
@@ -198,7 +198,7 @@ Below is the D code for `meancalc.d` a file that calculates the mean of a numeri
 module meancalc;
 import sauced.saucer;
 
-@Export() auto meanD(NumericVector x)
+@Export auto meanD(NumericVector x)
 {
     auto n = x.length;
     double total = 0;
@@ -224,7 +224,7 @@ consider `rowsums.d` below
 module rowsums;
 import sauced.saucer;
 
-@Export() auto rowSumsD(IntegerMatrix x)
+@Export auto rowSumsD(IntegerMatrix x)
 {
     auto nrow = x.nrow, ncol = x.ncol;
     auto result = NumericVector(nrow);
@@ -248,7 +248,7 @@ module averagerandom;
 import randomnumbers;
 import sauced.saucer;
 
-@Export() auto calcRandomAverage(int n)
+@Export auto calcRandomAverage(int n)
 {
     auto x = generateNumbers(n);
     double total = 0;
