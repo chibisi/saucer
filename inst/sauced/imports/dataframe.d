@@ -19,10 +19,40 @@ if(isIntegral!(I))
 }
 
 
+private struct RowIndexer
+{
+    List* list;
+    this(List* list)
+    {
+        this.list = list;
+    }
+    auto opSlice(I)(I i, I j)
+    if(isIntegral!(I))
+    {
+        auto ncols = list.length;
+        auto nrows = j - i;
+        auto resultList = List(ncols);
+        foreach(m; 0..ncols)
+        {
+            resultList[m] = slice((*list)[m], i, j);
+        }
+        Rf_setAttrib(resultList.sexp, R_RowNamesSymbol, makeRowNames(nrows));
+        Rf_setAttrib(resultList.sexp, R_NamesSymbol, Rf_getAttrib(list.sexp, R_NamesSymbol));
+        auto className = protect(To!(SEXP)("data.frame"));
+        scope(exit) unprotect(1);
+        classgets(resultList.sexp, className);
+        auto result = DataFrame(1);
+        result.data = resultList;
+        return result;
+    }
+}
+
+
 struct DataFrame
 {
     import std.stdio: writeln;
     private List data;
+    RowIndexer rows;
     this(Arg)(Arg arg) @trusted
     if(is(Arg == SEXP))
     {
@@ -76,6 +106,7 @@ struct DataFrame
                 classgets(this.data.sexp, className);
             }
         }
+        this.rows = RowIndexer(&this.data);
         return;
     }
     //For List
@@ -148,6 +179,7 @@ struct DataFrame
         scope(exit) unprotect(1);
         Rf_setAttrib(this.data.sexp, R_RowNamesSymbol, rowNames);
         classgets(this.data.sexp, className);
+        this.rows = RowIndexer(&this.data);
         return;
     }
     this(Args...)(Args args) @trusted

@@ -20,11 +20,11 @@ alias StringVector = CharacterVector;
 /*
     Template for non-string datatypes
 */
-enum bool NonStringSEXP(SEXPTYPE Type) = (Type == REALSXP) || 
+private enum bool NonStringSEXP(SEXPTYPE Type) = (Type == REALSXP) || 
     (Type == INTSXP) || (Type == LGLSXP) || (Type == RAWSXP) || 
     (Type == RAWSXP) || (Type == CPLXSXP);
 
-enum bool SEXPDataTypes(SEXPTYPE Type) = (Type == REALSXP) || (Type == INTSXP) || 
+private enum bool SEXPDataTypes(SEXPTYPE Type) = (Type == REALSXP) || (Type == INTSXP) || 
     (Type == LGLSXP) || (Type == RAWSXP) || (Type == CPLXSXP) || 
     (Type == STRSXP);
 
@@ -77,7 +77,7 @@ SEXP mkChar(string value)
     vector
 +/
 pragma(inline, true)
-auto setSEXP(SEXPTYPE Type, I)(SEXP sexp, I i, string value)
+private auto setSEXP(SEXPTYPE Type, I)(SEXP sexp, I i, string value)
 if((Type == STRSXP) && isIntegral!(I))
 {
     auto stringLength = cast(int)value.length;
@@ -99,7 +99,7 @@ if((Type == STRSXP) && isIntegral!(I))
     vector as a string
 +/
 pragma(inline, true)
-auto getSEXP(SEXPTYPE Type, I)(SEXP sexp, I i)
+private auto getSEXP(SEXPTYPE Type, I)(SEXP sexp, I i)
 if((Type == STRSXP) && isIntegral!(I))
 {
     const(char)* element = CHAR(STRING_ELT(sexp, cast(int)i));
@@ -113,7 +113,7 @@ if((Type == STRSXP) && isIntegral!(I))
     in (REALSXP, INTSXP, LGLSXP, RAWSXP, RAWSXP, CPLXSXP)
 +/
 pragma(inline, true)
-auto setSEXP(SEXPTYPE Type, T, I)(SEXP sexp, I i, ref T value)
+private auto setSEXP(SEXPTYPE Type, T, I)(SEXP sexp, I i, ref T value)
 if(isIntegral!(I) && isBasicType!(T) && NonStringSEXP!(Type))
 {
     Accessor!(Type)(sexp)[i] = value;
@@ -126,7 +126,7 @@ if(isIntegral!(I) && isBasicType!(T) && NonStringSEXP!(Type))
     in (REALSXP, INTSXP, LGLSXP, RAWSXP, RAWSXP, CPLXSXP)
 +/
 pragma(inline, true)
-auto getSEXP(SEXPTYPE Type, I)(SEXP sexp, I i)
+private auto getSEXP(SEXPTYPE Type, I)(SEXP sexp, I i)
 if(isIntegral!(I) && NonStringSEXP!(Type))
 {
     return Accessor!(Type)(sexp)[i];
@@ -134,7 +134,7 @@ if(isIntegral!(I) && NonStringSEXP!(Type))
 
 
 pragma(inline, true)
-auto setSlice(SEXPTYPE Type, T, I)(SEXP sexp, I i, auto ref T[] value)
+private auto setSlice(SEXPTYPE Type, T, I)(SEXP sexp, I i, auto ref T[] value)
 if(isIntegral!(I) && isBasicType!(T) /* && NonStringSEXP!(Type) */)
 {
     //enforce((i >= 0) && (n < LENGTH(sexp)), 
@@ -156,7 +156,7 @@ if(isIntegral!(I) && isBasicType!(T) /* && NonStringSEXP!(Type) */)
 }
 
 pragma(inline, true)
-auto setSlice(SEXPTYPE Type, T, I)(SEXP sexp, I i, I j, auto ref T value)
+private auto setSlice(SEXPTYPE Type, T, I)(SEXP sexp, I i, I j, auto ref T value)
 if(isIntegral!(I) && isBasicType!(T) /* && NonStringSEXP!(Type) */)
 {
     //enforce((i >= 0) && (j < LENGTH(sexp)) , 
@@ -180,7 +180,7 @@ if(isIntegral!(I) && isBasicType!(T) /* && NonStringSEXP!(Type) */)
 
 
 pragma(inline, true)
-auto getSlice(SEXPTYPE Type, I)(SEXP sexp, I i, I j)
+private auto getSlice(SEXPTYPE Type, I)(SEXP sexp, I i, I j)
 if(isIntegral!(I) /* && NonStringSEXP!(Type) */)
 {
     auto n = j - i;
@@ -220,7 +220,7 @@ auto copyVector(SEXP originalVector)
     Fills SEXP R Vector with a submitted value. works with R vectors only
     but not lists.
 */
-auto fillSEXPVector(I)(SEXP sexp, I finalLength)
+private auto fillSEXPVector(I)(SEXP sexp, I finalLength)
 if(isIntegral!(I))
 {
     auto rtype = cast(SEXPTYPE)TYPEOF(sexp);
@@ -276,7 +276,7 @@ if(isIntegral!(I))
 /*
     Joins two SEXP R vectors
 */
-auto join(SEXP lhs, SEXP rhs)
+private auto join(SEXP lhs, SEXP rhs)
 {
     auto rtype = rTypeOf(lhs);
     enforce(rtype == rTypeOf(rhs), "Vector types do not match.");
@@ -302,6 +302,41 @@ auto join(SEXP lhs, SEXP rhs)
     }
     enforce(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
 }
+
+
+/*
+    Function to subset SEXP vectors of type in
+        [REALSXP, INTSXP, LGLSXP, RAWSXP, CPLXSXP, STRSXP]
+*/
+private auto slice(I)(SEXP sexp, I i, I j)
+if(isIntegral!(I))
+{
+    auto rtype = rTypeOf(sexp);
+    enforce((j > i) && (j <= cast(I)sexp.length), 
+        format("Please check the selection slice indexes " ~ 
+            "(i: %1$s, j: %2$s) and the length (%3$s) of the SEXP", 
+            i, j, sexp.length));
+    auto finalLength = cast(int)(j - i);
+    auto result = protect(allocVector(rtype, finalLength));
+    scope(exit) unprotect(1);
+    
+    switch(rtype)
+    {
+        default:
+            throw new Exception("SEXP (" ~ to!(string)(rtype) ~ 
+                ") is not applicable or has not been implemented.");
+        static foreach(TYPE; [REALSXP, INTSXP, LGLSXP, RAWSXP, CPLXSXP, STRSXP])
+        {
+            case TYPE:
+                alias FUNC = Accessor!(TYPE);
+                auto ptr = FUNC(result);
+                ptr[0..finalLength] = FUNC(sexp)[i..j];
+                return result;
+        }
+    }
+    enforce(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
+}
+
 
 
 
