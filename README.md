@@ -32,7 +32,7 @@ Other objects such as Functions, Environments, and External Pointers are already
 
 ### Other efforts
 
-There is a project called [embedr](https://github.com/bachmeil/embedrv2/tree/main) which is an early effort that does R and D interop. However as of writing this (2023-12-20) it requires precompiled code, it is syntactically quite different from popular interfaces like Rcpp, and not as feature rich as saucer.
+There is a project called [embedr](https://github.com/bachmeil/embedrv2/tree/main) which is an early effort for R and D interop. However as of writing this (2023-12-20) it requires precompiled code that ships with the library - which has security implications, it is syntactically quite different from popular interfaces like Rcpp, and not as feature rich as saucer.
 
 
 ## Compiling D code
