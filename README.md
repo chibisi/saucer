@@ -64,7 +64,7 @@ Exported function must be marked with `@Export(...)` where `...` is an option ex
 codeExample1 = '
 import std.stdio: writeln;
 //This function returns void
-@Export() auto helloWorld()
+@Export auto helloWorld()
 {
     writeln("Hello World!");
     return;
@@ -100,7 +100,7 @@ Simple example with scalar inputs and outputs
 
 ```r
 codeExample3 = '
-@Export() int signD(int x)
+@Export int signD(int x)
 {
     if(x > 0)
     {
@@ -124,7 +124,7 @@ Vector input scalar output:
 
 ```r
 codeExample4 = '
-@Export() double sumD(NumericVector x)
+@Export double sumD(NumericVector x)
 {
     auto n = x.length;
     double result = 0;
@@ -144,7 +144,7 @@ Vector input with a vector output
 ```r
 codeExample5 = '
 import std.math: sqrt, pow;
-@Export() auto pdistD(double x, NumericVector y)
+@Export auto pdistD(double x, NumericVector y)
 {
     auto n = y.length;
     auto result = NumericVector(n);
