@@ -289,7 +289,7 @@ mixin template CreateMethodCallDemo()
 }
 
 
-template MapReduce(alias arr, alias MapFun, alias ReduceFun)
+private template MapReduce(alias arr, alias MapFun, alias ReduceFun)
 {
     alias A = typeof(arr);
     static if(is(A: E[], E))

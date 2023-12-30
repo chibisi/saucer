@@ -344,12 +344,11 @@ struct List
         boundsCheck(i, this.length);
         return VECTOR_ELT(this.sexp, cast(int)i);
     }
-    auto opIndex(string name) @trusted
+    SEXP opIndex(string name) @trusted
     {
         auto i = this.nameIndex[name];
         boundsCheck(i, this.length);
-        auto result = VECTOR_ELT(this.sexp, cast(int)i);
-        return result;
+        return VECTOR_ELT(this.sexp, cast(int)i);
     }
     /*
         Gets the names
