@@ -314,10 +314,50 @@ struct DataFrame
     {
         return DataFrame(namedElement(this.data.nameIndex[i], this.data[i]));
     }
-    auto opSlice(I)(I start, I end) @trusted
-    if(isIntegral!(I) || is(I == string))
+    auto opIndex(I)(I[] idx)
+    if(isIntegral!(I) /* || is(I == string) */)
     {
-        return DataFrame(this.data[start..end]);
+        return DataFrame(this.data[idx[0]..idx[1]]);
+    }
+    auto opIndex(I, J)(I[] idx0, J[] idx1)
+    if(isIntegral!(I) && isIntegral!(J))
+    {
+        //column select - generates new DF
+        auto result = this[idx1[0]..idx1[1]];
+        I start = idx0[0];
+        I end = idx0[1];
+        //inplace row subsetting
+        foreach(i; 0..result.ncol)
+        {
+            result.data[i] = slice!(false)(result.data[i], start, end);
+        }
+        Rf_setAttrib(result.data.sexp, R_RowNamesSymbol, makeRowNames(end - start));
+        return result;
+    }
+    auto opSlice(size_t dim, I)(I start, I end)
+    if((dim >= 0 && dim < 2) && (isIntegral!I || is(I == string)))
+    {
+        static if(isIntegral!I)
+        {
+            enforce(start >= 0 && end <= this.opDollar!dim, 
+                "Index given is out of bounds");
+            return [start, end];
+        }else static if(is(I == string))
+        {
+            auto _start_ = this.data.nameIndex[start];
+            auto _end_ = this.data.nameIndex[end] + 1;
+            enforce(_start_ >= 0 && _end_ <= this.opDollar!dim, 
+                "Index given is out of bounds");
+            return [_start_, _end_];
+        }
+    }
+    @property auto opDollar(size_t dim : 0)()
+    {
+        return this.nrow;
+    }
+    @property auto opDollar(size_t dim : 1)()
+    {
+        return this.ncol; 
     }
     auto rbind(DataFrame df) @trusted
     {
