@@ -462,17 +462,13 @@ if(SEXPDataTypes!(Type))
             Accessor!(Type)(this.sexp)[0..n] = arr[];
         }
     }
-    /*
-        Here we assume that SEXP are already protected
-    */
     this(T)(T sexp) @trusted
     if(is(T == SEXP))
     {
         enforce((Type == TYPEOF(sexp)) && isVector(sexp), 
             "Type of input is not the same as SEXPTYPE Type submitted");
         this.sexp = sexp;
-        R_PreserveObject(this.sexp);
-        this.needUnprotect = true;
+        this.needUnprotect = false;
     }
     /* For logical implicit from bool array */
     this(T)(T[] arr...) @trusted
