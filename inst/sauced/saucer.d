@@ -526,12 +526,6 @@ if(isSEXP!(T) && isRType!(F))
     return cast(SEXP)r_type;
 }
 
-//pragma(inline, true)
-//SEXP To(T: SEXP, F)(auto ref F sexp)
-//if(isSEXP!(T) && isSEXP!(F))
-//{
-//  return sexp;
-//}
 
 pragma(inline, true)
 T To(T, F)(auto ref F value)

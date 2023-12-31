@@ -308,7 +308,7 @@ private auto join(SEXP lhs, SEXP rhs)
     Function to subset SEXP vectors of type in
         [REALSXP, INTSXP, LGLSXP, RAWSXP, CPLXSXP, STRSXP]
 */
-private auto slice(I)(SEXP sexp, I i, I j)
+private auto slice(bool copy = true, I)(SEXP sexp, I i, I j)
 if(isIntegral!(I))
 {
     auto rtype = rTypeOf(sexp);
@@ -317,21 +317,49 @@ if(isIntegral!(I))
             "(i: %1$s, j: %2$s) and the length (%3$s) of the SEXP", 
             i, j, sexp.length));
     auto finalLength = cast(int)(j - i);
-    auto result = protect(allocVector(rtype, finalLength));
-    scope(exit) unprotect(1);
-    
-    switch(rtype)
+    static if(copy)
     {
-        default:
-            throw new Exception("SEXP (" ~ to!(string)(rtype) ~ 
-                ") is not applicable or has not been implemented.");
-        static foreach(TYPE; [REALSXP, INTSXP, LGLSXP, RAWSXP, CPLXSXP, STRSXP])
+        //returns copied slice
+        auto result = protect(allocVector(rtype, finalLength));
+        scope(exit) unprotect(1);
+        
+        switch(rtype)
         {
-            case TYPE:
-                alias FUNC = Accessor!(TYPE);
-                auto ptr = FUNC(result);
-                ptr[0..finalLength] = FUNC(sexp)[i..j];
-                return result;
+            default:
+                throw new Exception("SEXP (" ~ to!(string)(rtype) ~ 
+                    ") is not applicable or has not been implemented.");
+            static foreach(TYPE; [REALSXP, INTSXP, LGLSXP, RAWSXP, CPLXSXP, STRSXP])
+            {
+                case TYPE:
+                    alias FUNC = Accessor!(TYPE);
+                    auto ptr = FUNC(result);
+                    ptr[0..finalLength] = FUNC(sexp)[i..j];
+                    return result;
+            }
+        }
+    }else{
+        //returns truncated input
+        auto result = sexp;
+        switch(rtype)
+        {
+            default:
+                throw new Exception("SEXP (" ~ to!(string)(rtype) ~ 
+                    ") is not applicable or has not been implemented.");
+            static foreach(TYPE; [REALSXP, INTSXP, LGLSXP, RAWSXP, CPLXSXP, STRSXP])
+            {
+                case TYPE:
+                    alias FUNC = Accessor!(TYPE);
+                    auto ptr = FUNC(result);
+                    if(i != 0)
+                    {
+                        foreach(k; 0..finalLength)
+                        {
+                            ptr[k] = ptr[k + i];
+                        }
+                    }
+                    SETLENGTH(result, finalLength);//truncate
+                    return result;
+            }
         }
     }
     enforce(0, "SEXP (" ~ to!(string)(rtype) ~ ") is not applicable.");
