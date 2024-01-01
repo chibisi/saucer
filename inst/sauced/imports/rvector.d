@@ -102,6 +102,7 @@ pragma(inline, true)
 private auto getSEXP(SEXPTYPE Type, I)(SEXP sexp, I i)
 if((Type == STRSXP) && isIntegral!(I))
 {
+    import core.stdc.string: strlen;
     const(char)* element = CHAR(STRING_ELT(sexp, cast(int)i));
     auto n = strlen(element);
     return cast(string)element[0..n];

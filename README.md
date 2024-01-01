@@ -287,7 +287,19 @@ saucer::sauce(c("averagerandom.d", "randomnumbers.d"))
 calcRandomAverage(100L)
 ```
 
-More examples will follow.
+### Function examples
+[Examples for R function interop with D](./vignettes/functions.md)
+
+
+### List examples
+[Examples for R list interop with D](./vignettes/lists.md)
+
+
+### DataFrame examples
+[Examples for R data.frame interop with D](./vignettes/dataframe.md)
+
+
+More examples will follow ...
 
 ## Limitations
 
@@ -295,5 +307,22 @@ More examples will follow.
 - Documentation - this will also be expanded on in due time.
 - Type qualification support for interfacing types, e.g. immutable, const and so forth.
 - No (direct) tooling to creating R packages containing D code in an easy a way as in Rcpp.
+
+
+## References
+
+1. [D Programming Language](https://dlang.org/).
+
+2.[Rcpp package, Dirk Eddelbuettel et al](https://cran.r-project.org/web/packages/Rcpp/).
+
+3. [A tool for translating C and Objective-C headers to D modules](https://code.dlang.org/packages/dstep)
+
+4. [Writing R Extenstions, Chapter 5, R Core Team](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#System-and-foreign-language-interfaces).
+
+5. [R Internals, Chapter 1, R Core Team](https://cran.r-project.org/doc/manuals/r-release/R-ints.html#R-Internal-Structures).
+
+6.[Unprotecting by Value, R Blog, Tomas Kalibera](https://blog.r-project.org/2018/12/10/unprotecting-by-value/).
+
+7. [CRAN Repository Policy](https://cran.r-project.org/web/packages/policies.html).
 
 
