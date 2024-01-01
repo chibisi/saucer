@@ -4,7 +4,8 @@ pkgOpts = new.env()
 #' @seealso To use this package see the \code{\link{dfunctions}}
 #'              or the \code{\link{dfunctions}} function
 #' 
-#' @keywords internal 
+#' @keywords internal
+#' 
 "_PACKAGE"
 
 
@@ -13,7 +14,8 @@ pkgOpts = new.env()
 #' @param flag for whether functions should be verbose 
 #'         and print progress information
 #' @return the input flag invisibly
-#'
+#' 
+#' @export
 #' 
 doLogging = function(flag = FALSE)
 {
@@ -24,6 +26,13 @@ doLogging = function(flag = FALSE)
 }
 
 
+#' @title Sets the file name where the log file will be written
+#' 
+#' @param fileName character for the file name where the log 
+#'        file will be written.
+#' 
+#' @export
+#' 
 setLogFile = function(fileName = NULL)
 {
   if(is.null(fileName))
@@ -35,6 +44,11 @@ setLogFile = function(fileName = NULL)
   return(invisible(fileName))
 }
 
+
+#' @title checkes whether logging is active during compilation
+#' 
+#' @export
+#'
 isLogActive = function()
 {
   if(is.null(pkgOpts$logging) || (pkgOpts$logging == FALSE))
@@ -205,7 +219,8 @@ compileScript = function(moduleNames, currWd, compiler = "ldmd2", flags = c("-O"
   # drop if folder is random generated
   if(is.null(folderName))
   {
-    folderName = paste0(sample(letters, 10), collapse = "")
+    # folderName = paste0(sample(letters, 10), collapse = "")
+    folderName = postfix = gsub("-", "_", uuid::UUIDgenerate())
     if(is.null(dropFolder))
     {
       dropFolder = TRUE
@@ -375,7 +390,8 @@ sauce = function(fileNames, ...)
 #' 
 createFileName = function(prefix = "saucer", extn = NULL, nrand = 12)
 {
-  postfix = paste0(sample(c(0:9, letters), nrand), collapse = "")
+  #postfix = paste0(sample(c(0:9, letters), nrand), collapse = "")
+  postfix = gsub("-", "_", uuid::UUIDgenerate())
   .file = paste0(c(prefix, postfix), collapse = "_")
   if(!is.null(extn))
   {

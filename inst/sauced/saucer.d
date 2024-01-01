@@ -7,6 +7,7 @@ mixin(import("imports/r_aliases.d"));
 import std.string: toStringz, fromStringz;
 import std.exception: enforce;
 import std.format: format;
+import std.utf: toUTFz;
 
 static bool RSessionInitialized = 0;
 
@@ -224,25 +225,31 @@ mixin(import("imports/dataframe.d"));
 mixin(import("imports/xptr.d"));
 mixin(import("imports/environment.d"));
 
-/*
-  Checks that Type Start can be converted to End.
-*/
-template isConvertibleTo(Start, End, alias Converter)
+
+private template isConvertibleTo(Start, End, alias Converter)
 {
     Start start;
     enum isConvertibleTo = __traits(compiles, Converter!End(start));
 }
+
+private enum isConvertibleToOrIs(Start, End, alias Converter) = 
+        isConvertibleTo!(Start, End, Converter) || is(Start == End);
+
+private enum isConvertibleToOrIsSEXP(T) = isConvertibleToOrIs!(T, SEXP, To);
 
 /*
   Extends a Template for a single case to one for multiple cases.
 */
 template CreateMultipleCase(string TemplateName)
 {
-    enum CreateMultipleCase = "template " ~ TemplateName ~ "(T...)\n" ~
-    "if(T.length > 1)
-    {
-        enum " ~ TemplateName ~ " = " ~ TemplateName ~ "!(T[0]) && " ~ TemplateName ~ "!(T[1..$]);
-    }";
+    enum CreateMultipleCase = format(
+    `
+        template %1$s(T...)
+        if(T.length > 1)
+        {
+            enum %1$s = %1$s!(T[0]) && %1$s!(T[1..$]);
+        }
+    `, TemplateName);
 }
 
 
@@ -303,27 +310,32 @@ private template CombineTraits(T, string combine, Traits...)
 /*
     Allows one or more types (T ...) to be applied to one trait Trait
     and the result combined with and/or boolean
+
+    For example:
+    ForTypes!(isFloatingPoint, "any", int, float, string long) == true
 */
 private template ForTypes(alias Trait, string combine, T...)
+if(T.length > 0)
 {
     static if(combine == "all")
     {
-        static if(T.length == 0)
+        static if(T.length == 1)
         {
-            enum ForTypes = true;
+            enum ForTypes = Trait!T;
         }else{
             enum ForTypes = Trait!(T[0]) && ForTypes!(Trait, combine, T[1..$]);
         }
     }else static if(combine == "any")
     {
-        static if(T.length == 0)
+        static if(T.length == 1)
         {
-            enum ForTypes = false;
+            enum ForTypes = Trait!T;
         }else{
             enum ForTypes = Trait!(T[0]) || ForTypes!(Trait, combine, T[1..$]);
         }
     }else{
-        static assert(0, "Unknown combine string \"" ~ combine ~ "\", should be either \"any\" or \"all\".");
+        static assert(0, `Unknown combine string ` ~ combine ~ 
+            `, should be either "any" or "all".`);
     }
 }
 
