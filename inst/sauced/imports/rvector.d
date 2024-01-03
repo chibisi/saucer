@@ -1,12 +1,4 @@
-//module saucer.inst.sauced.imports.rvector;
-
-/*
-    TODO:
-    1. To!() conversion: bool[] -> SEXP && SEXP -> bool[]
-*/
-
 import std.conv: to;
-//import std.stdio: writeln;
 
 /* Vector aliases */
 alias NumericVector = RVector!(REALSXP);
@@ -40,36 +32,69 @@ const(char)* castChar(string symbol)
 }
 
 
-/+
-    Converts a string to an SEXP
-    Perhaps you should be using STRING_PTR(SEXP)
-    instead of STDVEC_DATAPTR(SEXP)?
-+/
-pragma(inline, true)
-SEXP mkString(string value)
+enum useLib = true;
+static if(useLib)
 {
-    int n = cast(int)value.length;
-    auto result = protect(allocVector(STRSXP, 1));
-    scope(exit) unprotect(1);
-    const(char*) _ptr_ = cast(const(char*))&value[0];
-    auto element = Rf_mkCharLen(_ptr_, n);
-    SEXP* ps = STRING_PTR(result);
-	ps[0] = element;
-    return result;
-}
+    /+
+        Converts a string to an SEXP
+        Perhaps you should be using STRING_PTR(SEXP)
+        instead of STDVEC_DATAPTR(SEXP)?
+    +/
+    pragma(inline, true)
+    SEXP mkString(string value)
+    {
+        int n = cast(int)value.length;
+        auto result = protect(allocVector(STRSXP, 1));
+        scope(exit) unprotect(1);
+        auto _ptr_ = toUTFz!(const(char)*)(value);
+        auto element = mkCharLen(_ptr_, n);
+        SEXP* ps = STRING_PTR(result);
+    	ps[0] = element;
+        return result;
+    }
+    
+    /+
+      Overloads R's mkChar function to return a CHARSXP
+      from a string
+    +/
+    pragma(inline, true)
+    SEXP mkChar(string value)
+    {
+        auto ptr = toUTFz!(const(char)*)(value);
+        return mkCharLen(ptr, cast(int)value.length);
+    }
+}else{
+    /+
+        Converts a string to an SEXP
+        Perhaps you should be using STRING_PTR(SEXP)
+        instead of STDVEC_DATAPTR(SEXP)?
+    +/
+    pragma(inline, true)
+    SEXP mkString(string value)
+    {
+        int n = cast(int)value.length;
+        auto result = protect(allocVector(STRSXP, 1));
+        scope(exit) unprotect(1);
+        const(char*) _ptr_ = cast(const(char)*)&value[0];
+        auto element = Rf_mkCharLen(_ptr_, n);
+        SEXP* ps = STRING_PTR(result);
+    	ps[0] = element;
+        return result;
+    }
+    
+    /+
+      Overloads R's mkChar function to return a CHARSXP
+      from a string
+    +/
+    pragma(inline, true)
+    SEXP mkChar(string value)
+    {
+        int n = cast(int)value.length;
+        const(char*) ptr = cast(const(char)*)&value[0];
+        return mkCharLen(ptr, n);
+    }
 
-/+
-  Overloads R's mkChar function to return a CHARSXP
-  from a string
-+/
-pragma(inline, true)
-SEXP mkChar(string value)
-{
-    int n = cast(int)value.length;
-    const(char*) ptr = cast(const(char*))&value[0];
-    return mkCharLen(ptr, n);
 }
-
 
 
 /+

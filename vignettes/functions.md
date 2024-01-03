@@ -48,7 +48,7 @@ functionExampleCode3 = '
             return(invisible())
         }
     `;
-    auto dFunc = Function.create(functionString);
+    auto dFunc = Function.init(functionString);
     dFunc(200);
     return;
 }
@@ -64,7 +64,7 @@ nicePlot()
 functionExampleCode4 = '
 @Export auto createNicePlotFunction(SEXP functionString)
 {
-    auto dFunc = Function.create(functionString);
+    auto dFunc = Function.init(functionString);
     return dFunc;
 }
 '

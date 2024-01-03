@@ -22,209 +22,280 @@ alias EmptyEnv = R_EmptyEnv;
 alias BaseEnv = R_BaseEnv;
 
 
-
-
-auto assertSymbol(string symbol)()
+private auto assertSymbolOrString(string symbol)()
 {
-    return "enforce(isSymbol(" ~ symbol ~ "), " ~ 
-                "\"Type of symbol is not a SYMSXP\");";
-}
-auto assertSymbolOrString(string symbol)()
-{
-    return "enforce(isSymbol(" ~ symbol ~ ") || Rf_isString(" ~ symbol ~ "), " ~ 
-                "\"Type of symbol is not a SYMSXP\");";
+    return format("enforce(isSymbol(%1$s) || Rf_isString(%1$s), " ~ 
+                "\"Type of symbol is not a SYMSXP\");", symbol);
 }
 
-auto assertFunction(string symbol)()
+private auto assertFunction(string symbol)()
 {
-    return "enforce(isFunction(" ~ symbol ~ "), " ~ 
-                "\"Type of symbol is not a SEXP function\");";
+    return format(`enforce(isFunction(%1$s), ` ~ 
+                `"Type of symbol is not a SEXP function");`, symbol);
 }
 
 /*
-    Copying environments doesn't make sense
+    Copying environments doesn't make senseprivate 
     so definitely use reference counting here.
 */
-private struct Environment
+struct Environment
 {
-    SEXP envir;
-    alias envir this;
-    bool needUnprotect = false;
-    @disable this();
-    this(SEXP envir)
+    private SEXP envir;
+    private bool needUnprotect = false;
+    this(SEXP envir) @trusted
     {
+        enforce(cast(bool)isEnvironment(envir),
+            "Submitted SEXP is not an environment");
         this.envir = envir;
     }
-    this(I)(I size)
+    this(I)(I size) @trusted
     if(isIntegral!I)
     {
         enforce(size > 0, "Given size must be greater than zero");
-        this.envir = protect(R_NewEnv(R_GlobalEnv, TRUE, cast(int)size));
+        this.envir = R_NewEnv(R_GlobalEnv, TRUE, cast(int)size);
+        R_PreserveObject(this.envir);
         needUnprotect = true;
+    }
+    static auto init(int n = 29) @trusted
+    {
+        return Environment(n);
     }
     ~this()
     {
         if(needUnprotect)
         {
-            unprotect_ptr(this.envir);
+            R_ReleaseObject(this.envir);
             needUnprotect = false;
         }
     }
     pragma(inline, true)
-    SEXP opCast(T: SEXP)()
+    SEXP opCast(T: SEXP)() @trusted
     {
         return this.envir;
     }
-    static Environment baseEnv()
+    static Environment baseEnv() @trusted
     {
         return Environment(R_BaseEnv);
     }
-    static Environment globalEnv()
+    static Environment globalEnv() @trusted
     {
         return Environment(R_GlobalEnv);
     }
-    static Environment emptyEnv()
+    static Environment emptyEnv() @trusted
     {
         return Environment(R_EmptyEnv);
     }
-    static Environment getCurrentEnvironment()
+    static Environment getCurrentEnvironment() @trusted
     {
         auto result = Environment(R_GetCurrentEnv());
         return result;
     }
-    void lockEnvironment(Rboolean bindings = FALSE)
+    void lockEnvironment(R)(R bindings = cast(R)FALSE) @trusted
+    if(is(R == Rboolean) || is(R == int) || is(R == bool))
     {
-        R_LockEnvironment(this.envir, bindings);
+        static if(is(R == Rboolean))
+        {
+            R_LockEnvironment(this.envir, bindings);
+        }else{
+            R_LockEnvironment(this.envir, Rboolean(bindings));
+        }
+        return;
     }
-    Rboolean isLocked()
+    auto isLocked() @trusted
     {
-        return R_EnvironmentIsLocked(this.envir);
+        return cast(bool)R_EnvironmentIsLocked(this.envir);
     }
     /*
         Locks the binding of the environment
         symbol is a string or a an EXP that is a string
     */
-    void lockBinding(S)(S symbol)
-    if(is(S == SEXP) || is(S == string))
+    void lockBinding(S)(S symbol) @trusted
+    if(isSEXP!(S) || is(S == string))
     {
-        static if(is(S == SEXP))
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            R_LockBinding(symbol, this.envir);
+            if(isString(symbol))
+            {
+                R_LockBinding(installChar(asChar(symbol)), this.envir);
+            }else{
+                R_LockBinding(symbol, this.envir);
+            }
         }else
         {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            R_LockBinding(_symbol_, this.envir);
+            R_LockBinding(installChar(mkChar(symbol)), this.envir);
         }
+        return;
     }
-    void unlockBinding(S)(S symbol)
-    if(is(S == SEXP) || is(S == string))
+    void unlockBinding(S)(S symbol) @trusted
+    if(isSEXP!(S) || is(S == string))
     {
-        static if(is(S == SEXP))
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            R_unLockBinding(symbol, this.envir);
+            if(isString(symbol))
+            {
+                R_unLockBinding(installChar(asChar(symbol)), this.envir);
+            }else{
+                R_unLockBinding(symbol, this.envir);
+            }
         }else
         {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            R_unLockBinding(_symbol_, this.envir);
+            R_unLockBinding(installChar(mkChar(symbol)), this.envir);
         }
+        return;
     }
-    void makeActiveBinding(S, F)(S symbol, F func)
-    if((is(S == SEXP) || is(S == string)) && 
-            (is(F == SEXP) || is(F == Function)))
+    void makeActiveBinding(S, F)(S symbol, F func) @trusted
+    if((isSEXP!(S) || is(S == string)) && 
+            (isSEXP!(F) || is(F == Function)))
     {
-        static if(is(F == SEXP))
+        SEXP _symbol_, _func_;
+        int nProtect = 0;
+        static if(isSEXP!(F))
         {
             mixin(assertFunction!(func.stringof));
+            _func_ = func;
+        }else{
+            _func_ = func.func;
         }
-        static if(is(S == SEXP))
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            R_MakeActiveBinding(symbol, func, this.envir);
-        }else
-        {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            R_MakeActiveBinding(_symbol_, func, this.envir);
+            if(isString(symbol))
+            {
+                _symbol_ = protect(installChar(asChar(symbol)));
+                ++nProtect;
+            }
+            else
+            {
+                _symbol_ = symbol;
+            }
+        }else{
+            _symbol_ = protect(installChar(mkChar(symbol)));
+            ++nProtect;
         }
+        R_MakeActiveBinding(_symbol_, _func_, this.envir);
+        if(nProtect > 0)
+        {
+            unprotect(nProtect);
+        }
+        return;
     }
-    Rboolean isBindingLocked(S)(S symbol)
-    if(is(S == SEXP) || is(S == string))
+    bool isBindingLocked(S)(S symbol) @trusted
+    if(isSEXP!(S) || is(S == string))
     {
-        static if(is(S == SEXP))
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            return R_BindingIsLocked(symbol, this.envir);
+            if(isString(symbol))
+            {
+                return cast(bool)R_BindingIsLocked(installChar(asChar(symbol)), this.envir);
+            }else{
+                return cast(bool)R_BindingIsLocked(symbol, this.envir);
+            }
         }else
         {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            return R_BindingIsLocked(_symbol_, this.envir);
+            return cast(bool)R_BindingIsLocked(installChar(mkChar(symbol)), this.envir);
         }
     }
-    Rboolean isBindingActive(S)(S symbol)
-    if(is(S == SEXP) || is(S == string))
+    auto isBindingActive(S)(S symbol) @trusted
+    if(isSEXP!(S) || is(S == string))
     {
-        static if(is(S == SEXP))
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            return R_BindingIsActive(symbol, this.envir);
+            if(isString(symbol))
+            {
+                return cast(bool)R_BindingIsActive(installChar(asChar(symbol)), this.envir);
+            }else{
+                return cast(bool)R_BindingIsActive(symbol, this.envir);
+            }
         }else
         {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            return R_BindingIsActive(_symbol_, this.envir);
+            return cast(bool)R_BindingIsActive(installChar(mkChar(symbol)), this.envir);
         }
     }
-    SEXP getActiveBindingFunction(S)(S symbol)
-    if(is(S == SEXP) || is(S == string))
+    auto getActiveBindingFunction(S)(S symbol) @trusted
+    if(isSEXP!(S) || is(S == string))
     {
-        static if(is(S == SEXP))
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            return R_ActiveBindingFunction(symbol, this.envir);
+            if(isString(symbol))
+            {
+                return R_ActiveBindingFunction(installChar(asChar(symbol)), this.envir);
+            }else{
+                return R_ActiveBindingFunction(symbol, this.envir);
+            }
         }else
         {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            auto func = R_ActiveBindingFunction(_symbol_, this.envir);
-            return Function(func, CLOENV(func));
+            return R_ActiveBindingFunction(installChar(mkChar(symbol)), this.envir);
         }
     }
-    Rboolean isNamespaceEnv()
+    auto isNamespaceEnv() @trusted
     {
-        return R_IsNamespaceEnv(this.envir);
+        return cast(bool)R_IsNamespaceEnv(this.envir);
     }
     pragma(inline, true)
-    string packageEnvName()
+    string packageEnvName() @trusted
     {
         return getSEXP!(STRSXP)(R_PackageEnvName(this.envir), 0);
     }
-    Rboolean isPackageEnv()
+    auto isPackageEnv() @trusted
     {
-        return R_IsPackageEnv(this.envir);
+        return cast(bool)R_IsPackageEnv(this.envir);
     }
-    void assign(S, O)(S symbol, O obj)
-    if((is(S == SEXP) || is(S == string)) && (is(O == SEXP) || (isRType!O)))
+    void assign(S, O)(S symbol, O obj) @trusted
+    if((isSEXP!(S) || is(S == string)) && (isSEXP!(O) || isConvertibleToSEXP!(O)))
     {
-        static if(is(S == SEXP))
+        int nProtect = 0;
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            Rf_defineVar(symbol, obj, this.envir);
+            SEXP _symbol_;
+            if(isString(symbol))
+            {
+                _symbol_ = protect(installChar(asChar(symbol)));
+                ++nProtect;
+            }else{
+                _symbol_ = symbol;
+            }
+            static if(isSEXP!(O))
+            {
+                Rf_defineVar(_symbol_, obj, this.envir);
+            }else{
+                Rf_defineVar(_symbol_, To!(SEXP)(obj), this.envir);
+            }
         }else
         {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            Rf_defineVar(_symbol_, obj, this.envir);
+            static if(isSEXP!(O))
+            {
+                Rf_defineVar(installChar(mkChar(symbol)), obj, this.envir);
+            }else{
+                Rf_defineVar(installChar(mkChar(symbol)), To!(SEXP)(obj), this.envir);
+            }
         }
+        if(nProtect > 0)
+        {
+            unprotect(nProtect);
+        }
+        return;
     }
-    SEXP get(S)(S symbol)
-    if(is(S == SEXP) || is(S == string))
+    SEXP get(S)(S symbol) @trusted
+    if(isSEXP!(S) || is(S == string))
     {
-        static if(is(S == SEXP))
+        static if(isSEXP!(S))
         {
             mixin(assertSymbolOrString!(symbol.stringof));
-            return Rf_findVarInFrame(this.envir, symbol);
+            if(isString(symbol))
+            {
+                return Rf_findVarInFrame(this.envir, installChar(asChar(symbol)));
+            }else{
+                return Rf_findVarInFrame(this.envir, symbol);
+            }
         }else
         {
-            SEXP _symbol_ = installChar(mkChar(symbol));
-            return Rf_findVarInFrame(this.envir, _symbol_);
+            return Rf_findVarInFrame(this.envir, installChar(mkChar(symbol)));
         }
     }
 }
