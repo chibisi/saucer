@@ -8,9 +8,9 @@ environmentExampleCode1 = '
 {
     auto result = Environment.init();
     result.assign("x", IntegerVector(1, 2, 3, 4, 5, 6));
-    result.assign("test", true);
+    result["test"] = true;
     result.assign("city", "Los Angeles");
-    result.assign("temperature", 27);
+    result["temperature"] = 27;
     result.assign("scale", "centigrade");
     result.assign("numbers", [1.4, 5.2, 6.8, 4.0, 2.6]);
     return result;
@@ -36,25 +36,21 @@ myEnv$numbers = c(1.4, 5.2, 6.8, 4.0, 2.6)
 environmentExampleCode2 = '
 @Export auto getItemFromEnvironment(Environment envir, SEXP name)
 {
-    auto result = protect(envir.get(name));
-    scope(exit) unprotect(1);
-    return result;
+    return envir.get(name);
 }
 '
 saucer::dfunctions(environmentExampleCode2)
 getItemFromEnvironment(myEnv, "x")
 
+
 environmentExampleCode3 = '
 @Export auto getItemFromEnvironmentString(Environment envir, string name)
 {
-    auto result = protect(envir.get(name));
-    scope(exit) unprotect(1);
-    return result;
+    return envir[name];
 }
 '
 saucer::dfunctions(environmentExampleCode3)
 getItemFromEnvironmentString(myEnv, "numbers")
-
 ```
 
 ## Assigning variables in environments
@@ -63,7 +59,7 @@ getItemFromEnvironmentString(myEnv, "numbers")
 environmentExampleCode4 = '
 @Export auto assignVariableSEXP(Environment envir, SEXP name, SEXP value)
 {
-    envir.assign(name, value);
+    envir[name] = value;
     return;
 }
 '
@@ -138,12 +134,12 @@ saucer::dfunctions(environmentExampleCode9)
 
 doLockEnvironment(lockedEnv1, FALSE)
 
-lockedEnv1$x = 42 # works
+lockedEnv1$x = 42
 lockedEnv1$x |> print()
 testthat::expect_error({lockedEnv1$y = "Something New"})
 
 doLockEnvironment(lockedEnv2, TRUE)
-testthat::expect_error({lockedEnv2$x = 42}) # Fails
+testthat::expect_error({lockedEnv2$x = 42})
 
 
 environmentExampleCode10 = '
@@ -166,6 +162,7 @@ doLockBinding(myEnv, "x")
 testthat::expect_error({myEnv$x = "Something New"})
 
 doUnLockBinding(myEnv, "x")
-myEnv$x = "Something New" # works
+myEnv$x = "Something New"
+as.list(myEnv) |> print()
 ```
 
