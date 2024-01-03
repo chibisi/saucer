@@ -25,6 +25,7 @@ For now the implementation of the library is in it's early phase. The library pr
 * List (list)
 * Dataframe (data.frame)
 * Functions (R functions, lambdas, and closures)
+* Environments (R's environments)
 
 These objects are written in D structs as supposed to classes, and so do not directly associate with the D garbage collector. Method dispatch relies heavily on D's compile time traits system. And D's strings mixins are heavily used to generate the functions that wrap those that are given by the user, which are then compiled to DLLs and called by R through an auto generated R function.
 
