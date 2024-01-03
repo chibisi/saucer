@@ -245,7 +245,7 @@ struct Environment
     {
         return cast(bool)R_IsPackageEnv(this.envir);
     }
-    void assign(S, O)(S symbol, O obj) @trusted
+    void assign(S, O)(S symbol, auto ref O value) @trusted
     if((isSEXP!(S) || is(S == string)) && (isSEXP!(O) || isConvertibleToSEXP!(O)))
     {
         int nProtect = 0;
@@ -262,17 +262,17 @@ struct Environment
             }
             static if(isSEXP!(O))
             {
-                Rf_defineVar(_symbol_, obj, this.envir);
+                Rf_defineVar(_symbol_, value, this.envir);
             }else{
-                Rf_defineVar(_symbol_, To!(SEXP)(obj), this.envir);
+                Rf_defineVar(_symbol_, To!(SEXP)(value), this.envir);
             }
         }else
         {
             static if(isSEXP!(O))
             {
-                Rf_defineVar(installChar(mkChar(symbol)), obj, this.envir);
+                Rf_defineVar(installChar(mkChar(symbol)), value, this.envir);
             }else{
-                Rf_defineVar(installChar(mkChar(symbol)), To!(SEXP)(obj), this.envir);
+                Rf_defineVar(installChar(mkChar(symbol)), To!(SEXP)(value), this.envir);
             }
         }
         if(nProtect > 0)
@@ -297,6 +297,17 @@ struct Environment
         {
             return Rf_findVarInFrame(this.envir, installChar(mkChar(symbol)));
         }
+    }
+    auto opIndex(S)(S symbol) @trusted
+    if(isSEXP!(S) || is(S == string))
+    {
+        return this.get(symbol);
+    }
+    auto opIndexAssign(O, S)(auto ref O value, S symbol) @trusted
+    if((isSEXP!(S) || is(S == string)) && (isSEXP!(O) || isConvertibleToSEXP!(O)))
+    {
+        this.assign(symbol, value);
+        return;
     }
 }
 
