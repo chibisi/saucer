@@ -300,6 +300,11 @@ calcRandomAverage(100L)
 [Examples for R data.frame interop with D](./vignettes/dataframe.md)
 
 
+### Environment examples
+
+[Examples for R environment interop with D](./vignettes/environments.md)
+
+
 More examples will follow ...
 
 ## Limitations
@@ -313,17 +318,12 @@ More examples will follow ...
 ## References
 
 1. [D Programming Language](https://dlang.org/).
-
-2.[Rcpp package, Dirk Eddelbuettel et al](https://cran.r-project.org/web/packages/Rcpp/).
-
+2. [Rcpp package, Dirk Eddelbuettel et al](https://cran.r-project.org/web/packages/Rcpp/).
 3. [A tool for translating C and Objective-C headers to D modules](https://code.dlang.org/packages/dstep)
-
 4. [Writing R Extenstions, Chapter 5, R Core Team](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#System-and-foreign-language-interfaces).
-
 5. [R Internals, Chapter 1, R Core Team](https://cran.r-project.org/doc/manuals/r-release/R-ints.html#R-Internal-Structures).
-
-6.[Unprotecting by Value, R Blog, Tomas Kalibera](https://blog.r-project.org/2018/12/10/unprotecting-by-value/).
-
-7. [CRAN Repository Policy](https://cran.r-project.org/web/packages/policies.html).
+6. [Documentation for R's internal C API, Hadley Wickham](https://github.com/hadley/r-internals/tree/master).
+7. [Unprotecting by Value, R Blog, Tomas Kalibera](https://blog.r-project.org/2018/12/10/unprotecting-by-value/).
+8. [CRAN Repository Policy](https://cran.r-project.org/web/packages/policies.html).
 
 

@@ -4,19 +4,19 @@ struct Function
     private SEXP envir;
     private bool needUnprotect = false;
     
-    this(SEXP func)
+    this(SEXP func) @trusted
     {
         enforce(Rf_isFunction(func), 
                 "input given is not a function");
         this.func = func;
         this.envir = CLOENV(func);
     }
-    this(Function fn)
+    this(Function fn) @trusted
     {
         this.func = fn.func;
         this.envir = fn.envir;
     }
-    this(E)(SEXP func, E envir)
+    this(E)(SEXP func, E envir) @trusted
     if(isSEXP!(E) || is(E == Environment))
     {
         enforce(Rf_isFunction(func), 
@@ -31,7 +31,7 @@ struct Function
         }
         this.func = func;
     }
-    @property auto env(E)(E envir)
+    @property auto env(E)(E envir) @trusted
     if(isSEXP!(E) || is(E == Environment))
     {
         static if(isSEXP!(E))
@@ -53,11 +53,11 @@ struct Function
         }
     }
     pragma(inline, true)
-    SEXP opCast(T: SEXP)()
+    SEXP opCast(T: SEXP)() @trusted
     {
         return this.func;
     }
-    auto opCall(Args...)(Args args)
+    auto opCall(Args...)(Args args) @trusted
     if((Args.length >= 1) && ForTypes!(isConvertibleToOrIsSEXP, "all", Args))
     {
         enum nargs = Args.length;
@@ -80,7 +80,7 @@ struct Function
         }}
         return eval(call, this.envir);
     }
-    auto opCall(Args...)(Args args)
+    auto opCall(Args...)(Args args) @trusted
     if((Args.length == 0))
     {
         enum nargs = Args.length;
@@ -90,7 +90,7 @@ struct Function
         SETCAR(call, this.func);
         return eval(call, this.envir);
     }
-    static auto create(S)(S functionString)
+    static auto init(S)(S functionString) @trusted
     if(is(S == string) || isSEXP!(S))
     {
         Function result;

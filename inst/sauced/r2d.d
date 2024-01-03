@@ -30,15 +30,21 @@ int R_finite (double);
 
 struct Rboolean
 {
-    int _data_;
-    alias _data_ this;
-    this(int value) @trusted
+    private int _data_;
+    alias implicitCast this;
+    this(I)(I value) @trusted
+    if(is(I == int) || is(I == bool))
     {
-        if(value == 0)
+        static if(is(I == int))
         {
-            this._data_ = 0;
+            if(value <= 0)
+            {
+                this._data_ = 0;
+            }else{
+                this._data_ = 1;
+            }
         }else{
-            this._data_ = 1;
+            this._data_ = cast(int)value;
         }
     }
     auto opAssign(bool value) @trusted
@@ -62,6 +68,15 @@ struct Rboolean
     bool opCast(T: bool)() const @trusted
     {
         return cast(bool)_data_;
+    }
+    auto opCast(T: int)() @trusted
+    {
+        return _data_;
+    }
+    pragma(inline, true)
+    auto implicitCast()
+    {
+        return this._data_;
     }
 }
 
