@@ -25,7 +25,7 @@ alias BaseEnv = R_BaseEnv;
 private auto assertSymbolOrString(string symbol)()
 {
     return format("enforce(isSymbol(%1$s) || Rf_isString(%1$s), " ~ 
-                "\"Type of symbol is not a SYMSXP\");", symbol);
+                "\"Type of symbol is not a SYMSXP or a string\");", symbol);
 }
 
 private auto assertFunction(string symbol)()
