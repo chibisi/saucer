@@ -306,6 +306,11 @@ calcRandomAverage(100L)
 [Examples for R environment interop with D](./vignettes/environments.md)
 
 
+### XPtr (ExternalPtr) examples
+
+[Examples for R externalptr interop with D](./vignettes/xptr.md)
+
+
 More examples will follow ...
 
 ## Limitations
@@ -326,5 +331,4 @@ More examples will follow ...
 6. [Documentation for R's internal C API, Hadley Wickham](https://github.com/hadley/r-internals/tree/master).
 7. [Unprotecting by Value, R Blog, Tomas Kalibera](https://blog.r-project.org/2018/12/10/unprotecting-by-value/).
 8. [CRAN Repository Policy](https://cran.r-project.org/web/packages/policies.html).
-
 

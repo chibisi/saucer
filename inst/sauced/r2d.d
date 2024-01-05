@@ -356,9 +356,9 @@ void find_interv_vec (
     int* indx);
 
 void R_max_col (double* matrix, int* nr, int* nc, int* maxes, int* ties_meth);
-void* R_chk_calloc (size_t, size_t);
+void* R_chk_calloc (size_t, size_t) @nogc;
 void* R_chk_realloc (void*, size_t);
-void R_chk_free (void*);
+void R_chk_free (void*) @nogc;
 void call_R (char*, c_long, void**, char**, c_long*, char**, c_long, char**);
 alias Sfloat = double;
 alias Sint = int;
