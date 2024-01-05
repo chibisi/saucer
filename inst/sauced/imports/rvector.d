@@ -395,7 +395,7 @@ if(isIntegral!(I))
 
 
 
-struct RVector(SEXPTYPE Type)
+struct RVector(alias Type)
 if(SEXPDataTypes!(Type))
 {
     SEXP sexp;

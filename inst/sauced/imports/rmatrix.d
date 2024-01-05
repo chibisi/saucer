@@ -13,7 +13,7 @@ alias RawMatrix = RMatrix!(RAWSXP);
 
 
 
-struct RMatrix(SEXPTYPE Type)
+struct RMatrix(alias Type)
 if(SEXPDataTypes!(Type))
 {
   SEXP sexp;

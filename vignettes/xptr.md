@@ -1,14 +1,34 @@
 # Examples using XPtr (Externalptr)
 
+Currently XPtr, can be used with EXTPTRSXP (but no other SEXP - at least for now), RTypes such as NumericVector, NumericMatrix etc., user defined structs and basic types.
+
+## Example XPtr with user defined structs
 
 ```r
 externalPtrExampleCode1 = '
 import std.stdio: writeln;
-import std.format: format;
 struct Gaussian
 {
     private double mean;
     private double sd;
+    
+    this(double mean, double sd)
+    {
+        this.mean = mean;
+        this.sd = sd;
+        return;
+    }
+
+    this(ref return scope Gaussian original)
+    {
+        this.mean = original.mean;
+        this.sd = original.sd;
+    }
+    @disable this();
+    ~this()
+    {
+        writeln("Destructor called in Gaussian");
+    }
     
     auto density(double[] x, int log = 0)
     {
@@ -50,9 +70,15 @@ struct Gaussian
 
 @Export auto createGaussian(double mean, double sd)
 {
-    auto x = cast(Gaussian*)R_malloc_gc(Gaussian.sizeof);
-    x[0] = Gaussian(mean, sd);
-    return xptr(x);
+    auto distPtr = makePointer!(Gaussian)(mean, sd);
+    return xptr(distPtr);
+}
+
+@Export auto createGaussian2(double mean, double sd)
+{
+    auto dist = Gaussian(mean, sd);
+    auto distPtr = makePointer(dist);
+    return xptr(distPtr);
 }
 
 @Export auto callRandom(XPtr!(Gaussian) distPtr, int n)
@@ -73,10 +99,72 @@ struct Gaussian
 }
 '
 saucer::dfunctions(externalPtrExampleCode1)
-ptr = createGaussian(5, 2)
+
+# Destructor not called, because struct 
+#     is never created on the stack
+ptr1 = createGaussian(5, 2)
 par(mfrow = c(2,2))
-hist({x = callRandom(ptr, 1000L)})
-plot({d = callDensity(ptr, x)} ~ x)
-plot({p = callProbability(ptr, x)} ~ x)
-hist({q = callQuantile(ptr, p)})
+hist({x = callRandom(ptr1, 1000L)})
+plot({d = callDensity(ptr1, x)} ~ x)
+plot({p = callProbability(ptr1, x)} ~ x)
+hist({q = callQuantile(ptr1, p)})
+
+# struct is created on the stack so 
+#   destructor is called (function scoped)
+ptr2 = createGaussian2(8, 2)
+par(mfrow = c(2,2))
+hist({x = callRandom(ptr2, 1000L)})
+plot({d = callDensity(ptr2, x)} ~ x)
+plot({p = callProbability(ptr2, x)} ~ x)
+hist({q = callQuantile(ptr2, p)})
 ```
+
+## Example with NumericVector
+
+```r
+externalPtrExampleCode2 = '
+@Export auto makeVectorPtr(NumericVector x)
+{
+    auto ptr = makePointer(x);
+    return xptr(ptr);
+}
+
+@Export auto returnVector(XPtr!(NumericVector) x)
+{
+    NumericVector result = (cast(NumericVector*)x)[0];
+    return result;
+}
+'
+saucer::dfunctions(externalPtrExampleCode2)
+
+x = rnorm(10)
+ptr3 = makeVectorPtr(x)
+y = returnVector(ptr3)
+all(x == y) |> print()
+```
+
+## Example with NumericMatrix
+
+
+```r
+externalPtrExampleCode3 = '
+@Export auto makeMatrixPtr(NumericMatrix x)
+{
+    auto ptr = makePointer(x);
+    return xptr(ptr);
+}
+
+@Export auto returnMatrix(XPtr!(NumericMatrix) x)
+{
+    NumericMatrix result = (cast(NumericMatrix*)x)[0];
+    return result;
+}
+'
+saucer::dfunctions(externalPtrExampleCode3)
+x = matrix(rnorm(100), nr = 10)
+ptr4 = makeMatrixPtr(x)
+y = returnMatrix(ptr4)
+all(x == y) |> print()
+```
+
+

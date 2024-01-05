@@ -1,4 +1,5 @@
-import std.traits: isCallable, isPointer, ReturnType;
+import std.traits: isBasicDType = isBasicType, isCallable, isPointer, ReturnType;
+import core.lifetime: emplace, moveEmplace;
 
 private extern(C) static void finalizerFunction(SEXP ptr)
 {
@@ -13,23 +14,21 @@ private extern(C) static void finalizerFunction(SEXP ptr)
 }
 
 
-T* makePointer(T)(auto ref T value)
+T* makePointer(T)(auto ref T value) @trusted
 if(!isPointer!(T) && !is(T: A[], A))
 {
     auto ptr = cast(T*)R_chk_calloc(1, T.sizeof);
-    ptr[0] = value;
+    moveEmplace(value, *ptr);
     return ptr;
 }
 
 
 
-T* makePointer(T, Args...)(auto ref Args args)
+T* makePointer(T, Args...)(auto ref Args args) @trusted
 if(!isPointer!(T) && !is(T: A[], A))
 {
     auto ptr = cast(T*)R_chk_calloc(1, T.sizeof);
-    writeln("Allocated memory in makePointer");
-    ptr[0] = T(args);
-    writeln("Assigned item to pointer in makePointer");
+    ptr = emplace(ptr, args);
     return ptr;
 }
 
@@ -40,10 +39,9 @@ struct XPtr(T)
     private SEXP extptr;
     private bool needUnprotect = false;
 
-    this(P, S = SEXP)(auto ref P ptr, S tag = R_NilValue, SEXP prot = R_NilValue)
+    this(P, S = SEXP)(auto ref P ptr, S tag = R_NilValue, SEXP prot = R_NilValue) @trusted
     if((isSEXP!(S) || is(S == string)))
     {
-        writeln("Entered XPtr constructor method");
         SEXP _tag_;
         static if(isSEXP!S)
         {
@@ -94,7 +92,7 @@ struct XPtr(T)
     {
         this.extptr = original.extptr;
     }
-    ~this()
+    ~this() @trusted
     {
         if(needUnprotect)
         {
@@ -104,18 +102,18 @@ struct XPtr(T)
     }
     
     pragma(inline, true)
-    T* opCast(V: T*)()
+    T* opCast(V: T*)() @trusted
     if(!isSEXP!(V))
     {
         return cast(T*)(R_ExternalPtrAddr(this.extptr));
     }
     pragma(inline, true)
-    V opCast(V)()
+    V opCast(V)() @trusted
     if(isSEXP!V)
     {
         return this.extptr;
     }
-    auto opDispatch(string member, Args...)(auto ref Args args)
+    auto opDispatch(string member, Args...)(auto ref Args args) @trusted
     if(!isSEXP!(T*))
     {
         auto ptr = cast(T*)this;
@@ -135,7 +133,6 @@ struct XPtr(T)
 auto xptr(P)(auto ref P object)
 if(!isSEXP!(P))
 {
-    writeln("Entered xptr function constructor");
     static if(is(P: T*, T))
     {
         return XPtr!(T)(object);
