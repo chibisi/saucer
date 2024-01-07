@@ -4,19 +4,9 @@
 \alias{compileRInside}
 \title{Compile RInside D code}
 \usage{
-compileRInside(
-  fileName,
-  compiler = "ldmd2",
-  flags = c("-O", "-mcpu=native"),
-  cleanup = TRUE
-)
+compileRInside(fileName, cleanup = TRUE)
 }
 \arguments{
-\item{compiler}{character either "ldmd2" (default - ldc compiler) 
-or "dmd" (DMD compiler)}
-
-\item{flags}{character vector of d compiler flags to pass}
-
 \item{cleanup}{logical whether to remove the generated directories afterwards or not}
 
 \item{fileNames}{single string item for path to file to be}

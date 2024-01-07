@@ -17,7 +17,7 @@ exampleCode1 = '
     return result;
 }
 '
-saucer::dfunctions(exampleCode1, compiler = "ldmd2")
+saucer::dfunctions(exampleCode1)
 listCreate() |> print()
 ```
 

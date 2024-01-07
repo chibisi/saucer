@@ -4,13 +4,7 @@
 \alias{.sauce}
 \title{Workhorse function for compiling the D code and creating the R wrapper}
 \usage{
-.sauce(
-  fileNames,
-  dropFolder = NULL,
-  folderName = NULL,
-  compiler = "ldmd2",
-  flags = c("-O", "-boundscheck=off", "-mcpu=native")
-)
+.sauce(fileNames, dropFolder = NULL, folderName = NULL)
 }
 \arguments{
 \item{fileNames}{character vector containing the module (file) names to 
@@ -23,13 +17,6 @@ done. Defaults to TRUE.}
 
 \item{folderName}{character for what the folder name the generated code
 should be. Defaults to NULL - random name generated.}
-
-\item{compiler}{character either "ldmd2" (default - ldc compiler) 
-or "dmd" (DMD compiler)}
-
-\item{flags}{character vector flags to be passed to the chosen D compiler}
-
-\item{code}{character vector containing the code to be compiled}
 }
 \description{
 The first file given is the main file containing functions

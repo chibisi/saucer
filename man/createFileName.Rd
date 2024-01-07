@@ -4,7 +4,7 @@
 \alias{createFileName}
 \title{Creates a random file name}
 \usage{
-createFileName(prefix = "saucer", extn = NULL, nrand = 12)
+createFileName(prefix = "saucer", extn = NULL, postfix = NULL)
 }
 \arguments{
 \item{prefix}{the file prefix}

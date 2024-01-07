@@ -56,7 +56,7 @@ struct Environment
         R_PreserveObject(this.envir);
         needUnprotect = true;
     }
-    static auto init(int n = 29) @trusted
+    static auto create(int n = 29) @trusted
     {
         return Environment(n);
     }

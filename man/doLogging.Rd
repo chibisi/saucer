@@ -4,7 +4,7 @@
 \alias{doLogging}
 \title{Function sets option for logging}
 \usage{
-doLogging(flag = FALSE)
+doLogging(flag)
 }
 \arguments{
 \item{flag}{for whether functions should be verbose 
