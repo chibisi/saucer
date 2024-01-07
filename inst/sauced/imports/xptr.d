@@ -1,6 +1,8 @@
 import std.traits: isBasicDType = isBasicType, isCallable, isPointer, ReturnType;
-import core.lifetime: emplace, moveEmplace;
+import core.lifetime: emplace, moveEmplace, forward;
 
+
+//Marked for review and possible removal
 private extern(C) static void finalizerFunction(SEXP ptr)
 {
     enforce(TYPEOF(ptr) == EXTPTRSXP, 
@@ -32,6 +34,16 @@ if(!isPointer!(T) && !is(T: A[], A))
     return ptr;
 }
 
+/*
+   Alternative implementation to makePointer
+*/
+private T* makePointer2(T, Args...)(auto ref Args args)
+if(!isPointer!(T) && !is(T: A[], A) && is(T == struct))
+{
+    auto ptr = cast(T*)R_chk_calloc(1, T.sizeof);
+    (*ptr).__ctor(forward!args);
+    return ptr;
+}
 
 
 struct XPtr(T)

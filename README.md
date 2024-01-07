@@ -59,6 +59,21 @@ There are [three D compilers](https://dlang.org/download.html), two of which are
 For now, this library is Linux only. For installation details, see the [wiki](https://github.com/chibisi/saucer/wiki).
 
 
+Once installed the compiler can be set using
+
+```r
+saucer::setSaucerOptions(compiler = "ldmd2") # default
+```
+
+If you have the DMD (Digital Mars Compiler) installed, it can be set with the command below. It has a **much** faster compilation time.
+
+```r
+saucer::setSaucerOptions(compiler = "dmd")
+```
+
+Any options other than `ldmd2` or `dmd` means that you need to set the compiler flags. For information on the compiler flags see `?setSaucerOptions`.
+
+
 ## Examples
 
 Exported function must be marked with `@Export(...)` (or `@Export`) where `...` is an option export name. For example:
@@ -93,7 +108,7 @@ codeExample2 = '
 }'
 saucer::dfunctions(codeExample2)
 round(DotArray({x = runif(100)}, {y = runif(100)}), 4) == round(sum(x*y), 4)
-# Could also use # DotArray(runif(10), runif(10))
+# DotArray(runif(10), runif(10))
 ```
 
 In the above example, you can see that the native D array notation and `auto` infer return type can be used directly. To all intents and purposes, the `dot_array(...)` function is regular D code. The `@Export("DotArray")` user defined attribute (UDA) is used to export the function to R as the function `DotArray`, any function being exported to R *must* at least be marked with `@Export()` (with or without the brackets), and at the moment the compilation will fail if no functions are exported.

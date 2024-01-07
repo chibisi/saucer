@@ -4,14 +4,7 @@
 \alias{dfunctions}
 \title{Compile D code from string}
 \usage{
-dfunctions(
-  code,
-  dropFolder = TRUE,
-  folderName = NULL,
-  compiler = "ldmd2",
-  flags = c("-O", "-boundscheck=off", "-mcpu=native"),
-  moduleName = NULL
-)
+dfunctions(code, dropFolder = TRUE, folderName = NULL, moduleName = NULL)
 }
 \arguments{
 \item{code}{character vector containing the code to be compiled}
@@ -22,11 +15,6 @@ done. Defaults to TRUE.}
 
 \item{folderName}{character for what the folder name the generated code
 should be. Defaults to NULL - random name generated.}
-
-\item{compiler}{character either "ldmd2" (default - ldc compiler) 
-or "dmd" (DMD compiler)}
-
-\item{flags}{character vector flags to be passed to the chosen D compiler}
 
 \item{moduleName}{what the module should be called, defaults to NULL - 
 random generated value given}

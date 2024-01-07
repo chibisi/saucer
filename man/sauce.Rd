@@ -21,11 +21,6 @@ done. Defaults to TRUE.}
 
 \item{folderName}{character for what the folder name the generated code
 should be. Defaults to NULL - random name generated.}
-
-\item{compiler}{character either "ldmd2" (default - ldc compiler) 
-or "dmd" (DMD compiler)}
-
-\item{flags}{character vector flags to be passed to the chosen D compiler}
 }
 \description{
 The first file given is the main file containing functions

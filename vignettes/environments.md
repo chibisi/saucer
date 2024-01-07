@@ -6,7 +6,7 @@
 environmentExampleCode1 = '
 @Export auto createEnvironment()
 {
-    auto result = Environment.init();
+    auto result = Environment.create();
     result.assign("x", IntegerVector(1, 2, 3, 4, 5, 6));
     result["test"] = true;
     result.assign("city", "Los Angeles");
@@ -74,7 +74,7 @@ as.list(myEnv) |> print()
 environmentExampleCode5 = '
 @Export auto getBaseEnv()
 {
-    auto env = Environment.init;
+    auto env = Environment.create;
     return env.baseEnv;
 }
 '
@@ -85,7 +85,7 @@ getBaseEnv() |> print()
 environmentExampleCode6 = '
 @Export auto getGlobalEnv()
 {
-    auto env = Environment.init;
+    auto env = Environment.create;
     return env.globalEnv;
 }
 '
@@ -96,7 +96,7 @@ getGlobalEnv() |> print()
 environmentExampleCode7 = '
 @Export auto getEmptyEnv()
 {
-    auto env = Environment.init;
+    auto env = Environment.create;
     return env.emptyEnv;
 }
 '
@@ -107,7 +107,7 @@ getEmptyEnv() |> print()
 environmentExampleCode8 = '
 @Export auto getCurrentEnv()
 {
-    auto env = Environment.init;
+    auto env = Environment.create;
     return env.getCurrentEnvironment;
 }
 '
