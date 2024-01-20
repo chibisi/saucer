@@ -391,7 +391,7 @@ enum isRType(P) = isRVector!(P) || isRMatrix!(P) ||
 enum isRType(alias P) = isRType!(typeof(P));
 
 
-enum isSEXP(T) = is(T == SEXP);
+enum isSEXP(T) = is(T: SEXP);
 enum isSEXP(alias T) = isSEXP!(typeof(T));
 mixin(CreateMultipleCase!("isSEXP"));
 mixin(CreatePathologicalCase!("isSEXP"));
@@ -604,6 +604,14 @@ if(isSEXP!(T) && isBasicType!(F))
     return result;
 }
 
+/*
+    Type conversion from MatrixExpression to SEXP
+*/
+pragma(inline, true) auto To(T, F)(auto ref F expr)
+if(isRMatrixExpression!F && isSEXP!T)
+{
+    return cast(SEXP)(expr);
+}
 
 
 /*
