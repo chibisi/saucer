@@ -197,7 +197,7 @@ if(SEXPDataTypes!(Type))
     
     ~this() @trusted
     {
-        unprotect;
+        this.unprotect;
     }
     
     void unprotect()
@@ -214,16 +214,35 @@ if(SEXPDataTypes!(Type))
         return Accessor!(Type)(this.sexp);
     }
     
+    auto opIndex(I)(I[2] r0, I[2] r1) if(isIntegral!I)
+    {
+        auto nrow = r0[1] - r0[0];
+        auto ncol = r1[1] - r1[0];
+        auto sexp = allocMatrix(Type, cast(int)nrow, cast(int)ncol);
+        R_PreserveObject(sexp);
+        auto mPtr = Accessor!(Type)(sexp);
+        auto oPtr = ptr;
+
+        for(long i = 0; i < ncol; ++i)
+        {
+            mPtr[(i*nrow)..((i + 1)*nrow)] = 
+                oPtr[(r0[0] + (i + r1[0])*this.nrow)..(r0[1] + (i + r1[0])*this.nrow)];
+        }
+        auto result = RMatrix!(Type)(sexp);
+        result.needUnprotect = true;
+        return result;
+    }
+
     pragma(inline, true)
     size_t nrow() @trusted
     {
-        return Rf_nrows(this.sexp);
+        return this.opDollar!0;
     }
     
     pragma(inline, true)
     size_t ncol() @trusted
     {
-        return Rf_ncols(this.sexp);
+        return this.opDollar!1;
     }
     
     pragma(inline, true)
@@ -232,11 +251,58 @@ if(SEXPDataTypes!(Type))
         return LENGTH(this.sexp);
     }
     pragma(inline, true)
-    @property auto length(T)(T n) @trusted
-    if(isIntegral!(T))
+    @property auto length(I)(I n) @trusted
+    if(isIntegral!I)
     {
         SETLENGTH(this.sexp, cast(int)n);
         return this.length;
+    }
+    pragma(inline, true) @property auto opDollar(size_t dim: 0)()
+    {
+        return Rf_nrows(this.sexp);
+    }
+    pragma(inline, true) @property auto opDollar(size_t dim: 1)()
+    {
+        return Rf_ncols(this.sexp);
+    }
+    I[2] opSlice(size_t dim, I)(I start, I end)
+    if(isIntegral!I && ((dim >= 0) && (dim < 2)))
+    {
+        enforce(start >= 0 && end <= this.opDollar!dim, 
+        "Start and end indexes are not withing dimension limits");
+        return [start, end];
+    }
+    auto opIndexAssign(T, I)(auto ref T value, I[2] r0, I[2] r1)
+    if(is(T: SEXPElementType!(Type)) && isIntegral!I)
+    {
+        for(long j = r1[0]; j < r1[1]; ++j)
+        {
+            for(long i = r0[0]; i < r0[1]; ++i)
+            {
+                this[i, j] = value;
+            }
+        }
+        return;
+    }
+    auto opIndexAssign(M, I)(auto ref M expr, I[2] r0, I[2] r1)
+    if(isRMatrixOrExpression!M && isIntegral!I)
+    {
+        auto nrows = r0[1] - r0[0];
+        auto ncols = r1[1] - r1[0];
+
+        enforce(nrows == expr.nrow, 
+            "number of rows for expr not equal to implied sliced rows");
+        enforce(ncols == expr.ncol, 
+            "number of columns for expr not equal to implied sliced columns");
+        
+        for(long j = 0; j < ncols; ++j)
+        {
+            for(long i = 0; i < nrows; ++i)
+            {
+                this[i + r0[0], j + r1[0]] = expr[i, j];
+            }
+        }
+        return;
     }
     /*
       Unprotect on casting back to SEXP
