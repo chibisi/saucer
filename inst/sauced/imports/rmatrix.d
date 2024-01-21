@@ -352,6 +352,38 @@ if(SEXPDataTypes!(Type))
         }
         return;
     }
+    auto opIndexOpAssign(string op, T, I)(auto ref T value, I[2] r0, I[2] r1)
+    if(is(T: SEXPElementType!(Type)) && isIntegral!I)
+    {
+        for(long j = r1[0]; j < r1[1]; ++j)
+        {
+            for(long i = r0[0]; i < r0[1]; ++i)
+            {
+                mixin(`this[i, j] ` ~ op ~ `= value;`);
+            }
+        }
+        return;
+    }
+    auto opIndexOpAssign(string op, M, I)(auto ref M expr, I[2] r0, I[2] r1)
+    if(isRMatrixOrExpression!M && isIntegral!I)
+    {
+        auto nrows = r0[1] - r0[0];
+        auto ncols = r1[1] - r1[0];
+
+        enforce(nrows == expr.nrow, 
+            "number of rows for expr not equal to implied sliced rows");
+        enforce(ncols == expr.ncol, 
+            "number of columns for expr not equal to implied sliced columns");
+        
+        for(long j = 0; j < ncols; ++j)
+        {
+            for(long i = 0; i < nrows; ++i)
+            {
+                mixin(`this[i + r0[0], j + r1[0]] ` ~ op ~ `= expr[i, j];`);
+            }
+        }
+        return;
+    }
     /*
       Unprotect on casting back to SEXP
     */
