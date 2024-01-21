@@ -63,11 +63,11 @@ if(
     
     auto nrow()
     {
-        static if(isRMatrixOrExpression!E1)
+        static if(__traits(compiles, lhs.nrow))
         {
             return lhs.nrow;
         }
-        else static if(isRMatrixOrExpression!E2)
+        else static if(__traits(compiles, rhs.nrow))
         {
             return rhs.nrow;
         }
@@ -79,11 +79,11 @@ if(
     
     auto ncol()
     {
-        static if(isRMatrixOrExpression!E1)
+        static if(__traits(compiles, lhs.ncol))
         {
             return lhs.ncol;
         }
-        else static if(isRMatrixOrExpression!E2)
+        else static if(__traits(compiles, rhs.ncol))
         {
             return rhs.ncol;
         }
@@ -234,7 +234,7 @@ if(SEXPDataTypes!(Type))
         }
     }
     
-    this(ref return scope RMatrix original)
+    this(ref return scope RMatrix original) @trusted
     {
         int n = cast(int)original.length;
         this.sexp = allocMatrix(Type, cast(int)original.nrow, cast(int)original.ncol);
@@ -262,7 +262,8 @@ if(SEXPDataTypes!(Type))
         return Accessor!(Type)(this.sexp);
     }
     
-    auto opIndex(I)(I[2] r0, I[2] r1) if(isIntegral!I)
+    auto opIndex(I)(I[2] r0, I[2] r1) @trusted 
+    if(isIntegral!I)
     {
         auto nrow = r0[1] - r0[0];
         auto ncol = r1[1] - r1[0];
@@ -305,22 +306,22 @@ if(SEXPDataTypes!(Type))
         SETLENGTH(this.sexp, cast(int)n);
         return this.length;
     }
-    pragma(inline, true) @property auto opDollar(size_t dim: 0)()
+    pragma(inline, true) @property auto opDollar(size_t dim: 0)() @trusted
     {
         return Rf_nrows(this.sexp);
     }
-    pragma(inline, true) @property auto opDollar(size_t dim: 1)()
+    pragma(inline, true) @property auto opDollar(size_t dim: 1)() @trusted
     {
         return Rf_ncols(this.sexp);
     }
-    I[2] opSlice(size_t dim, I)(I start, I end)
+    I[2] opSlice(size_t dim, I)(I start, I end) @trusted
     if(isIntegral!I && ((dim >= 0) && (dim < 2)))
     {
         enforce(start >= 0 && end <= this.opDollar!dim, 
         "Start and end indexes are not withing dimension limits");
         return [start, end];
     }
-    auto opIndexAssign(T, I)(auto ref T value, I[2] r0, I[2] r1)
+    auto opIndexAssign(T, I)(auto ref T value, I[2] r0, I[2] r1) @trusted
     if(is(T: SEXPElementType!(Type)) && isIntegral!I)
     {
         for(long j = r1[0]; j < r1[1]; ++j)
@@ -332,7 +333,7 @@ if(SEXPDataTypes!(Type))
         }
         return;
     }
-    auto opIndexAssign(M, I)(auto ref M expr, I[2] r0, I[2] r1)
+    auto opIndexAssign(M, I)(auto ref M expr, I[2] r0, I[2] r1) @trusted
     if(isRMatrixOrExpression!M && isIntegral!I)
     {
         auto nrows = r0[1] - r0[0];
@@ -352,7 +353,7 @@ if(SEXPDataTypes!(Type))
         }
         return;
     }
-    auto opIndexOpAssign(string op, T, I)(auto ref T value, I[2] r0, I[2] r1)
+    auto opIndexOpAssign(string op, T, I)(auto ref T value, I[2] r0, I[2] r1) @trusted
     if(is(T: SEXPElementType!(Type)) && isIntegral!I)
     {
         for(long j = r1[0]; j < r1[1]; ++j)
@@ -364,7 +365,7 @@ if(SEXPDataTypes!(Type))
         }
         return;
     }
-    auto opIndexOpAssign(string op, M, I)(auto ref M expr, I[2] r0, I[2] r1)
+    auto opIndexOpAssign(string op, M, I)(auto ref M expr, I[2] r0, I[2] r1) @trusted
     if(isRMatrixOrExpression!M && isIntegral!I)
     {
         auto nrows = r0[1] - r0[0];
@@ -380,6 +381,35 @@ if(SEXPDataTypes!(Type))
             for(long i = 0; i < nrows; ++i)
             {
                 mixin(`this[i + r0[0], j + r1[0]] ` ~ op ~ `= expr[i, j];`);
+            }
+        }
+        return;
+    }
+    auto opOpAssign(string op, T)(auto ref T value) @trusted
+    if(is(T: SEXPElementType!(Type)))
+    {
+        for(long j = 0; j < this.ncol; ++j)
+        {
+            for(long i = 0; i < this.nrow; ++i)
+            {
+                mixin(`this[i, j] ` ~ op ~ `= value;`);
+            }
+        }
+        return;
+    }
+    auto opOpAssign(string op, M)(auto ref M expr) @trusted
+    if(isRMatrixOrExpression!M)
+    {
+        enforce(this.nrow == expr.nrow, 
+            "number of rows for expr not equal to nrow for matrix");
+        enforce(this.ncol == expr.ncol, 
+            "number of columns for expr not equal to ncol for matrix");
+        
+        for(long j = 0; j < this.ncol; ++j)
+        {
+            for(long i = 0; i < this.nrow; ++i)
+            {
+                mixin(`this[i, j] ` ~ op ~ `= expr[i, j];`);
             }
         }
         return;
