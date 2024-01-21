@@ -18,16 +18,14 @@ alias RawMatrix = RMatrix!(RAWSXP);
 */
 private struct MatrixExpression(string op, E1, E2)
 if(
-    (isRMatrix!E1 && isRMatrix!E2) ||
-    (isRMatrix!E1 && isRMatrixOrExpression!E2) ||
-    (isRMatrixOrExpression!E1 && isRMatrix!E2) ||
-    (isRMatrixOrExpression!E1 && isRMatrixOrExpression!E2)
+    (isRMatrixOrExpression!E1 || isBasicType!E1) && (isRMatrixOrExpression!E2 || isBasicType!E2)
 )
 {
     E1 lhs;
     E2 rhs;
 
-    this(E1 lhs, E2 rhs)
+    this(E1, E2)(E1 lhs, E2 rhs)
+    if(isRMatrixOrExpression!E1 && isRMatrixOrExpression!E2)
     {
         auto lhsNRow = lhs.nrow;
         auto lhsNCol = lhs.ncol;
@@ -43,21 +41,56 @@ if(
         this.lhs = lhs;
         this.rhs = rhs;
     }
-
+    
+    this(E1, E2)(E1 lhs, E2 rhs)
+    if(isRMatrixOrExpression!E1 && isBasicType!E2)
+    {
+        this.lhs = lhs;
+        this.rhs = rhs;
+    }
+    this(E1, E2)(E1 lhs, E2 rhs)
+    if(isBasicType!E1 && isRMatrixOrExpression!E2)
+    {
+        this.lhs = lhs;
+        this.rhs = rhs;
+    }
+    
     this(ref return scope MatrixExpression original)
     {
         this.lhs = original.lhs;
         this.rhs = original.rhs;
     }
-
+    
     auto nrow()
     {
-        return lhs.nrow;
+        static if(isRMatrixOrExpression!E1)
+        {
+            return lhs.nrow;
+        }
+        else static if(isRMatrixOrExpression!E2)
+        {
+            return rhs.nrow;
+        }
+        else
+        {
+            static assert(0, "Neither argument has an nrow method.");
+        }
     }
-
+    
     auto ncol()
     {
-        return lhs.ncol;
+        static if(isRMatrixOrExpression!E1)
+        {
+            return lhs.ncol;
+        }
+        else static if(isRMatrixOrExpression!E2)
+        {
+            return rhs.ncol;
+        }
+        else
+        {
+            static assert(0, "Neither argument has an ncol method.");
+        }
     }
     
     pragma(inline, true) auto opCast(T: SEXP)() @trusted
@@ -65,13 +98,26 @@ if(
         NumericMatrix result = this;
         return result.sexp;
     }
-
+    
     auto opIndex(I)(I i, I j) @trusted
     if(isIntegral!I)
     {
-        mixin(`return lhs[i, j] ` ~ op ~ ` rhs[i, j];`);
+        static if(isRMatrixOrExpression!E1 && isRMatrixOrExpression!E2)
+        {
+            mixin(`return lhs[i, j] ` ~ op ~ ` rhs[i, j];`);
+        }
+        else static if(isRMatrixOrExpression!E1 && isBasicType!E2)
+        {
+            mixin(`return lhs[i, j] ` ~ op ~ ` rhs;`);
+        }else static if(isBasicType!E1 && isRMatrixOrExpression!E2)
+        {
+            mixin(`return lhs ` ~ op ~ ` rhs[i, j];`);
+        }else
+        {
+            static assert(0, "Neighter argument has matrix[i, j] indexing");
+        }
     }
-
+    
     pragma(inline, true) auto opBinary(string op, T)(auto ref T rhs)
     {
         return operator!(op)(this, rhs);
@@ -85,14 +131,16 @@ if(
 
 enum isRMatrixExpression(T) = is(T: MatrixExpression!(op, E1, E2), alias op, E1, E2);
 enum isRMatrixOrExpression(T) = isRMatrix!(T) || isRMatrixExpression!(T);
-
+enum isRMatrixExpressionOrBasicType(T) = isBasicType!T || isRMatrixOrExpression!T;
 
 
 /*
     All the binary overload operators
 */
 auto operator(string op, E1, E2)(auto ref E1 lhs, auto ref E2 rhs)
-if (isRMatrixOrExpression!E1 && isRMatrixOrExpression!E2)
+if ((isRMatrixOrExpression!E1 && isBasicType!E2) ||
+        (isBasicType!E1 && isRMatrixOrExpression!E2) ||
+        (isRMatrixOrExpression!E1 && isRMatrixOrExpression!E2))
 {
     return MatrixExpression!(op, E1, E2)(lhs, rhs);
 }
