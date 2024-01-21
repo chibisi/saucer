@@ -1,6 +1,6 @@
 # Saucer Project
 
-The purpose of the saucer project is to create bidirectional interop between the R programming language and D, and to provide a D API to the standalone Rmath library. The aim is that in time, it will have a similar functional set to libraries like Rcpp in terms of its features and capability, but with the added advantage that the D programming language is more accessible than C++, and has powerful set of programming paradigms influenced by C, C++, Java, and languages in the functional sphere. For more information see the [D programming language website](https://dlang.org/).
+The purpose of the saucer project is to create bidirectional interop between the R programming language and D, and to provide a D API to the standalone Rmath library. The aim is that in time, it will have a similar functional set to libraries like Rcpp in terms of its features and capability, but with the added advantage that the D programming language is more accessible than C++. D has powerful set of programming paradigms but is particulary well known for its metaprogramming, compile time reflection, and code-generation capabilities. It is strongly influenced by C, C++, Java, and languages in the functional sphere. For more information see the [D programming language website](https://dlang.org/).
 
 ## Implementation approach
 
@@ -305,6 +305,11 @@ saucer::sauce(c("averagerandom.d", "randomnumbers.d"))
 calcRandomAverage(100L)
 ```
 
+### Matrix examples
+
+[Examples for R matrix interop with D](./vignettes/matrix.md)
+
+
 ### Function examples
 [Examples for R function interop with D](./vignettes/functions.md)
 
@@ -327,11 +332,9 @@ calcRandomAverage(100L)
 [Examples for R externalptr interop with D](./vignettes/xptr.md)
 
 
-More examples will follow ...
 
 ## Limitations
 
-- Limited type coverage - as discussed this will change rapidly to include more R types.
 - Documentation - this will also be expanded on in due time.
 - Type qualification support for interfacing types, e.g. immutable, const and so forth.
 - No (direct) tooling to creating R packages containing D code in an easy a way as in Rcpp.
