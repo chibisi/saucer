@@ -95,7 +95,10 @@ if(
     
     pragma(inline, true) auto opCast(T: SEXP)() @trusted
     {
-        NumericMatrix result = this;
+        import std.traits: ReturnType;
+        alias ElType = ReturnType!(opIndex!int);
+        alias Type = MapToSEXP!(ElType);
+        RMatrix!(Type) result = this;
         return result.sexp;
     }
     
