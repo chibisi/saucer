@@ -1,5 +1,11 @@
 # Examples using matrices
 
+If you have the DMD compiler installed, these examples compile faster if you select it with
+
+```r
+saucer::setSaucerOptions(compiler = "dmd")
+```
+
 ## Simple instantiation with value
 
 ```r
@@ -60,7 +66,6 @@ saucer::dfunctions(matrixExampleCode3)
 matrixExampleCode4 = '
 import std.range: iota;
 import std.array: array;
-import std.stdio: writeln;
 
 @Export auto sliceCopy()
 {
@@ -116,7 +121,6 @@ saucer::dfunctions(matrixExampleCode6)
 matrixExampleCode7 = '
 import std.range: iota;
 import std.array: array;
-import std.stdio: writeln;
 
 @Export auto sliceAssignMatrix()
 {
@@ -138,7 +142,6 @@ saucer::dfunctions(matrixExampleCode7)
 matrixExampleCode8 = '
 import std.range: iota;
 import std.array: array;
-import std.stdio: writeln;
 
 @Export auto sliceAssignExpr()
 {
@@ -161,7 +164,6 @@ saucer::dfunctions(matrixExampleCode8)
 matrixExampleCode9 = '
 import std.range: iota;
 import std.array: array;
-import std.stdio: writeln;
 
 @Export auto matrixExpressionConstants()
 {
@@ -184,7 +186,6 @@ saucer::dfunctions(matrixExampleCode9)
 matrixExampleCode10 = '
 import std.range: iota;
 import std.array: array;
-import std.stdio: writeln;
 
 @Export auto matrixExpressionOpAssign()
 {
@@ -208,7 +209,6 @@ saucer::dfunctions(matrixExampleCode10)
 matrixExampleCode11 = '
 import std.range: iota;
 import std.array: array;
-import std.stdio: writeln;
 
 @Export auto matrixExpressionOpAssign2()
 {
@@ -225,5 +225,31 @@ saucer::dfunctions(matrixExampleCode11)
 (mat = matrixExpressionOpAssign2()) |> print()
 ```
 
-## Immutable Reference matrices coming soon
+## Matrix views
+
+Matrix views are views on existing matrices. When a matrix is sliced,
+a copy of that matrix is created. Sometimes it is desireable to work with
+a sliced referenced subset of a matrix without creating a copy. This is what 
+matrix views allows the user to do. The code below shows a computation involving
+a matrix view on `matC` so that a sliced copy is not taken from that matrix:
+
+```r
+matrixExampleCode12 = '
+import std.range: iota;
+import std.array: array;
+
+@Export auto matrixView()
+{
+    auto data = iota(1.0, 26.0, 1.0).array;
+    auto matA = NumericMatrix(3.0, 3, 3);
+    auto matC = NumericMatrix(data, 5, 5);
+    auto matB = NumericMatrix(2.0, 3, 3);
+    auto mat = NumericMatrix(4, 3, 3);
+    mat += 3.0*matA - matB * matC.view[0..3, 0..3];
+    return mat;
+}
+'
+saucer::dfunctions(matrixExampleCode12)
+(mat = matrixView()) |> print()
+```
 
