@@ -95,7 +95,10 @@ if(
     
     pragma(inline, true) auto opCast(T: SEXP)() @trusted
     {
-        NumericMatrix result = this;
+        import std.traits: ReturnType;
+        alias ElType = ReturnType!(opIndex!int);
+        alias Type = MapToSEXP!(ElType);
+        RMatrix!(Type) result = this;
         return result.sexp;
     }
     
@@ -244,7 +247,7 @@ if(SEXPDataTypes!(Type))
     }
     
     this(T, I)(T[] arr, I n_row, I n_col) @trusted
-    if(is(T == SEXPElementType!(Type)) && isIntegral!(I))
+    if(is(T: SEXPElementType!(Type)) && isIntegral!(I))
     {
         auto n = arr.length;
         enforce(n == n_row*n_col, "Length of array is not equal to multiple of nrow x ncol");
@@ -584,7 +587,7 @@ if(SEXPDataTypes!(Type))
     if(isIntegral!(I))
     {
         auto idx = getIndex(i, j);
-        static if((Type != STRSXP) && is(T == ElType))
+        static if((Type != STRSXP) && is(T: ElType))
         {
             this.ptr[idx] = value;
         }else static if(Type == STRSXP)
@@ -603,7 +606,7 @@ if(SEXPDataTypes!(Type))
     if(isIntegral!(I))
     {
         auto idx = getIndex(i, j);
-        static if((Type != STRSXP) && is(T == ElType))
+        static if((Type != STRSXP) && is(T: ElType))
         {
             mixin ("this.ptr[idx] " ~ op ~ "= value;");
             return this.ptr[idx];

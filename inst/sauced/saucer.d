@@ -364,10 +364,10 @@ enum isRMatrix(M) = false;
 enum isRMatrix(M: RMatrix!T, SEXPTYPE T) = true;
 enum isRMatrix(alias M) = isRMatrix!(typeof(M));
 
-enum isRFunction(F) = is(F == Function);
+enum isRFunction(F) = is(F: Function);
 enum isRFunction(alias F) = isRFunction!(typeof(F));
 
-enum isRList(L) = is(L == List);
+enum isRList(L) = is(L: List);
 enum isRList(alias L) = isRList!(typeof(L));
 
 
@@ -375,10 +375,10 @@ enum isXPtr(P) = false;
 enum isXPtr(P: XPtr!T, T) = true;
 enum isXPtr(alias P) = isXPtr!(typeof(P));
 
-enum isEnvir(E) = is(E == Environment);
+enum isEnvir(E) = is(E: Environment);
 enum isEnvir(alias E) = isEnvir!(typeof(E));
 
-enum isDataFrame(T) = is(T == DataFrame);
+enum isDataFrame(T) = is(T: DataFrame);
 enum isDataFrame(alias arg) = isDataFrame(typeof(arg));
 
 /*
