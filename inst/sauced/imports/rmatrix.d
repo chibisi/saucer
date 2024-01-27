@@ -129,7 +129,8 @@ if(
 }
 
 
-enum isRMatrixExpression(T) = is(T: MatrixExpression!(op, E1, E2), alias op, E1, E2);
+enum isRMatrixExpression(T) = is(T: MatrixExpression!(op, E1, E2), alias op, E1, E2) || 
+                                    is(T: View!(U), alias U);
 enum isRMatrixOrExpression(T) = isRMatrix!(T) || isRMatrixExpression!(T);
 enum isRMatrixExpressionOrBasicType(T) = isBasicType!T || isRMatrixOrExpression!T;
 
@@ -146,12 +147,86 @@ if ((isRMatrixOrExpression!E1 && isBasicType!E2) ||
 }
 
 
+private struct View(alias Type)
+if(SEXPDataTypes!(Type))
+{
+    private SEXP sexp;
+    private size_t i = 0;
+    private size_t j = 0;
+    private size_t k = 0;
+    private size_t l = 0;
+    this(SEXP sexp)
+    {
+        enforce(cast(bool)Rf_isMatrix(sexp),
+            "Item to view is not a matrix");
+        this.sexp = sexp;
+        this.j = this._nrows_;
+        this.l = this._ncols_;
+    }
+    pragma(inline, true) private auto _nrows_()
+    {
+        return Rf_nrows(this.sexp);
+    }
+    pragma(inline, true) private auto _ncols_()
+    {
+        return Rf_ncols(this.sexp);
+    }
+    pragma(inline, true) private auto nrow()
+    {
+        return cast(size_t)(this.j - this.i);
+    }
+    pragma(inline, true) private auto ncol()
+    {
+        return cast(size_t)(this.l - this.k);
+    }
+    auto opIndex(I)(I[2] r0, I[2] r1) @trusted
+    if(isIntegral!I)
+    {
+        enforce(r0[1] <= this._nrows_,
+            "Row limit can not be greater than number of rows");
+        enforce(r1[1] <= this._ncols_,
+            "Col limit can not be greater than number of rows");
+        this.i = cast(size_t)r0[0];
+        this.j = cast(size_t)r0[1];
+        this.k = cast(size_t)r1[0];
+        this.l = cast(size_t)r1[1];
+        return this;
+    }
+    auto opIndex(I)(I m, I n)
+    if(isIntegral!I)
+    {
+        enforce((m >= 0) && (m < this.nrow),
+            "First index is not in range [0, nrow]");
+        enforce((n >= 0) && (n < this.ncol),
+            "First index is not in range [0, ncol]");
+    auto ptr = Accessor!(Type)(this.sexp);
+        return ptr[(m + this.i) + this._nrows_*(n + this.k)];
+    }
+    pragma(inline, true) @property auto opDollar(size_t dim: 0)() @trusted
+    {
+        return this.nrow;
+    }
+    pragma(inline, true) @property auto opDollar(size_t dim: 1)() @trusted
+    {
+        return this.ncol;
+    }
+    I[2] opSlice(size_t dim, I)(I start, I end) @trusted
+    if(isIntegral!I && ((dim >= 0) && (dim < 2)))
+    {
+        enforce(start >= 0 && end <= this.opDollar!dim, 
+        "Start and end indexes are not withing dimension limits");
+        return [start, end];
+    }
+}
+
+
 
 struct RMatrix(alias Type)
 if(SEXPDataTypes!(Type))
 {
     private SEXP sexp;
     private bool needUnprotect = false;
+    View!(Type) view;
     static if(Type != STRSXP)
     {
         alias ElType = SEXPElementType!(Type);
@@ -165,6 +240,7 @@ if(SEXPDataTypes!(Type))
         this.sexp = allocMatrix(Type, cast(int)n_row, cast(int)n_col);
         R_PreserveObject(this.sexp);
         this.needUnprotect = true;
+        this.view = View!(Type)(this.sexp);
     }
     
     this(T, I)(T[] arr, I n_row, I n_col) @trusted
@@ -179,11 +255,13 @@ if(SEXPDataTypes!(Type))
         {
             this.ptr[0..n] = arr[0..n];
         }else{
+            auto ptr = this.ptr;
             foreach(i; 0..n)
             {
-              this.ptr[i] = mkChar(arr[i]);
+              ptr[i] = mkChar(arr[i]);
             }
         }
+        this.view = View!(Type)(this.sexp);
     }
     this(T, I)(T value, I nrow, I ncol) @trusted
     if(is(T: SEXPElementType!(Type)) && isIntegral!(I))
@@ -199,6 +277,7 @@ if(SEXPDataTypes!(Type))
         {
             this.ptr[0..n] = mkChar(value);
         }
+        this.view = View!(Type)(this.sexp);
     }
     
     this(SEXP sexp) @trusted
@@ -232,6 +311,7 @@ if(SEXPDataTypes!(Type))
                 this[i, j] = expr[i, j];
             }
         }
+        this.view = View!(Type)(this.sexp);
     }
     
     this(ref return scope RMatrix original) @trusted
@@ -241,6 +321,7 @@ if(SEXPDataTypes!(Type))
         R_PreserveObject(this.sexp);
         this.needUnprotect = true;
         copyMatrix(this.sexp, original.sexp, FALSE);
+        this.view = View!(Type)(this.sexp);
     }
     
     ~this() @trusted
@@ -577,37 +658,7 @@ if(SEXPDataTypes!(Type))
         }
         return;
     }
-    private auto colView(J)(J j) @trusted
-    if(isIntegral!(J))
-    {
-        auto idx = getIndex(0, j);
-        return View!(Type)(&this.ptr[idx], this.nrow);
-    }
 }
 
 
-
-private struct View(SEXPTYPE Type)
-if(SEXPDataTypes!(Type))
-{
-  alias ElType = SEXPElementType!(Type);
-  private ElType* ptr;
-  immutable size_t length;
-  this(ElType* ptr, size_t length)
-  {
-    this.ptr = ptr;
-    this.length = length;
-  }
-  ~this()
-  {
-    this.ptr = null;
-  }
-  ElType opIndex(size_t i)
-  {
-    enforce((i >= 0) && (i < this.length), 
-      "Invalid index subscript " ~ to!(string)(i) ~ 
-      " for data range.");
-    return ptr[i];
-  }
-}
 
